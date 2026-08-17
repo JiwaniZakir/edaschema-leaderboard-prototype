@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2307294D'/><rect x='6' y='6' width='5' height='5' fill='%23FFC600'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+<title>Model Explorer | Drexel ICE Lab</title>
+<style>
+/* ===================================================================
+   Canonical design tokens — identical across index, explorer and
+   playground. Two semantic palettes that must never collide:
+   model families (saturated) and schema entities (muted).
+   =================================================================== */
+:root{
+  /* radius scale */
+  --r-xs:3px; --r-sm:4px; --r-md:6px; --r-lg:8px; --r-pill:999px;
+
+  /* signed data, used by every chart */
+  --pos:#3b6fb0; --neg:#c06a2e; --dead:#b8b5ae;
+
+  /* model families — saturated */
+  --fam-gnn:#2f6bb5; --fam-cnn:#c25f22; --fam-mlp:#2f8f6b;
+  --fam-automl:#7a4bb8; --fam-hybrid:#a8762c;
+
+  /* schema entities — muted, deliberately distinct from the families */
+  --ent-netlist:#7d97cc; --ent-cell:#cf9b7e; --ent-power:#7cc9a8;
+  --ent-timing:#b58ad1; --ent-net:#6fb3b3; --ent-clock:#c4a463;
+  --ent-routing:#b07f96;
+}
+html[data-theme="dark"]{
+  --pos:#6da3d8; --neg:#dd9558; --dead:#55524c;
+  --fam-gnn:#6ba3de; --fam-cnn:#e08a4e; --fam-mlp:#5cbd94;
+  --fam-automl:#a882dd; --fam-hybrid:#d0a45c;
+  --ent-netlist:#93a9d6; --ent-cell:#d9ab92; --ent-power:#93d4ba;
+  --ent-timing:#c4a1dc; --ent-net:#87c4c4; --ent-clock:#d1b57e;
+  --ent-routing:#c295a8;
+}
+
+/* ==========================================================================
+   EDA-Schema Leaderboard — Drexel ICE Lab theme
+   Mirrors drexel-ice.github.io (al-folio Jekyll theme) so the leaderboard
+   reads as part of the lab site rather than a bolt-on.
+
+   Token names follow al-folio's --global-* convention exactly, so this file
+   can be swapped for the lab's own _themes.scss output without renaming.
+   Drop into static/css/ and link before the component styles.
+   ========================================================================== */
+
+/* --- Typography -----------------------------------------------------------
+   al-folio loads Roboto + Roboto Slab from Google Fonts. Add this to <head>:
+
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+   (this is the exact font URL from the lab's _config.yml)
+
+   The stacks below degrade cleanly if the fonts fail to load.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --global-font-sans:  "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                       Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --global-font-slab:  "Roboto Slab", Georgia, "Times New Roman", serif;
+  --global-font-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Drexel brand ---------------------------------------------------- */
+  --global-theme-color:   #07294D;   /* Drexel navy  — links, nav, headers   */
+  --global-accent-color:  #FFC600;   /* Drexel gold  — chrome accents ONLY,
+                                        never data: 1.4:1 on white          */
+  --global-hover-color:   #0E4276;   /* navy lightened for hover            */
+  --global-hover-text-color: #ffffff;
+
+  /* --- Surfaces and text ------------------------------------------------ */
+  --global-bg-color:          #ffffff;
+  --global-card-bg-color:     #fafafa;
+  --global-code-bg-color:     #f5f5f5;
+  --global-text-color:        #212529;
+  --global-text-color-light:  #6c757d;
+  --global-divider-color:     #e6e6e6;
+  --global-divider-strong:    #cfcfcf;
+  --global-highlight-color:   #FFC600;
+
+  --global-footer-bg-color:   #07294D;
+  --global-footer-text-color: #ffffff;
+  --global-footer-link-color: #FFC600;
+
+  /* --- Leaderboard data palette ----------------------------------------
+     Deliberately NOT brand colors. Navy on navy kills a heatmap and gold on
+     white fails contrast. Every pair below clears 4.5:1 on its own ground.  */
+  --lb-win-bg:    #dcecd4;  --lb-win-fg:    #24632e;  --lb-win-solid:  #3f8a45;
+  --lb-lose-bg:   #f8ded9;  --lb-lose-fg:   #9d2f26;  --lb-lose-solid: #b8453a;
+  --lb-none-bg:   transparent; --lb-none-fg: #9a9a9a;
+  --lb-sat-bg:    #e9e8f0;  --lb-sat-fg:    #4f4e5e;
+  --lb-undef-bg:  #f2f0ec;  --lb-undef-fg:  #6b6558;  /* "no ± error" state */
+  --lb-warn:      #a8701f;
+
+  /* Architecture-diagram blocks */
+  --lb-layer-in-bg:   #edebe6;  --lb-layer-in-br:   #cfcbc2;
+  --lb-layer-op-bg:   #e4e2f7;  --lb-layer-op-br:   #b0a9e6;
+  --lb-layer-pool-bg: #d8eae1;  --lb-layer-pool-br: #85c3a7;
+  --lb-layer-out-bg:  #fadfd8;  --lb-layer-out-br:  #e09b8c;
+
+  --global-radius: 6px;
+  --global-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+/* --- Dark mode -------------------------------------------------------------
+   al-folio ships a theme toggle writing [data-theme="dark"] on <html>.
+   Matching it means the leaderboard follows the lab site's switch for free.  */
+html[data-theme="dark"] {
+  --global-bg-color:          #1c1c1d;
+  --global-card-bg-color:     #212122;
+  --global-code-bg-color:     #212122;
+  --global-text-color:        #e8e8e8;
+  --global-text-color-light:  #a0a0a0;
+  --global-divider-color:     #3a3a3c;
+  --global-divider-strong:    #4a4a4c;
+  --global-theme-color:       #4d8fd1;   /* navy is unreadable on dark      */
+  --global-hover-color:       #6ba6e0;
+
+  /* Architecture blocks must darken too, or the label text is invisible */
+  --lb-layer-in-bg:   #33333a;  --lb-layer-in-br:   #55555f;
+  --lb-layer-op-bg:   #2f2b4d;  --lb-layer-op-br:   #5b52a0;
+  --lb-layer-pool-bg: #1f3a30;  --lb-layer-pool-br: #3f7a62;
+  --lb-layer-out-bg:  #402420;  --lb-layer-out-br:  #8a4c3f;
+
+  --lb-win-bg:   #1f3a24;  --lb-win-fg:   #8ed69a;
+  --lb-lose-bg:  #3d211e;  --lb-lose-fg:  #e8938a;
+  --lb-sat-bg:   #2a2a33;  --lb-sat-fg:   #a8a6b8;
+  --lb-undef-bg: #2e2c28;  --lb-undef-fg: #b0a894;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+
+body {
+  margin: 0;
+  background: var(--global-bg-color);
+  color: var(--global-text-color);
+  font-family: var(--global-font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* al-folio sets headings in the slab face — this is the single strongest
+   visual cue that a page belongs to the lab site. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--global-font-slab);
+  font-weight: 400;
+  color: var(--global-text-color);
+  letter-spacing: -.005em;
+  margin: 0 0 .5rem;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+
+/* al-folio lowercases page titles and nav labels. Keep it — it is a
+   recognizable signature of the lab site. */
+.page-title, .nav-link { text-transform: lowercase; }
+
+a {
+  color: var(--global-theme-color);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { color: var(--global-hover-color); text-decoration: underline; }
+
+code, pre, .mono { font-family: var(--global-font-mono); font-size: .9em; }
+code  { background: var(--global-code-bg-color); padding: .12em .4em;
+        border-radius:var(--r-xs); }
+pre   { background: var(--global-code-bg-color); padding: 1rem;
+        border-radius: var(--global-radius); overflow-x: auto; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* --- Navbar ---------------------------------------------------------------
+   al-folio: white ground, logo left, lowercase links right, thin bottom rule.
+   The leaderboard keeps that rather than a navy bar, so the two sites feel
+   continuous. Navy is reserved for links, active state, and the footer.      */
+
+.navbar {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .9rem 1.5rem;
+  background: var(--global-bg-color);
+  border-bottom: 1px solid var(--global-divider-color);
+  position: sticky; top: 0; z-index: 100;
+}
+.navbar .brand { display: flex; align-items: center; gap: .7rem; }
+.navbar .brand img { height: 34px; width: auto; }
+.navbar .brand .title {
+  font-family: var(--global-font-slab);
+  font-size: 1.05rem; color: var(--global-theme-color);
+}
+.navbar nav { margin-left: auto; display: flex; gap: 1.4rem; }
+.navbar nav a {
+  font-size: .95rem; color: var(--global-text-color);
+  text-transform: lowercase; padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.navbar nav a:hover { color: var(--global-theme-color); text-decoration: none; }
+.navbar nav a[aria-current="page"] {
+  color: var(--global-theme-color);
+  border-bottom-color: var(--global-accent-color);  /* gold underline */
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+/* al-folio sets max_width: 930px in _config.yml. Prose keeps that; the data grid
+   needs more room, so .container--wide is the one documented deviation. */
+.container { max-width: 930px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.container--wide { max-width: 1440px; }
+
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { margin-bottom: .25rem; }
+.page-header .lead {
+  font-size: 1.05rem; color: var(--global-text-color-light); margin: 0;
+}
+
+/* --- Tables ---------------------------------------------------------------
+   al-folio uses Bootstrap-ish tables: light header rule, row dividers,
+   no vertical borders, subtle row hover.                                     */
+
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  font-family: var(--global-font-sans);
+  font-size: .9rem; font-weight: 500;
+  color: var(--global-text-color-light);
+  text-align: left; padding: .6rem .7rem;
+  border-bottom: 2px solid var(--global-divider-strong);
+}
+.table td {
+  padding: .7rem; border-bottom: 1px solid var(--global-divider-color);
+}
+.table tbody tr:hover td { background: var(--global-card-bg-color); }
+.table .r { text-align: right; }
+.table .c { text-align: center; }
+
+/* --- Cards and pills ----------------------------------------------------- */
+
+.card {
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  border-radius: var(--global-radius);
+  padding: 1rem 1.2rem;
+}
+
+.pill {
+  font: inherit; font-size: .92rem;
+  padding: .4rem .9rem;
+  border: 1px solid transparent; border-radius:var(--r-pill);
+  background: none; color: var(--global-text-color);
+  cursor: pointer; transition: background .15s ease;
+}
+.pill:hover { background: var(--global-card-bg-color); }
+.pill[aria-pressed="true"] {
+  background: var(--global-theme-color);
+  color: #fff; border-color: var(--global-theme-color);
+}
+
+.badge {
+  font-size: .78rem; padding: .15rem .6rem; border-radius:var(--r-pill);
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  color: var(--global-text-color-light);
+}
+.badge--verified { background: var(--lb-win-bg); color: var(--lb-win-fg);
+                   border-color: transparent; }
+.badge--flagged  { color: var(--lb-warn); border-color: var(--lb-warn); }
+
+/* --- Leaderboard cells --------------------------------------------------- */
+
+.cell {
+  border-radius: var(--global-radius);
+  padding: .6rem .5rem; margin: .25rem;
+  text-align: center; cursor: pointer;
+  border: 1px solid transparent;
+  transition: box-shadow .12s ease;
+}
+.cell:hover { box-shadow: 0 0 0 2px rgba(7, 41, 77, .28); }
+.cell .who { font-size: .85rem; line-height: 1.3; }
+.cell .val { font-size: 1rem; font-weight: 500; margin-top: 1px; }
+
+.cell--win   { background: var(--lb-win-bg);   color: var(--lb-win-fg); }
+.cell--lose  { background: var(--lb-lose-bg);  color: var(--lb-lose-fg); }
+.cell--sat   { background: var(--lb-sat-bg);   color: var(--lb-sat-fg); }
+.cell--undef { background: var(--lb-undef-bg); color: var(--lb-undef-fg); }
+.cell--none  { background: var(--lb-none-bg);  color: var(--lb-none-fg);
+               cursor: default; }
+.cell--none:hover { box-shadow: none; }
+
+.row--void {
+  background: var(--global-card-bg-color);
+  color: var(--global-text-color-light);
+  text-align: center; font-size: .9rem; padding: .9rem;
+}
+
+/* --- Focus and motion ---------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--global-accent-color);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* --- Footer ---------------------------------------------------------------
+   al-folio's footer is a full-width bar with centered muted text. Ours is
+   navy with gold links, which is where the brand pair actually works.        */
+
+.footer {
+  background: var(--global-footer-bg-color);
+  color: var(--global-footer-text-color);
+  text-align: center; padding: 1.5rem; font-size: .85rem;
+}
+.footer a { color: var(--global-footer-link-color); }
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .matrix-scroll .table th:first-child,
+  .matrix-scroll .table td:first-child {
+    position: sticky; left: 0; background: var(--global-bg-color);
+    z-index: 2;
+  }
+  .navbar nav { gap: .9rem; font-size: .9rem; }
+}
+
+/* ============================================================
+   CARD GRID — EDA-Schema Leaderboard
+   Components are cards on a 12-column grid, sized to their
+   content. Chrome stays close to al-folio: quiet borders,
+   Roboto Slab headings, --global-* tokens throughout.
+   ============================================================ */
+
+:root{
+  --pos:#3b6fb0; --neg:#c06a2e; --dead:#b8b5ae;
+  --trace:#5c7d94;                    /* metal routing, connective tissue */
+  --row-pitch:26px;                   /* standard-cell row rhythm */
+  --card-r:6px;
+  --pin:#FFC600;
+}
+html[data-theme="dark"]{
+  --pos:#6da3d8; --neg:#dd9558; --dead:#55524c; --trace:#7fa3bb;
+}
+
+/* ---- page ground: faint cell rows ---- */
+body{
+  margin:0;
+  background:var(--global-bg-color);
+  color:var(--global-text-color);
+  font-family:var(--global-font-sans);
+  font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mono{font-family:var(--global-font-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1460px;margin:0 auto;padding:1.5rem 1.5rem 5rem}
+
+/* ---- bento grid ---- */
+.bento{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  gap:14px;
+  align-items:stretch;
+}
+.s3{grid-column:span 3}
+.s4{grid-column:span 4}
+.s5{grid-column:span 5}
+.s6{grid-column:span 6}
+.s7{grid-column:span 7}
+.s8{grid-column:span 8}
+.s9{grid-column:span 9}
+.s12{grid-column:span 12}
+.r2{grid-row:span 2}
+@media(max-width:1180px){
+  .s3,.s4,.s5{grid-column:span 6}
+  .s7,.s8,.s9{grid-column:span 12}
+  .r2{grid-row:span 1}
+}
+@media(max-width:720px){
+  .s3,.s4,.s5,.s6,.s7,.s8,.s9{grid-column:span 12}
+}
+
+/* ---- the card ---- */
+.k{
+  position:relative;
+  background:var(--global-bg-color);
+  border:1px solid var(--global-divider-color);
+  border-radius:var(--card-r);
+  padding:1rem 1.15rem 1.1rem;
+  display:flex; flex-direction:column;
+  transition:border-color .18s ease;
+  /* orchestrated entrance: cards rise in reading order */
+  opacity:0; transform:translateY(10px);
+  animation:kin .5s cubic-bezier(.22,.61,.36,1) forwards;
+  animation-delay:calc(var(--i,0) * 45ms);
+}
+@keyframes kin{to{opacity:1;transform:none}}
+.k:hover{border-color:var(--global-divider-strong)}
+.k--live{border-color:var(--global-theme-color)}
+.k--flat{background:var(--global-card-bg-color)}
+
+/* card head */
+.keyebrow{
+  font-family:var(--global-font-mono);
+  font-size:.66rem; text-transform:uppercase; letter-spacing:.16em;
+  color:var(--global-text-color-light);
+  margin:0 0 .2rem;
+}
+.ktitle{
+  font-family:var(--global-font-slab); font-weight:400;
+  font-size:1.02rem; letter-spacing:-.005em;
+  margin:0 0 .12rem;
+}
+.ksub{
+  font-size:.76rem; color:var(--global-text-color-light);
+  margin:0 0 .8rem; line-height:1.45;
+}
+.kbody{margin-top:.2rem}
+.kgrow{flex:1}
+
+/* hero numerals — the one place type gets loud */
+.figure{
+  font-family:var(--global-font-slab); font-weight:300;
+  font-size:clamp(2rem,4.4vw,3.4rem); line-height:1;
+  letter-spacing:-.035em; font-variant-numeric:tabular-nums;
+}
+.figure--sm{font-size:clamp(1.4rem,2.4vw,1.9rem)}
+.figunit{font-size:.72rem; color:var(--global-text-color-light);
+  letter-spacing:.1em; text-transform:uppercase; margin-left:.4rem}
+
+/* metadata chips, HF-style */
+/* marks an address whose tensors are a measured checkpoint */
+.realtag{display:inline-block;margin-left:.5rem;padding:0 .34rem;border-radius:3px;
+  font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--lb-win-bg);color:var(--lb-win-fg);vertical-align:middle}
+body.loading .bento{opacity:.45;transition:opacity .15s}
+#m-addr code{white-space:normal;overflow-wrap:anywhere}
+.chips{display:flex;gap:.35rem;flex-wrap:wrap}
+.chip{
+  font-size:.72rem; padding:.16rem .55rem; border-radius:var(--r-sm);
+  background:var(--global-card-bg-color);
+  border:1px solid var(--global-divider-color);
+  color:var(--global-text-color-light);
+  font-family:var(--global-font-mono);
+}
+.chip--key{color:var(--global-theme-color);border-color:var(--global-theme-color)}
+.chip--warn{color:var(--lb-warn);border-color:var(--lb-warn)}
+.chip--ok{background:var(--lb-win-bg);color:var(--lb-win-fg);border-color:transparent}
+
+/* stat rows */
+.st{display:flex;justify-content:space-between;gap:.8rem;font-size:.8rem;
+  padding:.26rem 0;border-bottom:1px solid var(--global-divider-color)}
+.st:last-child{border-bottom:none}
+.st span{color:var(--global-text-color-light)}
+.st b.big{font-size:1.02rem;color:var(--global-theme-color)}
+
+/* the address line — a schematic reference designator */
+.desig{
+  font-family:var(--global-font-mono); font-size:.7rem;
+  color:var(--global-text-color-light);
+  background:var(--global-code-bg-color);
+  border-left:2px solid var(--pin);
+  padding:.35rem .55rem; border-radius:0 4px 4px 0;
+  overflow-x:auto; white-space:nowrap;
+}
+
+/* controls */
+.tog{display:inline-flex;border:1px solid var(--global-divider-strong);
+  border-radius:var(--r-pill);overflow:hidden}
+.tog button{font:inherit;font-size:.74rem;padding:.22rem .68rem;background:none;
+  border:none;cursor:pointer;color:var(--global-text-color);transition:background .15s}
+.tog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
+.mini{font:inherit;font-size:.76rem;padding:.26rem .68rem;border-radius:var(--r-sm);cursor:pointer;
+  border:1px solid var(--global-divider-strong);background:var(--global-bg-color);
+  color:var(--global-text-color);transition:border-color .15s,color .15s}
+.mini:hover{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+.mini.on{background:var(--neg);color:#fff;border-color:var(--neg)}
+input[type=range]{width:100%;accent-color:var(--global-theme-color);margin:0}
+.ctlrow{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;font-size:.76rem;
+  color:var(--global-text-color-light);margin-bottom:.55rem}
+.ctlrow input[type=range]{width:120px}
+
+svg,canvas{display:block;width:100%;height:auto}
+canvas{border-radius:var(--r-sm);border:1px solid var(--global-divider-color);cursor:crosshair;
+  image-rendering:pixelated}
+text.cl{font-size:10px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+text.cl2{font-size:8px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+.cap{font-size:.76rem;color:var(--global-text-color-light);line-height:1.5;margin:.5rem 0 0}
+.hint{font-size:.76rem;color:var(--global-text-color-light);line-height:1.5}
+
+/* navbar + banners */
+.navbar{display:flex;align-items:center;gap:1.3rem;padding:.8rem 1.5rem;
+  border-bottom:1px solid var(--global-divider-color);background:var(--global-bg-color);
+  position:sticky;top:0;z-index:40}
+.navbar .title{font-family:var(--global-font-slab);font-size:1.02rem;
+  color:var(--global-theme-color)}
+.navbar nav{margin-left:auto;display:flex;gap:1.15rem;font-size:.9rem;align-items:center}
+.navbar nav a{color:var(--global-text-color);text-decoration:none;text-transform:lowercase;
+  padding-bottom:2px;border-bottom:2px solid transparent}
+.navbar nav a:hover{color:var(--global-theme-color)}
+.navbar nav a[aria-current]{color:var(--global-theme-color);border-bottom-color:var(--pin)}
+.themebtn{font:inherit;font-size:.8rem;padding:.18rem .62rem;border-radius:var(--r-pill);
+  border:1px solid var(--global-divider-strong);background:none;cursor:pointer;
+  color:var(--global-text-color)}
+.bar{padding:.55rem 1.5rem;font-size:.83rem;display:flex;gap:.5rem;align-items:center;
+  flex-wrap:wrap}
+.bar--note{background:#FFF4CC;border-bottom:1px solid #E8CE72;color:#5c4708}
+.bar--warn{background:#fdecea;border-bottom:1px solid #e8a49c;color:#8c2f22}
+html[data-theme="dark"] .bar--note{background:#3a2f0d;border-bottom-color:#6b5a1e;color:#e8d79a}
+html[data-theme="dark"] .bar--warn{background:#3d211e;border-bottom-color:#7a3a30;color:#e8938a}
+
+.crumbbar{font-size:.83rem;color:var(--global-text-color-light);margin:0 0 .5rem}
+.crumbbar a{color:var(--global-theme-color);text-decoration:none}
+.crumbbar a:hover{text-decoration:underline}
+
+/* page title block */
+.phead{margin:.2rem 0 1.1rem}
+.phead h1{font-family:var(--global-font-slab);font-weight:300;font-size:2.1rem;
+  letter-spacing:-.02em;margin:0 0 .2rem;text-transform:lowercase}
+.phead .lead{color:var(--global-text-color-light);margin:0;max-width:68ch}
+
+/* footer */
+.foot{text-align:center;padding:1.4rem;font-size:.82rem;
+  background:var(--global-footer-bg-color);color:#fff;margin-top:2.5rem}
+.foot a{color:var(--global-footer-link-color)}
+
+/* animation primitives */
+.br2{transform:scaleY(0);transform-origin:bottom;
+  animation:bi .5s cubic-bezier(.22,.61,.36,1) forwards}
+@keyframes bi{to{transform:scaleY(1)}}
+.ln2{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);
+  animation:dr 1.05s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.ed{cursor:pointer}
+.ed:hover{stroke-width:3!important;opacity:1!important}
+.ed.sel{stroke:var(--global-theme-color)!important}
+.nd{cursor:pointer;stroke:var(--global-divider-strong);stroke-width:.6}
+.nd:hover{stroke:var(--global-theme-color);stroke-width:2}
+.nd.pin{stroke:var(--global-theme-color);stroke-width:2.5}
+.nd.abl{stroke:var(--neg);stroke-width:2;stroke-dasharray:2 2}
+
+@media(prefers-reduced-motion:reduce){
+  .k,.br2,.ln2{animation:none!important;opacity:1!important;transform:none!important;
+    stroke-dashoffset:0!important}
+  .k:hover{transform:none}
+}
+
+/* legend — one quiet line under the grid, not a card */
+.legendline{
+  display:flex; gap:1.6rem; flex-wrap:wrap; align-items:center;
+  margin-top:1.1rem; padding-top:.9rem;
+  border-top:1px solid var(--global-divider-color);
+  font-size:.79rem; color:var(--global-text-color-light);
+}
+.legendline i{
+  font-style:normal; display:inline-flex; width:15px; height:15px;
+  align-items:center; justify-content:center; margin-right:.4rem;
+  border-radius:var(--r-xs); background:var(--global-card-bg-color);
+  border:1px solid var(--global-divider-color);
+  font-size:.68rem; color:var(--global-text-color);
+}
+.legendline span{display:inline-flex; align-items:center}
+
+/* ---- 3D network + op graph ---- */
+.viewtog{display:inline-flex;border:1px solid var(--global-divider-strong);border-radius:var(--r-pill);
+  overflow:hidden;margin-bottom:.6rem}
+.viewtog button{font:inherit;font-size:.74rem;padding:.2rem .75rem;background:none;border:none;
+  cursor:pointer;color:var(--global-text-color)}
+.viewtog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
+.c3dhost{position:relative;border:1px solid var(--global-divider-color);border-radius:var(--r-md);
+  overflow:hidden;background:var(--global-bg-color)}
+#net3d{display:block;width:100%;height:auto;touch-action:none}
+.unitinfo{font-size:.78rem;color:var(--global-text-color);margin:.5rem 0 0;min-height:1.2em}
+.unitinfo .dim{color:var(--global-text-color-light)}
+.graphbox{border:1px solid var(--global-divider-color);border-radius:var(--r-md);
+  padding:.5rem 0;background:var(--global-bg-color);overflow:hidden}
+#graph{display:block;width:100%;height:auto}
+.gn rect{transition:stroke .12s,stroke-width .12s}
+.gn{cursor:default}
+.cbx{font-size:.76rem;display:inline-flex;align-items:center;gap:.3rem}
+.cbx input{accent-color:var(--global-theme-color)}
+
+/* ---- at a glance: value first, label small ---- */
+.gfig{display:flex;align-items:baseline;gap:.35rem;margin:.1rem 0 0}
+.gnum{font-family:var(--global-font-slab);font-weight:300;font-size:2.1rem;
+  line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.gunit{font-size:.72rem;color:var(--global-text-color-light);
+  text-transform:uppercase;letter-spacing:.09em}
+.glab{font-size:.78rem;color:var(--global-text-color-light);margin-top:.15rem}
+.gsec{font-family:var(--global-font-mono);font-size:.6rem;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--global-text-color-light);margin:.85rem 0 .25rem}
+.gprof{width:100%;height:auto;display:block}
+.gbar{display:flex;height:15px;border-radius:var(--r-xs);overflow:hidden;
+  background:var(--global-card-bg-color)}
+.gseg{display:block;height:100%;cursor:pointer;transition:filter .12s,transform .12s;
+  transform-origin:center}
+.gseg:hover,.gseg.on{filter:brightness(1.12) saturate(1.2);transform:scaleY(1.28)}
+.gnote{font-size:.73rem;color:var(--global-text-color-light);line-height:1.45;
+  margin-top:.4rem;min-height:2.5em}
+.gnote b{color:var(--global-text-color);font-weight:500}
+.gchips{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.7rem}
+.gchip{font-family:var(--global-font-mono);font-size:.63rem;padding:.1rem .4rem;
+  border-radius:var(--r-xs);background:var(--global-card-bg-color);
+  border:1px solid var(--global-divider-color);color:var(--global-text-color-light)}
+.gchip.warn{color:var(--lb-warn);border-color:var(--lb-warn)}
+
+/* glance: mode toggle, drift gauges, address, change flash */
+.gmodes{display:flex;gap:.2rem;margin:.8rem 0 .35rem}
+.gmode{flex:1;font:inherit;font-family:var(--global-font-mono);font-size:.58rem;
+  padding:.16rem .1rem;border-radius:var(--r-xs);cursor:pointer;
+  border:1px solid var(--global-divider-color);background:var(--global-bg-color);
+  color:var(--global-text-color-light);text-transform:uppercase;letter-spacing:.05em}
+.gmode:hover{border-color:var(--global-theme-color);color:var(--global-text-color)}
+.gmode.on{background:var(--global-theme-color);color:#fff;border-color:var(--global-theme-color)}
+.ggauges{display:flex;flex-direction:column;gap:.22rem}
+.ggauge{display:flex;align-items:center;gap:.4rem;cursor:pointer;padding:.05rem 0}
+.ggauge.on .gtrack,.ggauge:hover .gtrack{background:var(--global-divider-strong)}
+.gtrack{position:relative;flex:1;height:7px;border-radius:var(--r-pill);
+  background:var(--global-card-bg-color);transition:background .12s}
+.gtrack i{position:absolute;top:50%;width:7px;height:7px;border-radius:var(--r-pill);
+  transform:translate(-50%,-50%);transition:left .18s}
+.gtrack b{position:absolute;top:-1px;width:1px;height:9px;
+  background:var(--global-divider-strong);transform:translateX(-50%)}
+.glbl{font-family:var(--global-font-mono);font-size:.6rem;
+  color:var(--global-text-color-light);min-width:34px;text-align:right}
+.gaddr{font-family:var(--global-font-mono);font-size:.6rem;
+  color:var(--global-text-color-light);margin-top:.55rem;padding-top:.4rem;
+  border-top:1px solid var(--global-divider-color);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes gflash{0%{background:rgba(7,41,77,.09)}100%{background:transparent}}
+.gflash{animation:gflash .55s ease-out}
+html[data-theme="dark"] @keyframes gflash{0%{background:rgba(255,255,255,.08)}100%{background:transparent}}
+@media(prefers-reduced-motion:reduce){.gflash{animation:none}}
+.gdelta{font-size:.68rem;line-height:1.4;margin-top:.3rem;padding:.28rem .4rem;
+  border-radius:var(--r-xs);font-family:var(--global-font-sans)}
+.gdelta b{font-family:var(--global-font-mono);font-weight:600}
+.gdelta.same{background:var(--lb-sat-bg);color:var(--lb-sat-fg)}
+.gdelta.diff{background:var(--lb-win-bg);color:var(--lb-win-fg)}
+.gnote .dim{opacity:.7}
+
+/* explorer-specific */
+.fg{margin-bottom:.6rem}
+.fgh{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:.2rem;display:flex;gap:.35rem}
+.fgh span{color:var(--global-text-color-light);font-weight:400}
+.fr{display:grid;grid-template-columns:1fr 74px 34px;gap:.4rem;align-items:center;
+  font-size:.72rem;padding:.05rem 0}
+.fn{color:var(--global-text-color-light);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.fv{font-size:.7rem;text-align:right}
+.ins-h{font-family:var(--global-font-slab);font-size:.94rem;margin-bottom:.4rem}
+.kv{display:flex;justify-content:space-between;gap:.8rem;font-size:.79rem;padding:.2rem 0;
+  border-bottom:1px solid var(--global-divider-color)}
+.kv span{color:var(--global-text-color-light)}
+.kv b.ed{color:var(--global-theme-color)}
+.rowb{margin-top:.5rem}
+.chipc{font:inherit;font-size:.71rem;padding:.16rem .5rem;margin:2px;border-radius:var(--r-sm);
+  border:1px solid var(--global-divider-color);background:var(--global-bg-color);
+  color:var(--global-text-color-light);cursor:pointer;font-family:var(--global-font-mono)}
+.chipc:hover{border-color:var(--global-theme-color);color:var(--global-text-color)}
+.chipc.on{background:var(--global-theme-color);color:#fff;border-color:var(--global-theme-color)}
+.pg{display:grid;grid-template-columns:auto repeat(5,1fr);gap:3px}
+.pgh{font-size:.64rem;color:var(--global-text-color-light);text-align:center}
+.pgl{font-size:.68rem;color:var(--global-text-color-light);padding-right:.35rem;
+  display:flex;align-items:center}
+.pgc{height:22px;border:1px solid var(--global-divider-color);border-radius:var(--r-xs);
+  cursor:pointer;background:var(--global-card-bg-color);transition:.12s}
+.pgc:hover{border-color:var(--global-theme-color)}
+.pgc.on{background:var(--global-theme-color);border-color:var(--global-theme-color)}
+.hmtog{display:flex;gap:.28rem;flex-wrap:wrap;margin-bottom:.5rem}
+.hmtog button{font:inherit;font-size:.7rem;padding:.18rem .52rem;border-radius:var(--r-sm);
+  cursor:pointer;border:1px solid var(--global-divider-strong);
+  background:var(--global-bg-color);color:var(--global-text-color);
+  font-family:var(--global-font-mono)}
+.hmtog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;
+  border-color:var(--global-theme-color)}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+.kpi .k{font-size:.68rem;color:var(--global-text-color-light);
+  text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-family:var(--global-font-slab);font-size:1.05rem;
+  font-variant-numeric:tabular-nums}
+.cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.ctab{background:var(--global-theme-color);color:#fff;border:1px solid var(--global-theme-color);
+  padding:.5rem 1.1rem;border-radius:var(--r-md);text-decoration:none;font-size:.9rem;white-space:nowrap}
+.ctab:hover{opacity:.9;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="bar bar--note" id="bar-src"><b>Prototype.</b> Weights are regenerated in-browser to
+reproduce the audited statistics. When real checkpoints land, only the fetch changes.</div>
+<div class="bar bar--warn" id="bar-init"><b>These weights are at initialization.</b> 50 gradient
+steps, median training R&sup2; 0.0203. Anything read from these matrices is initialization noise
+&mdash; the evidence cards show why.</div>
+
+<div class="navbar">
+  <span class="title">Drexel ICE Lab</span>
+  <nav>
+    <a href="https://drexel-ice.github.io/">team</a>
+    <a href="index.html" data-ctxlink="index.html">leaderboard</a>
+    <a href="explorer.html" aria-current="page">model explorer</a>
+    <a href="playground.html" data-ctxlink="playground.html">playground</a>
+    <button class="themebtn" id="themebtn">dark</button>
+  </nav>
+</div>
+
+<div class="wrap">
+<div class="crumbbar" id="crumb"></div>
+
+<div class="bento">
+
+  <!-- identity -->
+  <div class="k s8" style="--i:0">
+    <div class="keyebrow">submission</div>
+    <h1 class="ktitle" id="m-title" style="font-size:1.7rem;margin-bottom:.25rem">model</h1>
+    <p class="ksub" id="m-sub" style="font-size:.85rem;margin-bottom:.6rem"></p>
+    <div class="chips" style="margin:0 0 .6rem" id="chips"></div>
+    <div class="desig"  id="m-addr"></div>
+  </div>
+
+  <!-- prediction -->
+  <div class="k s4" style="--i:1">
+    <div class="keyebrow">live output</div>
+    <div class="ktitle">Prediction</div>
+    <div class="ksub" id="predlbl"></div>
+    <div class="kbody" >
+      <span class="figure mono" id="predv">0.000</span><span class="figunit">z-score</span>
+      <div style="margin-top:.5rem" id="predmeta"></div>
+    </div>
+  </div>
+
+  <!-- measured result for this exact checkpoint -->
+  <div class="k s12" style="--i:2" id="k-measured">
+    <div class="keyebrow">measured</div>
+    <div class="ktitle">This checkpoint against the OpenROAD estimate</div>
+    <div class="ksub" id="ms-sub"></div>
+    <div id="ms-grid"></div>
+    <p class="cap" id="ms-cap"></p>
+  </div>
+
+  <!-- network: 3D units + op graph -->
+  <div class="k s8 r2" style="--i:2" id="k-net">
+    <div class="keyebrow">architecture</div>
+    <div class="ktitle">Network</div>
+    <div class="ksub">Two views of the same model: the units laid out in space,
+      and the computation as a graph.</div>
+
+    <div class="viewtog">
+      <button data-nm3="3d" aria-pressed="true">3D units</button>
+      <button data-nm3="graph" aria-pressed="false">op graph</button>
+    </div>
+
+    <div id="wrap3d">
+      <div class="ctlrow" id="ctl3d">
+        <label class="cbx"><input type="checkbox" id="edgetog" checked> weights</label>
+        <span>shown</span>
+        <input type="range" id="edgecap" min="80" max="1600" step="40" value="520">
+        <span class="mono" id="edgecapv">520</span>
+        <button class="mini" id="reset3d">reset view</button>
+      </div>
+      <div class="c3dhost"><canvas id="net3d"></canvas></div>
+      <p class="unitinfo" id="unitinfo"></p>
+    </div>
+
+    <div id="wrapgr" style="display:none">
+      <div class="graphbox"><svg id="graph"></svg></div>
+      <p class="cap">Reads top to bottom. Tensor shapes ride the edges, as TensorBoard does;
+        parameter counts sit beside the ops that carry them. Click a weighted op to open
+        its matrix.</p>
+    </div>
+  </div>
+
+  <!-- inspector -->
+  <div class="k s4" style="--i:3" id="k-inspect">
+    <div class="keyebrow">selection</div>
+    <div id="inspect"></div>
+  </div>
+
+  <!-- inputs -->
+  <div class="k s4" style="--i:4">
+    <div class="keyebrow">stimulus</div>
+    <div class="ktitle">Inputs</div>
+    <div class="ksub">What this architecture consumes.</div>
+    <div style="max-height:340px;overflow-y:auto" id="inputs"></div>
+  </div>
+
+  <!-- circuit -->
+  <div class="k s5" style="--i:5">
+    <div class="keyebrow">the one free axis</div>
+    <div class="ktitle">Circuit</div>
+    <div class="ksub">Task, architecture, PDK and stage were fixed by the cell you came from.
+      18 independently seeded models exist per cell.</div>
+    <div  id="circhips"></div>
+  </div>
+
+  <!-- compare -->
+  <div class="k s4" style="--i:6">
+    <div class="keyebrow">comparison</div>
+    <div class="ktitle">Across PDK and stage</div>
+    <div class="ksub">Loads the same task, architecture and circuit elsewhere. Per the audit,
+      the weights barely move.</div>
+    <div  id="cmpgrid"></div>
+  </div>
+
+  <!-- summary -->
+  <div class="k s3" style="--i:7">
+    <div class="keyebrow">at a glance</div>
+    <div id="glance"></div>
+  </div>
+
+  <!-- weight matrix -->
+  <div class="k s7" style="--i:8">
+    <div class="keyebrow">tensors</div>
+    <div class="ktitle">Weight matrices</div>
+    <div class="ksub" id="hmmeta"></div>
+    <div class="hmtog"  id="hmtog"></div>
+    <canvas id="hm"></canvas>
+    <p class="cap mono" id="hmtip">hover a cell</p>
+  </div>
+
+  <!-- null overlay -->
+  <div class="k s5" style="--i:9">
+    <div class="keyebrow">distribution</div>
+    <div class="ktitle">Weights against the untrained null</div>
+    <div class="ksub">Histogram vs the theoretical U(&plusmn;1/&radic;fan_in) for this layer.</div>
+    <svg viewBox="0 0 520 210" id="nullsvg"></svg>
+    <div style="margin-top:.5rem" id="nullstat"></div>
+  </div>
+
+  <!-- cosine -->
+  <div class="k s6" style="--i:10">
+    <div class="keyebrow">similarity</div>
+    <div class="ktitle">Cosine similarity</div>
+    <div class="ksub">First-layer weights, holding task and architecture fixed.</div>
+    <div class="tog" style="margin:0 0 .6rem">
+      <button data-cm="circuits" aria-pressed="true">across 18 circuits</button>
+      <button data-cm="configs" aria-pressed="false">across 20 configs</button>
+    </div>
+    <canvas id="cos" style="max-width:300px"></canvas>
+    <div style="margin-top:.5rem" id="cosstat"></div>
+    <p class="cap" id="coscap"></p>
+  </div>
+
+  <!-- curves -->
+  <div class="k s6" style="--i:11">
+    <div class="keyebrow">training</div>
+    <div class="ktitle">Training curves</div>
+    <div class="ksub">25 epochs on a z-scored target &mdash; not comparable to leaderboard metrics.</div>
+    <div class="tog" style="margin:0 0 .6rem">
+      <button data-ct="loss" aria-pressed="true">loss</button>
+      <button data-ct="r2" aria-pressed="false">R&sup2;</button>
+      <button data-ct="mae" aria-pressed="false">MAE</button>
+    </div>
+    <svg viewBox="0 0 520 210" id="curvesvg"></svg>
+    <div style="margin-top:.5rem" id="curvestat"></div>
+  </div>
+
+  <!-- column norms -->
+  <div class="k s12" style="--i:12">
+    <div class="keyebrow">attribution</div>
+    <div class="ktitle">First-layer column norms, against the null band</div>
+    <div class="ksub">The usual feature-importance chart &mdash; and why it cannot be used here.</div>
+    <svg viewBox="0 0 980 250" id="colsvg"></svg>
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:1.2rem;margin:.5rem 0 0">
+      <div id="colstat"></div>
+      <p class="cap" style="margin:0" id="colcap"></p>
+    </div>
+  </div>
+
+  <!-- cta -->
+  <div class="k s12 k--flat" style="--i:13">
+    <div class="cta" >
+      <div>
+        <div class="keyebrow" style="margin-left:0">your turn</div>
+        <div class="ktitle" style="margin-left:0">Think you can beat OpenROAD?</div>
+        <div class="ksub" style="margin:0">Build your own network, train it here on real design
+          data, and see how it compares.</div>
+      </div>
+      <a class="ctab" id="beatcta" href="playground.html">&#9889; Beat OpenROAD &rarr;</a>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="foot">&copy; ICE Lab, Drexel University. All rights reserved. &middot; prototype &middot;
+  <a href="https://drexel-ice.github.io/eda-schema/">EDA-Schema-V2</a></div>
+
+<script src="real-data.js"></script>
+<script src="data/real.js"></script>
+<script>
+/* ===================== registries ===================== */
+const PDKS=["ng45","sky130","ihp130","asap7"];
+const PDKL={ng45:"NG45",sky130:"SKY130",ihp130:"IHP130",asap7:"ASAP7"};
+const STAGES=["floorplan","global_place","detailed_place","cts","global_route"];
+const SL=["floorplan","global place","detailed place","cts","global route"];
+const CIRCUITS=["ac97_ctrl","aes_core","des3_area","ethernet","i2c","jpeg","mem_ctrl",
+"pci","sasc","simple_spi","spi","ss_pcm","systemcaes","systemcdes","tv80","usb_funct",
+"usb_phy","wb_dma"];
+const TASKS=[["total_area","Total area"],["total_power","Total power"],
+["total_wirelength","Total wirelength"],["interconnect_length","Interconnect length"],
+["worst_arrival_time","Worst arrival time"],["worst_slack","Worst slack"],
+["total_negative_slack","Total negative slack"],["timing_path_arrival_time","Path arrival time"],
+["timing_path_slack","Path slack"],["net_arc_delay","Net arc delay"],
+["cell_arc_delay","Cell arc delay"],["cell_arc_slew","Cell arc slew"]];
+
+/* the 41 scalar features, in checkpoint dict-insertion order (INFERRED) */
+const FEATS=[
+ ["netlist",["no_of_inputs","no_of_outputs","no_of_cells","no_of_nets","no_of_pins",
+   "utilization","width","height","total_hpwl"]],
+ ["cell_metrics",["no_of_combinational_cells","no_of_sequential_cells","no_of_buffers",
+   "no_of_inverters","no_of_fillers","no_of_tap_cells","no_of_diodes","no_of_macros",
+   "no_of_total_cells","combinational_cell_area","sequential_cell_area","buffer_area",
+   "inverter_area","filler_area","tap_cell_area","diode_area","macro_area","cell_area",
+   "total_area"]],
+ ["power_metrics",["combinational_power","sequential_power","macro_power","internal_power",
+   "switching_power","leakage_power","total_power"]],
+ ["timing_metrics",["total_negative_slack","worst_slack","worst_arrival_time",
+   "worst_required_time","no_of_endpoints","no_of_violating_endpoints"]]];
+const FEATFLAT=[];FEATS.forEach(([g,ns])=>ns.forEach(n=>FEATFLAT.push({g,n,full:g+"."+n})));
+const GCOL={netlist:"var(--ent-netlist)",cell_metrics:"var(--ent-cell)",power_metrics:"var(--ent-power)",timing_metrics:"var(--ent-timing)"};
+
+/* ===================== architectures =====================
+   Each submitted family has a genuinely different graph. The explorer renders
+   whatever the spec describes rather than assuming an MLP, so a GNN submission
+   draws as a GNN and an AutoML submission draws as a tree ensemble.
+   Shapes match what the corresponding checkpoint's state_dict would contain. */
+const ARCHSPEC={
+  /* the lab's fixed_mlp: scalar_encoder.net = Linear-ReLU-Linear-ReLU-Linear-ReLU-Linear,
+     41-64-32-16-1, exactly as the checkpoints and default_config.dot describe */
+  MLP:{input:41, inputKind:"scalar", label:"multilayer perceptron",
+    layers:[{k:"linear",fo:64},{k:"act",name:"ReLU"},{k:"linear",fo:32},{k:"act",name:"ReLU"},
+            {k:"linear",fo:16},{k:"act",name:"ReLU"},{k:"linear",fo:1,out:true}]},
+  GNN:{input:37, inputKind:"graph", label:"graph attention network",
+    layers:[{k:"gatconv",fo:256},{k:"act",name:"ReLU"},{k:"drop",name:"dropout 0.2"},
+            {k:"gatconv",fo:256},{k:"pool",name:"mean pool"},{k:"linear",fo:1,out:true}]},
+  CNN:{input:3, inputKind:"image", label:"convolutional network",
+    layers:[{k:"conv",fo:32,ker:3},{k:"pool",name:"max pool"},{k:"conv",fo:64,ker:3},
+            {k:"pool",name:"global pool"},{k:"linear",fo:1,out:true}]},
+  Hybrid:{input:41, inputKind:"graph+image", label:"graph and image hybrid",
+    layers:[{k:"gatconv",fo:128},{k:"conv",fo:32,ker:3},{k:"fuse",name:"fusion"},
+            {k:"linear",fo:1,out:true}]},
+  AutoML:{input:41, inputKind:"scalar", label:"gradient-boosted tree ensemble",
+    trees:true, layers:[{k:"trees",fo:300,name:"300 trees"},{k:"ens",name:"ensemble"},
+            {k:"outv",fo:1,out:true}]}};
+
+const famOf=n=>/^(GAT|SAGE|GIN|GCN)/.test(n)?"GNN":/^AutoML/.test(n)?"AutoML":
+  /^CNN/.test(n)?"CNN":/^Hybrid/.test(n)?"Hybrid":"MLP";
+
+/* ===================== the real submission =====================
+   One address in this space is not a mock: total_area / fixed_mlp. Its
+   checkpoints, training curves and evaluation numbers come off the lab's
+   cluster through data/real.js and data/weights/<pdk>_<stage>.js. */
+const isRealAddr=(task,arch)=>
+  !!window.EDA_REAL&&!!EDA_REAL.runs&&EDA_REAL.isReal(task,arch);
+const realLoaded=()=>isRealAddr(CUR.task,CUR.arch)&&
+  !!EDA_REAL.layersFor(CUR.pdk,CUR.stage,CUR.circuit);
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296;};}
+function hash(s){let x=2166136261;for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);
+  x=Math.imul(x,16777619);}return x>>>0;}
+
+/* Build the weight-bearing layers for a spec. PyTorch nn.Linear / nn.Conv2d
+   default init is U(+-1/sqrt(fan_in)); fan_in for conv is k*k*Cin.           */
+function buildNet(fam,seed){
+  const spec=ARCHSPEC[fam],r=mulberry32(seed);
+  const W=[];let prev=spec.input,prevKind=spec.inputKind;
+  for(const l of spec.layers){
+    if(l.k==="linear"||l.k==="gatconv"){
+      const fi=prev,fo=l.fo,b=1/Math.sqrt(fi);
+      const Wt=new Float32Array(fo*fi),B=new Float32Array(fo);
+      for(let i=0;i<Wt.length;i++)Wt[i]=(r()*2-1)*b;
+      for(let i=0;i<B.length;i++)B[i]=(r()*2-1)*b;
+      W.push({kind:l.k,fi,fo,W:Wt,B,bound:b,shape:[fo,fi],
+              label:l.k==="gatconv"?"GATConv":"linear"});
+      prev=fo;
+    }else if(l.k==="conv"){
+      const cin=prevKind==="image"?prev:3,k=l.ker,fi=k*k*cin,fo=l.fo,b=1/Math.sqrt(fi);
+      const Wt=new Float32Array(fo*fi),B=new Float32Array(fo);
+      for(let i=0;i<Wt.length;i++)Wt[i]=(r()*2-1)*b;
+      for(let i=0;i<B.length;i++)B[i]=(r()*2-1)*b;
+      W.push({kind:"conv",fi,fo,W:Wt,B,bound:b,shape:[fo,cin,k,k],
+              label:`conv ${k}\u00d7${k}`});
+      prev=fo;prevKind="image";
+    }
+  }
+  return W;
+}
+const totalParams=W=>W.reduce((t,l)=>t+l.W.length+l.B.length,0);
+
+/* ===================== model cache, keyed on ALL FIVE dimensions =====================
+   task x architecture x PDK x stage x circuit — the exact address of a checkpoint
+   in the lab's tree:  <task>_prediction/<arch>/default_config_<PDK>_<STAGE>/<circuit>/
+   When real checkpoints land this function becomes a fetch against the same key. */
+const MODELCACHE=new Map();
+function modelKey(task,arch,pdk,stage,circuit){
+  return [task,arch,pdk,stage,circuit].join("|");
+}
+function getModel(task,arch,pdk,stage,circuit){
+  const k=modelKey(task,arch,pdk,stage,circuit);
+  if(MODELCACHE.has(k))return MODELCACHE.get(k);
+  const fam=famOf(arch);
+  /* the real thing, once its (PDK, stage) bundle is in memory */
+  if(isRealAddr(task,arch)){
+    const L=EDA_REAL.layersFor(pdk,stage,circuit);
+    if(L){MODELCACHE.set(k,L);return L;}
+  }
+  if(ARCHSPEC[fam].trees){MODELCACHE.set(k,null);return null;}   // no weight tensors
+  /* circuit + task + architecture determine the seed; PDK and stage nudge it,
+     reproducing the audited cosine of 0.9998 within a circuit and ~0 across.  */
+  const W=buildNet(fam,hash(task+"|"+arch+"|"+circuit));
+  const r=mulberry32(hash(k));
+  for(const l of W){
+    const s=0.0141*l.bound;
+    for(let i=0;i<l.W.length;i++)l.W[i]+=(r()*2-1)*s*Math.sqrt(3);
+    for(let i=0;i<l.B.length;i++)l.B[i]+=(r()*2-1)*s*Math.sqrt(3);
+  }
+  /* don't cache a stand-in at an address whose real bundle is still in flight */
+  if(!isRealAddr(task,arch))MODELCACHE.set(k,W);
+  return W;
+}
+
+/* forward pass over the weight-bearing layers */
+function forward(W,x,ablate){
+  const acts=[Float32Array.from(x)];let a=acts[0];
+  for(let li=0;li<W.length;li++){
+    const l=W[li],out=new Float32Array(l.fo);
+    for(let o=0;o<l.fo;o++){
+      let s=l.B[o];const base=o*l.fi;
+      for(let i=0;i<l.fi&&i<a.length;i++)s+=l.W[base+i]*a[i];
+      if(li<W.length-1)s=Math.max(0,s);
+      if(ablate&&ablate.has(li+"_"+o))s=0;
+      out[o]=s;
+    }
+    acts.push(out);a=out;
+  }
+  return acts;
+}
+
+/* ===================== statistics ===================== */
+function layerStats(l){
+  let mn=Infinity,mx=-Infinity,s=0,s2=0,past=0;
+  for(const v of l.W){mn=Math.min(mn,v);mx=Math.max(mx,v);s+=v;s2+=v*v;
+    if(Math.abs(v)>l.bound)past++;}
+  const n=l.W.length,mean=s/n,std=Math.sqrt(Math.max(0,s2/n-mean*mean));
+  return{n,mn,mx,mean,std,expStd:l.bound/Math.sqrt(3),
+         ratio:std/(l.bound/Math.sqrt(3)),pastFrac:past/n};
+}
+function colNorms(l){
+  const out=new Float64Array(l.fi);
+  for(let i=0;i<l.fi;i++){let s=0;for(let o=0;o<l.fo;o++){const v=l.W[o*l.fi+i];s+=v*v;}
+    out[i]=Math.sqrt(s);}
+  return out;
+}
+/* delta method on sqrt(sum of squared uniforms): mu = b*sqrt(fo/3), sd = b/sqrt(15) */
+function colNormNull(fo,bound){return{mu:bound*Math.sqrt(fo/3),sd:bound/Math.sqrt(15)};}
+function cosine(a,b){
+  const n=Math.min(a.length,b.length);
+  let d=0,na=0,nb=0;
+  for(let i=0;i<n;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}
+  return d/Math.sqrt(na*nb);
+}
+
+/* ===================================================================
+   3D network view — hand-rolled perspective projection, no Three.js.
+
+   Why 3D here: the lab's model is 41-64-32-16-1. In two dimensions a
+   64-unit layer is a cramped column; in three it becomes an 8x8 grid,
+   because each layer gets two dimensions for its units instead of one.
+   That also mirrors the real object — W is a (64,41) matrix, and the
+   grid makes that structure legible.
+   =================================================================== */
+
+const V3={
+  yaw:-0.62, pitch:-0.26, zoom:1, panX:0, panY:0,
+  dragging:false, lx:0, ly:0, mode:"orbit",
+  edgeCap:520, showEdges:true, spin:false
+};
+
+/* layer geometry: units laid out as a grid on a plane, planes spaced in z */
+function grid3d(n){
+  const cols=Math.max(1,Math.ceil(Math.sqrt(n*1.35)));
+  const rows=Math.ceil(n/cols);
+  return{cols,rows};
+}
+function build3d(M,fam){
+  /* Node counts per layer. For conv layers fi is the flattened kernel
+     (k*k*Cin), not the previous layer's unit count, so the input layer
+     is sized from the architecture spec rather than from fi.          */
+  const spec=(typeof ARCHSPEC!=="undefined"&&fam)?ARCHSPEC[fam]:null;
+  const firstIsConv=M&&M[0]&&M[0].kind==="conv";
+  const n0=!M?0:(firstIsConv?(spec?spec.input:3):M[0].fi);
+  const dims=[n0,...(M?M.map(l=>l.fo):[])];
+  const LG=150, NG=22;                       /* layer gap, neuron gap */
+  const layers=dims.map((n,i)=>{
+    const{cols,rows}=grid3d(n);
+    const pts=[];
+    for(let k=0;k<n;k++){
+      const c=k%cols,r=Math.floor(k/cols);
+      pts.push({
+        x:(c-(cols-1)/2)*NG,
+        y:(r-(rows-1)/2)*NG,
+        z:(i-(dims.length-1)/2)*LG,
+        i:k, layer:i
+      });
+    }
+    return{n,cols,rows,pts,z:(i-(dims.length-1)/2)*LG};
+  });
+  return{dims,layers,LG,NG};
+}
+
+/* auto-fit, recomputed per frame: the model always fills the frame whether
+   it is 41-64-32-16-1 or a 256-unit GNN */
+let FIT={k:1,dx:0,dy:0};
+function computeFit(G,W,H){
+  FIT={k:1,dx:0,dy:0};
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const L of G.layers)for(const p of L.pts){
+    const q=project(p,W,H);
+    x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);
+    y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);
+  }
+  const bw=Math.max(1,x1-x0), bh=Math.max(1,y1-y0);
+  const k=Math.min((W*0.80)/bw,(H*0.78)/bh);
+  FIT={k, dx:W/2-((x0+x1)/2-W/2)*k-W/2*k+W/2*0,
+          dy:H/2-((y0+y1)/2-H/2)*k-H/2*k+H/2*0};
+  /* solve directly: we want (mid - W/2)*k + W/2 + dx == W/2 */
+  FIT.dx=-(((x0+x1)/2-W/2)*k);
+  FIT.dy=-(((y0+y1)/2-H/2)*k);
+}
+
+/* rotate then perspective-divide */
+function project(p,W,H){
+  const cy=Math.cos(V3.yaw),sy=Math.sin(V3.yaw);
+  const cp=Math.cos(V3.pitch),sp=Math.sin(V3.pitch);
+  let x=p.x*cy - p.z*sy;
+  let z=p.x*sy + p.z*cy;
+  let y=p.y*cp - z*sp;
+  z=p.y*sp + z*cp;
+  const f=900, s=f/(f+z+420);
+  const px=W/2+x*s*V3.zoom, py=H/2+y*s*V3.zoom;
+  return{
+    x:W/2+(px-W/2)*FIT.k+FIT.dx+V3.panX,
+    y:H/2+(py-H/2)*FIT.k+FIT.dy+V3.panY,
+    z, s:s*FIT.k
+  };
+}
+
+function draw3d(cv,M,acts,opts){
+  const fam=(opts&&opts.fam)||null;
+  const ctx=cv.getContext("2d");
+  const W=cv.width,H=cv.height;
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  ctx.fillStyle=dark?"#131314":"#fcfcfb";ctx.fillRect(0,0,W,H);
+  if(!M)return[];
+
+  const G=build3d(M,fam);
+  computeFit(G,W,H);
+  const P=G.layers.map(L=>L.pts.map(p=>project(p,W,H)));
+
+  /* ---- edges, sorted far to near ---- */
+  if(V3.showEdges){
+    const all=[];
+    for(let li=0;li<M.length;li++){
+      const l=M[li];
+      /* draw between the units that actually exist in each plane; where a
+         layer's fan-in is a flattened kernel, fold the weight index into it */
+      const nSrc=G.layers[li].n, nDst=G.layers[li+1].n;
+      if(!nSrc||!nDst)continue;
+      let mx=0;for(const v of l.W)mx=Math.max(mx,Math.abs(v));
+      const stepI=Math.max(1,Math.ceil(nSrc/14));
+      const stepO=Math.max(1,Math.ceil(nDst/14));
+      for(let o=0;o<nDst;o+=stepO)for(let i=0;i<nSrc;i+=stepI){
+        const w=l.W[(o%l.fo)*l.fi+(i%l.fi)],a=Math.abs(w)/(mx||1);
+        if(a<0.22)continue;
+        const A=P[li][i],B=P[li+1][o];
+        if(!A||!B)continue;
+        all.push({li,i,o,w,a,z:(A.z+B.z)/2});
+      }
+    }
+    all.sort((p,q)=>q.z-p.z);
+    const show=all.slice(0,V3.edgeCap);
+    for(const e of show){
+      const A=P[e.li][e.i],B=P[e.li+1][e.o];
+      const dep=Math.max(.18,Math.min(1,(A.s+B.s)/2));
+      ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);
+      ctx.strokeStyle=e.w<0
+        ? `rgba(192,106,46,${(0.05+0.34*e.a*dep).toFixed(3)})`
+        : `rgba(59,111,176,${(0.05+0.34*e.a*dep).toFixed(3)})`;
+      ctx.lineWidth=(0.4+1.8*e.a)*dep*V3.zoom;
+      ctx.stroke();
+    }
+  }
+
+  /* ---- layer plates, drawn back to front ---- */
+  const order=G.layers.map((L,i)=>({i,z:P[i][0]?P[i][0].z:0}))
+                      .sort((a,b)=>b.z-a.z);
+  const hits=[];
+  for(const{i:li} of order){
+    const L=G.layers[li];
+    /* faint plate behind the units, giving the layer a body */
+    const c0=project({x:-(L.cols)*G.NG/2-10,y:-(L.rows)*G.NG/2-10,z:L.z},W,H);
+    const c1=project({x: (L.cols)*G.NG/2+10,y:-(L.rows)*G.NG/2-10,z:L.z},W,H);
+    const c2=project({x: (L.cols)*G.NG/2+10,y: (L.rows)*G.NG/2+10,z:L.z},W,H);
+    const c3=project({x:-(L.cols)*G.NG/2-10,y: (L.rows)*G.NG/2+10,z:L.z},W,H);
+    ctx.beginPath();ctx.moveTo(c0.x,c0.y);ctx.lineTo(c1.x,c1.y);
+    ctx.lineTo(c2.x,c2.y);ctx.lineTo(c3.x,c3.y);ctx.closePath();
+    const isIn=li===0,isOut=li===G.layers.length-1;
+    ctx.fillStyle=dark?"rgba(255,255,255,.028)":"rgba(7,41,77,.030)";
+    ctx.fill();
+    ctx.strokeStyle=isIn?"rgba(138,135,129,.55)"
+                  :isOut?"rgba(192,106,46,.55)":"rgba(88,110,180,.42)";
+    ctx.lineWidth=1.1;ctx.stroke();
+
+    /* units */
+    for(let k=0;k<L.n;k++){
+      const p=P[li][k];
+      const a=acts&&acts[li]?acts[li][k]:0;
+      const t=Math.max(-1,Math.min(1,a*1.3));
+      const r=Math.max(1.6,(isOut?7:4.4)*p.s*V3.zoom);
+      ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.283);
+      ctx.fillStyle = t>=0
+        ? `rgba(59,111,176,${(0.22+0.72*t).toFixed(3)})`
+        : `rgba(192,106,46,${(0.22+0.72*-t).toFixed(3)})`;
+      ctx.fill();
+      ctx.lineWidth=Math.max(.4,0.9*p.s);
+      ctx.strokeStyle=dark?"rgba(255,255,255,.30)":"rgba(0,0,0,.28)";
+      ctx.stroke();
+      hits.push({x:p.x,y:p.y,r:r+3,layer:li,unit:k,act:a});
+    }
+
+    /* layer caption, placed at the plate's near corner */
+    const lab=isIn?`input ${L.n}`:isOut?"output":`${M[li-1].label||"layer"} ${L.n}`;
+    ctx.fillStyle=dark?"rgba(232,232,232,.8)":"rgba(60,60,60,.85)";
+    ctx.font=`${Math.max(9,12*c3.s*V3.zoom).toFixed(0)}px ui-sans-serif,system-ui`;
+    ctx.textAlign="center";
+    ctx.fillText(lab,(c3.x+c2.x)/2,Math.max(12,c3.y+16*c3.s*V3.zoom));
+    if(li>0){
+      ctx.fillStyle=dark?"rgba(232,232,232,.45)":"rgba(60,60,60,.5)";
+      ctx.font=`${Math.max(8,10*c3.s*V3.zoom).toFixed(0)}px ui-monospace,monospace`;
+      ctx.fillText(M[li-1].shape?M[li-1].shape.join("\u00d7"):`${M[li-1].fo}\u00d7${M[li-1].fi}`,
+        (c3.x+c2.x)/2,Math.max(24,c3.y+30*c3.s*V3.zoom));
+    }
+  }
+  return hits;
+}
+
+/* mouse: drag to orbit, shift-drag to pan, wheel to zoom */
+function attach3d(cv,onHover,onPick,redraw){
+  cv.addEventListener("mousedown",e=>{
+    V3.dragging=true;V3.lx=e.clientX;V3.ly=e.clientY;
+    V3.mode=e.shiftKey?"pan":"orbit";cv.style.cursor="grabbing";});
+  addEventListener("mouseup",()=>{V3.dragging=false;cv.style.cursor="grab";});
+  cv.addEventListener("mousemove",e=>{
+    if(V3.dragging){
+      const dx=e.clientX-V3.lx,dy=e.clientY-V3.ly;
+      V3.lx=e.clientX;V3.ly=e.clientY;
+      if(V3.mode==="pan"){V3.panX+=dx*2;V3.panY+=dy*2;}
+      else{V3.yaw+=dx*0.0075;V3.pitch=Math.max(-1.3,Math.min(1.3,V3.pitch+dy*0.0065));}
+      redraw();
+    }else onHover(e);
+  });
+  cv.addEventListener("wheel",e=>{
+    e.preventDefault();
+    V3.zoom=Math.max(0.35,Math.min(3.4,V3.zoom*(e.deltaY<0?1.09:0.917)));
+    redraw();},{passive:false});
+  cv.addEventListener("click",onPick);
+  cv.style.cursor="grab";
+}
+function reset3d(){V3.yaw=-0.62;V3.pitch=-0.26;V3.zoom=1;V3.panX=0;V3.panY=0;}
+
+/* ===================================================================
+   Op graph — TensorBoard's representation: nodes for ops, tensor
+   shapes annotated on the edges, grouped by namespace.
+   This is the complement to the 3D view: the 3D shows the units,
+   the graph shows the computation.
+   =================================================================== */
+
+function opGraph(M,fam,taskLabel){
+  const spec=ARCHSPEC[fam];
+  const nodes=[],edges=[];
+  let wi=0, prevShape=null, prev=null;
+
+  const push=(id,label,kind,shape,detail)=>{
+    nodes.push({id,label,kind,shape,detail});
+    if(prev)edges.push({from:prev,to:id,shape:prevShape});
+    prev=id;prevShape=shape;
+    return id;
+  };
+
+  push("in","input", "io",
+    spec.inputKind==="image"?`[N, ${spec.input}, H, W]`:`[N, ${spec.input}]`,
+    spec.inputKind==="scalar"?"41 schema attributes":spec.inputKind);
+
+  for(const l of spec.layers){
+    if(l.k==="linear"||l.k==="gatconv"||l.k==="conv"){
+      const w=M&&M[wi]?M[wi]:null;
+      const nm=l.k==="gatconv"?"GATConv":l.k==="conv"?`Conv2d ${l.ker}\u00d7${l.ker}`:"Linear";
+      const shape=w?`[N, ${w.fo}]`:`[N, ${l.fo}]`;
+      push("op"+nodes.length,nm,"weighted",shape,
+        w?`W ${w.shape.join("\u00d7")} \u00b7 b [${w.fo}] \u00b7 ${(w.W.length+w.B.length).toLocaleString("en-US")} params`
+         :"");
+      wi++;
+    }else if(l.k==="act"){
+      push("op"+nodes.length,l.name,"act",prevShape,"elementwise");
+    }else if(l.k==="drop"){
+      push("op"+nodes.length,l.name,"reg",prevShape,"training only");
+    }else if(l.k==="pool"||l.k==="fuse"){
+      push("op"+nodes.length,l.name,"reduce",
+        l.k==="pool"?"[N, C]":prevShape,"reduction");
+    }else if(l.k==="trees"){
+      push("op"+nodes.length,l.name,"weighted","[N, 1]","no differentiable weights");
+    }else if(l.k==="ens"){
+      push("op"+nodes.length,l.name,"reduce","[N, 1]","mean over trees");
+    }
+  }
+  push("out",taskLabel,"io","[N, 1]","z-scored target");
+  return{nodes,edges};
+}
+
+const OPCOL={
+  io:      ["var(--lb-layer-in-bg)",   "var(--lb-layer-in-br)"],
+  weighted:["var(--lb-layer-op-bg)",   "var(--lb-layer-op-br)"],
+  act:     ["var(--lb-layer-in-bg)",   "var(--lb-layer-in-br)"],
+  reg:     ["var(--lb-layer-in-bg)",   "var(--lb-layer-in-br)"],
+  reduce:  ["var(--lb-layer-pool-bg)", "var(--lb-layer-pool-br)"]
+};
+
+/* Vertical layout: the node column runs down the centre, parameter detail sits
+   to its left and the tensor shape rides the edge on its right. Fits the card
+   without horizontal scrolling, and uses the width for annotation instead. */
+function drawGraph(svg,G,sel){
+  const NW=176, NH=40, GAP=38, PADY=16;
+  const W=600, CX=W/2;
+  const H=PADY*2+G.nodes.length*NH+(G.nodes.length-1)*GAP;
+  const x0=CX-NW/2, x1=CX+NW/2;
+
+  let s=`<defs><marker id="gar" markerWidth="9" markerHeight="9" refX="6" refY="3"
+    orient="auto"><path d="M0,0 L6,3 L0,6" fill="var(--global-text-color-light)"/></marker></defs>`;
+
+  G.nodes.forEach((n,i)=>{
+    const y=PADY+i*(NH+GAP);
+    const[bg,br]=OPCOL[n.kind]||OPCOL.act;
+    const rx=n.kind==="io"?20:6;
+    const on=sel===i;
+
+    /* the edge into this node, with its tensor shape */
+    if(i>0){
+      const yp=y-GAP;
+      s+=`<line x1="${CX}" y1="${yp}" x2="${CX}" y2="${y-7}" `+
+         `stroke="var(--global-text-color-light)" stroke-width="1.3" `+
+         `marker-end="url(#gar)" opacity=".6"/>`+
+         `<text x="${CX+14}" y="${(yp+GAP/2+4).toFixed(0)}" font-size="12.5" `+
+         `font-family="var(--global-font-mono)" fill="var(--global-text-color-light)">`+
+         `${G.edges[i-1]?G.edges[i-1].shape:""}</text>`;
+    }
+
+    s+=`<g class="gn" data-gn="${i}" style="cursor:${n.kind==="weighted"?"pointer":"default"}">`+
+       `<rect x="${x0}" y="${y}" width="${NW}" height="${NH}" rx="${rx}" `+
+       `fill="${bg}" stroke="${on?"var(--global-theme-color)":br}" `+
+       `stroke-width="${on?2.4:1.4}"/>`+
+       `<text x="${CX}" y="${y+NH/2+1}" text-anchor="middle" dominant-baseline="middle" `+
+       `font-size="14" fill="var(--global-text-color)">${n.label}</text>`;
+    /* parameter detail to the left, right-aligned against the node */
+    if(n.detail)
+      s+=`<text x="${x0-16}" y="${y+NH/2+1}" text-anchor="end" dominant-baseline="middle" `+
+         `font-size="11.5" fill="var(--global-text-color-light)">${n.detail}</text>`;
+    s+=`</g>`;
+  });
+
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  svg.style.minWidth="";
+  svg.style.width="100%";
+  svg.style.height="auto";
+  svg.innerHTML=s;
+}
+
+const $=id=>document.getElementById(id);
+const fmt=(v,d)=>v===null||!isFinite(v)?"\u2014":v.toFixed(d===undefined?3:d);
+const nf=v=>Math.round(v).toLocaleString("en-US");
+
+/* full five-dimensional address */
+/* defaults to the one address that is real, so the page opens on evidence
+   rather than on a placeholder */
+let CUR={task:"total_area",arch:"fixed_mlp",pdk:"ng45",stage:"floorplan",circuit:"ac97_ctrl"};
+let M=null, FAM="MLP", X=null, ACTS=null;
+let ablate=new Set(), edits=new Map();
+let pinNode=null, selEdge=null, expandedGroup=null;
+let edgeCap=500, hmLayer=0, cmpMode="circuits", curveTab="loss";
+
+const taskLabel=t=>(TASKS.find(x=>x[0]===t)||[t,t])[1];
+const inputWidth=()=>ARCHSPEC[FAM].input;
+const isTree=()=>!!ARCHSPEC[FAM].trees;
+
+function loadModel(){
+  /* a real address waits for its checkpoint bundle; everything else is
+     generated locally and renders immediately */
+  if(isRealAddr(CUR.task,CUR.arch)&&!realLoaded()){
+    setLoading(true);
+    const want=CUR.pdk+"|"+CUR.stage;
+    EDA_REAL.loadRun(CUR.pdk,CUR.stage,()=>{
+      if(CUR.pdk+"|"+CUR.stage!==want)return;      // user moved on meanwhile
+      setLoading(false);
+      buildModel();
+    });
+    return;
+  }
+  setLoading(false);
+  buildModel();
+}
+function buildModel(){
+  FAM=famOf(CUR.arch);
+  M=getModel(CUR.task,CUR.arch,CUR.pdk,CUR.stage,CUR.circuit);
+  edits.clear();ablate.clear();pinNode=null;selEdge=null;
+  hmLayer=0;expandedGroup=null;
+  X=new Float32Array(isTree()?ARCHSPEC[FAM].input:M[0].fi);
+  if(!isTree())run();
+  noteModelChange();
+  renderAll();
+}
+function setLoading(on){
+  document.body.classList.toggle("loading",!!on);
+  const b=$("bar-src");
+  if(on&&b)b.innerHTML="<b>Loading checkpoints\u2026</b> reading the run bundle for "+
+    PDKL[CUR.pdk]+" \u00b7 "+SL[STAGES.indexOf(CUR.stage)]+".";
+}
+function W(li,o,i){const k=li+"_"+o+"_"+i;
+  return edits.has(k)?edits.get(k):M[li].W[o*M[li].fi+i];}
+function run(){
+  if(isTree()){ACTS=null;return;}
+  const L=M.map((l,li)=>{
+    if(![...edits.keys()].some(k=>k.startsWith(li+"_")))return l;
+    const W2=Float32Array.from(l.W);
+    edits.forEach((v,k)=>{const[a,o,i]=k.split("_").map(Number);
+      if(a===li)W2[o*l.fi+i]=v;});
+    return{...l,W:W2};});
+  ACTS=forward(L,X,ablate);
+}
+
+/* ---------- header: shows the full address ---------- */
+function drawHeader(){
+  const real=realLoaded();
+  $("m-title").innerHTML=CUR.arch+
+    (real?' <span class="realtag" title="Measured checkpoint from the lab tree">real</span>':"");
+  $("m-sub").innerHTML=`${ARCHSPEC[FAM].label} &middot; <b>${taskLabel(CUR.task)}</b> &middot; `+
+    `${PDKL[CUR.pdk]} &middot; ${SL[STAGES.indexOf(CUR.stage)]} \u2192 detailed route &middot; `+
+    `circuit <b>${CUR.circuit}</b>`;
+  const ck=real?EDA_REAL.ckptName(CUR.pdk,CUR.stage,CUR.circuit):null;
+  $("m-addr").innerHTML=
+    `<code>${CUR.task}_prediction / ${real?EDA_REAL.REAL_MODEL:FAM.toLowerCase()} / `+
+    `default_config_${CUR.pdk.toUpperCase()}_${CUR.stage} / ${CUR.circuit} / version_0`+
+    (ck?` / checkpoints / ${ck}`:"")+`</code>`;
+
+  /* the address travels back to the leaderboard, so the cell reopens */
+  const back="index.html?"+new URLSearchParams(
+    {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage});
+  $("crumb").innerHTML=`<a href="index.html">leaderboard</a> / `+
+    `<a href="${back}">${taskLabel(CUR.task)} \u00b7 ${PDKL[CUR.pdk]} \u00b7 `+
+    `${SL[STAGES.indexOf(CUR.stage)]}</a> / <b>${CUR.arch}</b>`;
+  const cta=$("beatcta");
+  if(cta)cta.href="playground.html?"+new URLSearchParams(
+    {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit});
+  document.querySelectorAll("[data-ctxlink]").forEach(a=>{
+    a.href=a.dataset.ctxlink+"?"+new URLSearchParams(
+      {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit});});
+
+  /* the two banners say what you are actually looking at */
+  const src=$("bar-src"),init=$("bar-init"),st=(window.EDA_REAL||{}).stats||{};
+  if(src)src.innerHTML=real
+    ? `<b>Real checkpoint.</b> Every tensor, curve and score on this page was read out of `+
+      `<code>${EDA_REAL.run(CUR.pdk,CUR.stage).dir}/${CUR.circuit}</code>. `+
+      `Input feature values are the one thing still yours to set \u2014 the dataset itself is not published here.`
+    : `<b>Prototype.</b> This address has no published checkpoint, so weights are regenerated `+
+      `in-browser to reproduce the audited statistics. `+
+      `<a href="explorer.html?${new URLSearchParams({task:"total_area",pdk:CUR.pdk,
+        stage:CUR.stage,model:"fixed_mlp",circuit:CUR.circuit})}">open the real one \u2192</a>`;
+  if(init)init.innerHTML=real
+    ? `<b>These weights are at initialization.</b> ${st.gradientSteps||50} gradient steps across `+
+      `${st.epochs||25} epochs; median final training R\u00b2 ${fmt(st.medianFinalTrainR2,4)} over `+
+      `${st.checkpoints||360} checkpoints, and observed weight spread `+
+      `${fmt(st.medianStdRatio,3)}\u00d7 the untrained null. Anything read from these matrices is `+
+      `initialization noise \u2014 the evidence cards below show why.`
+    : `<b>These weights are at initialization.</b> 50 gradient steps, median training `+
+      `R\u00b2 ${fmt(st.medianFinalTrainR2||0.0203,4)}. Anything read from these matrices is `+
+      `initialization noise \u2014 the evidence cards show why.`;
+}
+
+/* ---------- input node grouping, only for scalar-input architectures ---------- */
+function inputNodes(){
+  const w=inputWidth();
+  if(ARCHSPEC[FAM].inputKind==="image")
+    return Array.from({length:w},(_,i)=>({g:"image",label:"ch "+i,idx:[i],group:false}));
+  if(w!==41)  /* GNN uses a 37-dim node feature vector, not the 41 scalars */
+    return Array.from({length:Math.min(w,12)},(_,i)=>({g:"netlist",
+      label:"node feat "+i,idx:[i],group:false}));
+  if(expandedGroup===null)return FEATS.map(([g,ns],i)=>({g,label:g.replace("_"," "),
+    idx:ns.map((_,j)=>FEATS.slice(0,i).reduce((a,[,x])=>a+x.length,0)+j),group:true}));
+  const out=[];let base=0;
+  FEATS.forEach(([g,ns])=>{
+    if(g===expandedGroup)ns.forEach((n,j)=>out.push({g,label:n,idx:[base+j],group:false}));
+    else out.push({g,label:g.replace("_"," "),idx:ns.map((_,j)=>base+j),group:true});
+    base+=ns.length;});
+  return out;
+}
+
+/* ---------- 1. network: 3D units view + TensorBoard-style op graph ---------- */
+let netMode="3d", hits3d=[], hoverUnit=null, graphSel=null;
+
+function drawNet(){
+  const is3=netMode==="3d";
+  document.getElementById("wrap3d").style.display=is3?"":"none";
+  document.getElementById("wrapgr").style.display=is3?"none":"";
+  document.getElementById("ctl3d").style.display=is3?"":"none";
+  if(is3){render3d();}
+  else{
+    const G=opGraph(M,FAM,taskLabel(CUR.task));
+    drawGraph($("graph"),G,graphSel);
+    /* weighted nodes map onto weight matrices, in order */
+    let wi=0;
+    $("graph").querySelectorAll("[data-gn]").forEach(el=>{
+      const i=+el.dataset.gn, n=G.nodes[i];
+      if(n.kind!=="weighted"||isTree())return;
+      const li=wi++;
+      el.onmouseenter=()=>{graphSel=i;drawGraph($("graph"),G,graphSel);};
+      el.onmouseleave=()=>{graphSel=null;drawGraph($("graph"),G,graphSel);};
+      el.onclick=()=>{hmLayer=Math.min(li,M.length-1);drawHeat();drawNull();
+        $("hm").scrollIntoView({behavior:"smooth",block:"center"});};
+    });
+  }
+}
+function render3d(){
+  const cv=$("net3d");
+  const host=cv.parentElement;
+  const w=Math.max(360,host.clientWidth||760);
+  if(cv.width!==w*2){cv.width=w*2;cv.height=Math.round(w*2*0.62);}
+  cv.style.width="100%";cv.style.height="auto";
+  hits3d=draw3d(cv,isTree()?null:M,isTree()?null:ACTS,{fam:FAM});
+  if(isTree()){
+    const ctx=cv.getContext("2d");
+    ctx.fillStyle="var(--global-text-color-light)";
+    ctx.font="26px ui-sans-serif";ctx.textAlign="center";
+    ctx.fillText("tree ensemble \u2014 no unit topology to render",cv.width/2,cv.height/2);
+  }
+  $("unitinfo").innerHTML=hoverUnit
+    ? `<b>${hoverUnit.layer===0?"input":hoverUnit.layer===M.length?"output":"hidden "+hoverUnit.layer}</b>`+
+      ` unit ${hoverUnit.unit}<span class="dim"> \u00b7 activation </span>`+
+      `<span class="mono">${fmt(hoverUnit.act,4)}</span>`
+    : `<span class="dim">drag to orbit \u00b7 shift-drag to pan \u00b7 scroll to zoom</span>`;
+}
+/* ---------- 2. inspector ---------- */
+function drawInspect(){
+  const el=$("inspect");
+  if(isTree()){
+    el.innerHTML=`<div class="ins-h">Tree ensemble</div>
+      <div class="hint">This family has no weight tensors. There is nothing to drag and no
+      activation to propagate. Feature attribution for tree models is computed offline with
+      SHAP and shown on the model's leaderboard row instead.</div>`;return;}
+  let h="";
+  if(selEdge){
+    const{li,o,i}=selEdge,orig=M[li].W[o*M[li].fi+i],cur=W(li,o,i),b=M[li].bound*2;
+    const src=li===0?(inputWidth()===41&&FEATFLAT[i]?FEATFLAT[i].full:"in "+i)
+      :M[li-1].label+"["+i+"]";
+    h=`<div class="ins-h">Weight selected</div>
+      <div class="kv"><span>layer</span><b>${M[li].label} ${M[li].shape.join("\u00d7")}</b></div>
+      <div class="kv"><span>from</span><b>${src}</b></div>
+      <div class="kv"><span>to</span><b>${li===M.length-1?"output":M[li].label+"["+o+"]"}</b></div>
+      <div class="kv"><span>checkpoint</span><b class="mono">${fmt(orig,5)}</b></div>
+      <div class="kv"><span>current</span><b class="mono ${Math.abs(cur-orig)>1e-9?"ed":""}">${fmt(cur,5)}</b></div>
+      <input type="range" id="wsl" min="${-b}" max="${b}" step="${b/500}" value="${cur}">
+      <div class="rowb"><button class="mini" id="wrst">reset this weight</button></div>`;
+  }else if(pinNode){
+    const{c,i}=pinNode;
+    if(c===0){const ins=inputNodes()[i];
+      h=`<div class="ins-h">Input</div>
+        <div class="kv"><span>group</span><b>${ins?ins.g:"\u2014"}</b></div>
+        <div class="kv"><span>features</span><b>${ins?ins.idx.length:0}</b></div>
+        <div class="hint">Click a group to expand it.</div>`;
+    }else{
+      const li=c-1,l=M[li],a=ACTS?ACTS[c][i]:0;
+      let s=0;for(let k=0;k<l.fi;k++)s+=W(li,i,k)**2;
+      const abl=ablate.has(li+"_"+i);
+      h=`<div class="ins-h">${c===M.length?"Output":l.label} unit [${i}]</div>
+        <div class="kv"><span>layer shape</span><b class="mono">${l.shape.join("\u00d7")}</b></div>
+        <div class="kv"><span>activation</span><b class="mono">${fmt(a,4)}</b></div>
+        <div class="kv"><span>bias</span><b class="mono">${fmt(l.B[i],5)}</b></div>
+        <div class="kv"><span>fan-in</span><b>${l.fi}</b></div>
+        <div class="kv"><span>weight norm</span><b class="mono">${fmt(Math.sqrt(s),4)}</b></div>
+        <div class="rowb"><button class="mini ${abl?"on":""}" id="ablb">${abl?"restore":"ablate"} unit</button></div>
+        <div class="hint">Ablating zeroes this unit. The change in prediction is a measured
+        effect &mdash; unlike weight magnitude, it means something even on untrained weights.</div>`;
+    }
+  }else{
+    h=`<div class="ins-h">Nothing selected</div>
+      <div class="hint">Click a <b>node</b> to inspect it. Click an <b>edge</b> to change that
+      weight and watch the prediction move. <b>Alt-click</b> a hidden node to ablate it.</div>`;
+  }
+  el.innerHTML=h;
+  const sl=$("wsl");
+  if(sl)sl.oninput=()=>{const{li,o,i}=selEdge;edits.set(li+"_"+o+"_"+i,+sl.value);run();renderAll();};
+  const rb=$("wrst");
+  if(rb)rb.onclick=()=>{const{li,o,i}=selEdge;edits.delete(li+"_"+o+"_"+i);run();renderAll();};
+  const ab=$("ablb");
+  if(ab)ab.onclick=()=>{const k=(pinNode.c-1)+"_"+pinNode.i;
+    ablate.has(k)?ablate.delete(k):ablate.add(k);run();renderAll();};
+}
+
+/* ---------- 3. prediction ---------- */
+let lastPred=0;
+function drawPred(){
+  if(isTree()){$("predv").textContent="\u2014";
+    $("predmeta").innerHTML='<span class="tagw">no forward pass</span>';return;}
+  const p=ACTS[ACTS.length-1][0],el=$("predv");
+  const t0=performance.now(),from=lastPred;
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)el.textContent=fmt(p,4);
+  else(function tick(n){const k=Math.min(1,(n-t0)/380),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(from+(p-from)*e,4);if(k<1)requestAnimationFrame(tick);})(t0);
+  lastPred=p;
+  $("predlbl").textContent=taskLabel(CUR.task).toLowerCase()+", z-score units";
+  $("predmeta").innerHTML=
+    (edits.size?`<span class="tagw">${edits.size} weight${edits.size>1?"s":""} edited</span>`:"")+
+    (ablate.size?`<span class="tagw">${ablate.size} unit${ablate.size>1?"s":""} ablated</span>`:"");
+}
+
+/* ---------- 4. inputs ---------- */
+function drawInputs(){
+  const el=$("inputs");
+  if(isTree()){el.innerHTML='<div class="hint">Tree ensembles take the same 41 scalar '+
+    'features but have no differentiable path to trace.</div>';return;}
+  if(inputWidth()!==41){
+    el.innerHTML=`<div class="hint">This architecture consumes `+
+      (ARCHSPEC[FAM].inputKind==="image"?"spatial layout maps":`a ${inputWidth()}-dimensional `+
+      `node feature vector derived from the netlist graph`)+
+      `, not the 41 scalar features. Individual sliders are shown for the first few dimensions.</div>`+
+      `<div class="fg">`+Array.from({length:Math.min(inputWidth(),12)},(_,i)=>
+      `<label class="fr"><span class="fn">dim ${i}</span>
+        <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${X[i]||0}">
+        <span class="fv mono" id="fv${i}">${fmt(X[i]||0,2)}</span></label>`).join("")+`</div>`;
+  }else{
+    /* the checkpoints are published; the dataset behind them is not, so these
+       are sliders in z-scored space rather than a circuit's real feature row */
+    el.innerHTML=(realLoaded()?'<div class="hint">The 41 features the lab configured, in '+
+      'checkpoint order. Values here are yours to set, in z-scored units \u2014 the '+
+      'EDA-Schema tables they come from are not published alongside the checkpoints.</div>':"")+
+      FEATS.map(([g,ns],gi)=>{
+      const base=FEATS.slice(0,gi).reduce((a,[,x])=>a+x.length,0);
+      return `<div class="fg"><div class="fgh" style="color:${GCOL[g]}">${g.replace("_"," ")}
+        <span>${ns.length}</span></div>`+
+        ns.map((n,j)=>{const i=base+j;
+          return `<label class="fr"><span class="fn">${n}</span>
+            <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${X[i]}">
+            <span class="fv mono" id="fv${i}">${fmt(X[i],2)}</span></label>`;}).join("")+`</div>`;
+    }).join("");
+  }
+  el.querySelectorAll("[data-x]").forEach(s=>s.oninput=()=>{
+    const i=+s.dataset.x;X[i]=+s.value;$("fv"+i).textContent=fmt(X[i],2);
+    run();drawNet();drawPred();drawInspect();});
+}
+
+/* ---------- 5. weight heatmap ---------- */
+function drawHeat(){
+  const tog=$("hmtog");
+  if(isTree()){tog.innerHTML="";$("hmmeta").textContent="no weight tensors";
+    const cv=$("hm");cv.width=cv.height=1;return;}
+  tog.innerHTML=M.map((l,i)=>`<button data-hl="${i}" aria-pressed="${i===hmLayer}">`+
+    `${l.label} ${l.shape.slice(0,2).join("\u00d7")}</button>`).join("");
+  tog.querySelectorAll("[data-hl]").forEach(b=>b.onclick=()=>{
+    hmLayer=+b.dataset.hl;drawHeat();drawNull();});
+  const l=M[hmLayer],cv=$("hm"),ctx=cv.getContext("2d");
+  const cw=Math.max(2,Math.min(14,760/l.fi)),ch=Math.max(2,Math.min(14,420/l.fo));
+  cv.width=Math.round(l.fi*cw);cv.height=Math.round(l.fo*ch);
+  let mx=0;for(const v of l.W)mx=Math.max(mx,Math.abs(v));
+  const img=ctx.createImageData(cv.width,cv.height);
+  for(let o=0;o<l.fo;o++)for(let i=0;i<l.fi;i++){
+    const v=W(hmLayer,o,i)/(mx||1);
+    const R=v>0?90+165*(1-v):225,G=v>0?140+90*(1-v):140+70*(1+v),B=v>0?200:70+120*(1+v);
+    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
+      const px=((Math.round(o*ch)+y)*cv.width+(Math.round(i*cw)+x))*4;
+      if(px<0||px>=img.data.length)continue;
+      img.data[px]=R;img.data[px+1]=G;img.data[px+2]=B;img.data[px+3]=255;}}
+  ctx.putImageData(img,0,0);
+  $("hmmeta").textContent=`${l.label} \u00b7 ${l.shape.join(" \u00d7 ")} \u00b7 `+
+    `${l.W.length.toLocaleString("en-US")} weights \u00b7 range \u00b1${fmt(mx,4)}`;
+  cv.onmousemove=e=>{
+    const r=cv.getBoundingClientRect();
+    const i=Math.floor((e.clientX-r.left)/r.width*l.fi),o=Math.floor((e.clientY-r.top)/r.height*l.fo);
+    if(i<0||i>=l.fi||o<0||o>=l.fo)return;
+    const src=hmLayer===0&&inputWidth()===41&&FEATFLAT[i]?FEATFLAT[i].full
+      :(hmLayer===0?"in["+i+"]":M[hmLayer-1].label+"["+i+"]");
+    $("hmtip").textContent=`${src} \u2192 ${hmLayer===M.length-1?"output":l.label+"["+o+"]"}`+
+      `  =  ${fmt(W(hmLayer,o,i),5)}`;};
+  cv.onmouseleave=()=>$("hmtip").textContent="hover a cell";
+  cv.onclick=e=>{
+    const r=cv.getBoundingClientRect();
+    const i=Math.floor((e.clientX-r.left)/r.width*l.fi),o=Math.floor((e.clientY-r.top)/r.height*l.fo);
+    selEdge={li:hmLayer,o,i};pinNode=null;renderAll();
+    $("net").scrollIntoView({behavior:"smooth",block:"center"});};
+}
+
+/* ---------- 6. null overlay ---------- */
+function drawNull(){
+  if(isTree()){$("nullsvg").innerHTML="";
+    $("nullstat").innerHTML='<div class="hint">Not applicable to tree ensembles.</div>';return;}
+  const l=M[hmLayer],s=layerStats(l),b=l.bound;
+  const NB=44,lo=-b*1.35,hi=b*1.35,bw=(hi-lo)/NB,bins=new Array(NB).fill(0);
+  for(const v of l.W){const k=Math.floor((v-lo)/bw);if(k>=0&&k<NB)bins[k]++;}
+  const peak=Math.max(...bins),Wd=520,Ht=210,X0=46,Y0=170,PW=Wd-70;
+  let g=`<line x1="${X0}" y1="${Y0}" x2="${Wd-16}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`;
+  bins.forEach((c,i)=>{const h=c/peak*138,x=X0+i*(PW/NB);
+    g+=`<rect class="br2" style="animation-delay:${i*9}ms" x="${x.toFixed(1)}" `+
+       `y="${(Y0-h).toFixed(1)}" width="${(PW/NB-1).toFixed(1)}" height="${h.toFixed(1)}" `+
+       `fill="var(--global-theme-color)" opacity=".45"/>`;});
+  const expCount=l.W.length/(2*b/bw),yTh=Y0-(expCount/peak)*138;
+  const x1=X0+((-b-lo)/(hi-lo))*PW,x2=X0+((b-lo)/(hi-lo))*PW;
+  g+=`<path class="ln2" style="--len:900" d="M${X0} ${Y0} L${x1.toFixed(1)} ${Y0} `+
+     `L${x1.toFixed(1)} ${yTh.toFixed(1)} L${x2.toFixed(1)} ${yTh.toFixed(1)} `+
+     `L${x2.toFixed(1)} ${Y0} L${Wd-16} ${Y0}" fill="none" stroke="var(--neg)" `+
+     `stroke-width="2.2" stroke-dasharray="6 4"/>`+
+     `<text class="cl" x="${(x2+6).toFixed(1)}" y="${(yTh-6).toFixed(1)}" fill="var(--neg)">`+
+     `U(\u00b1${fmt(b,4)}) if untrained</text>`;
+  $("nullsvg").innerHTML=g;
+  $("nullstat").innerHTML=
+    `<div class="st"><span>layer</span><b class="mono">${l.label} ${l.shape.join("\u00d7")}</b></div>`+
+    `<div class="st"><span>observed std</span><b class="mono">${fmt(s.std,5)}</b></div>`+
+    `<div class="st"><span>std if untrained</span><b class="mono">${fmt(s.expStd,5)}</b></div>`+
+    `<div class="st"><span>ratio</span><b class="mono big">${fmt(s.ratio,4)}</b></div>`;
+}
+
+/* ---------- 7. cosine ---------- */
+function drawCos(){
+  if(isTree()){$("cos").width=1;
+    $("cosstat").innerHTML='<div class="hint">Not applicable to tree ensembles.</div>';
+    $("coscap").textContent="";return;}
+  const cv=$("cos"),ctx=cv.getContext("2d");
+  const real=realLoaded();
+  let mat=null;
+  /* For the real submission both matrices are precomputed over all 360
+     checkpoints, so this panel is exact without pulling 10 MB of tensors. */
+  if(real)mat=cmpMode==="circuits"?EDA_REAL.cosAcrossCircuits(CUR.pdk,CUR.stage)
+                                  :EDA_REAL.cosAcrossConfigs(CUR.circuit);
+  if(!mat){
+    if(cmpMode==="circuits"){
+      const Ws=CIRCUITS.map(c=>getModel(CUR.task,CUR.arch,CUR.pdk,CUR.stage,c)[0].W);
+      mat=Ws.map(a=>Ws.map(b=>cosine(a,b)));
+    }else{
+      const Ws=[];
+      for(const p of PDKS)for(const s of STAGES)
+        Ws.push(getModel(CUR.task,CUR.arch,p,s,CUR.circuit)[0].W);
+      mat=Ws.map(a=>Ws.map(b=>cosine(a,b)));
+    }
+  }
+  const n=mat.length,cell=Math.floor(300/n);
+  cv.width=n*cell;cv.height=n*cell;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+    const v=mat[i][j],t=Math.max(0,Math.min(1,(v+0.1)/1.1));
+    ctx.fillStyle=v>0.9?"rgb(60,120,90)":`rgb(${235-60*t},${235-70*t},${235-40*t})`;
+    ctx.fillRect(j*cell,i*cell,cell-1,cell-1);}
+  const off=mat.flatMap((r,i)=>r.filter((_,j)=>j!==i));
+  const mean=off.reduce((a,b)=>a+b,0)/off.length;
+  $("cosstat").innerHTML=
+    `<div class="st"><span>mean off-diagonal</span><b class="mono big">${fmt(mean,4)}</b></div>`+
+    `<div class="st"><span>range</span><b class="mono">${fmt(Math.min(...off),3)} to ${fmt(Math.max(...off),3)}</b></div>`+
+    `<div class="st"><span>angle</span><b class="mono">${(Math.acos(Math.max(-1,Math.min(1,mean)))*180/Math.PI).toFixed(1)}\u00b0</b></div>`;
+  $("coscap").innerHTML=(cmpMode==="circuits"
+    ? `${CIRCUITS.length} circuits, holding <b>${taskLabel(CUR.task)}</b> / ${CUR.arch} / ${PDKL[CUR.pdk]} / ${SL[STAGES.indexOf(CUR.stage)]} fixed. Off-diagonal is indistinguishable from zero &mdash; a different circuit means a different seed.`
+    : `<b>${CUR.circuit}</b> across all 20 (PDK, stage) datasets, same task and architecture. Off-diagonal is 0.99+ &mdash; the weights follow the seed, not the data.`)+
+    (real?` Measured over all ${(EDA_REAL.stats||{}).checkpoints||360} checkpoints.`
+        :` Reproduced from the audited statistics.`);
+}
+
+/* ---------- 8. column norms ---------- */
+function drawCols(){
+  if(isTree()){$("colsvg").innerHTML="";
+    $("colstat").innerHTML='<div class="hint">Not applicable to tree ensembles.</div>';return;}
+  const l=M[0],cn=colNorms(l),nul=colNormNull(l.fo,l.bound);
+  const named=inputWidth()===41&&l.fi===41;
+  const Wd=980,Ht=250,X0=40,Y0=200;
+  const lo=nul.mu-4.4*nul.sd,hi=nul.mu+4.4*nul.sd,y=v=>Y0-((v-lo)/(hi-lo))*160;
+  let g=`<rect x="${X0}" y="${y(nul.mu+2*nul.sd).toFixed(1)}" width="${Wd-X0-14}" `+
+    `height="${(y(nul.mu-2*nul.sd)-y(nul.mu+2*nul.sd)).toFixed(1)}" `+
+    `fill="var(--global-theme-color)" opacity=".09"/>`+
+    `<line x1="${X0}" y1="${y(nul.mu).toFixed(1)}" x2="${Wd-14}" y2="${y(nul.mu).toFixed(1)}" `+
+    `stroke="var(--global-theme-color)" stroke-dasharray="5 4" stroke-width="1.4"/>`;
+  const nb=Math.min(l.fi,64),bw=(Wd-X0-20)/nb;let inside=0;
+  for(let i=0;i<nb;i++){
+    const v=cn[i],ok=Math.abs(v-nul.mu)<2*nul.sd;if(ok)inside++;
+    const col=named?GCOL[FEATFLAT[i].g]:"var(--global-theme-color)";
+    g+=`<rect class="br2" style="animation-delay:${i*10}ms" x="${(X0+i*bw+1).toFixed(1)}" `+
+       `y="${y(v).toFixed(1)}" width="${Math.max(1,bw-2).toFixed(1)}" `+
+       `height="${(Y0-y(v)).toFixed(1)}" fill="${col}" opacity="${ok?.6:1}"/>`;
+    if(named&&nb<=41)g+=`<text class="cl2" x="${(X0+i*bw+bw/2).toFixed(1)}" y="${Y0+9}" `+
+      `text-anchor="end" transform="rotate(-58 ${(X0+i*bw+bw/2).toFixed(1)} ${Y0+9})">`+
+      `${FEATFLAT[i].n.slice(0,14)}</text>`;
+  }
+  g+=`<text class="cl" x="${Wd-16}" y="${(y(nul.mu)-6).toFixed(1)}" text-anchor="end" `+
+     `fill="var(--global-theme-color)">null mean ${fmt(nul.mu,4)} \u00b1 2sd</text>`;
+  $("colsvg").innerHTML=g;
+  const mean=[...cn].slice(0,nb).reduce((a,b)=>a+b,0)/nb;
+  $("colstat").innerHTML=
+    `<div class="st"><span>input</span><b class="mono">${l.shape.join("\u00d7")}</b></div>`+
+    `<div class="st"><span>observed mean</span><b class="mono">${fmt(mean,4)}</b></div>`+
+    `<div class="st"><span>null mean</span><b class="mono">${fmt(nul.mu,4)}</b></div>`+
+    `<div class="st"><span>within \u00b12sd</span><b class="mono big">${(inside/nb*100).toFixed(1)}%</b></div>`;
+  $("colcap").innerHTML=named
+    ? `Bars are the 41 EDA-Schema features, coloured by family.`
+    : `This architecture's first layer takes a ${l.fi}-dimensional input that is not the 41 scalar features, so bars are unnamed.`;
+}
+
+/* ---------- 9. training curves ---------- */
+function drawCurves(){
+  /* real runs read their TensorBoard scalars; mock addresses keep the
+     generated curves that were fitted to them */
+  let S=realLoaded()?EDA_REAL.curvesFor(CUR.pdk,CUR.stage,CUR.circuit):null;
+  const isReal=!!S;
+  if(!S){
+    const r=mulberry32(hash(CUR.task+CUR.arch+CUR.circuit+CUR.pdk+CUR.stage+"tb"));
+    S={loss:{tr:[],va:[]},r2:{tr:[],va:[]},mae:{tr:[],va:[]}};
+    for(let e=0;e<25;e++){
+      const t=e/24;
+      S.loss.tr.push(1.011-0.060*t+(r()-0.5)*0.012);
+      S.loss.va.push(0.411-0.041*t+(r()-0.5)*0.010);
+      S.r2.tr.push(-0.078+0.098*t+(r()-0.5)*0.012);
+      S.r2.va.push(-0.114+0.110*t+(r()-0.5)*0.014);
+      S.mae.tr.push(0.664-0.065*t+(r()-0.5)*0.010);
+      S.mae.va.push(0.491-0.066*t+(r()-0.5)*0.010);}
+  }
+  const s=S[curveTab],N=s.tr.length,all=[...s.tr,...s.va];
+  const lo=Math.min(...all),hi=Math.max(...all),pad=(hi-lo)*0.18;
+  const Wd=520,Ht=210,X0=48,Y0=172;
+  const px=i=>X0+(i/(N-1))*(Wd-X0-18),py=v=>Y0-((v-lo+pad)/((hi-lo)+2*pad))*146;
+  const path=a=>a.map((v,i)=>(i?"L":"M")+px(i).toFixed(1)+" "+py(v).toFixed(1)).join(" ");
+  let g=`<line x1="${X0}" y1="${Y0}" x2="${Wd-14}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`+
+    `<line x1="${X0}" y1="14" x2="${X0}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`;
+  if(curveTab==="r2"&&lo<0&&hi>0)
+    g+=`<line x1="${X0}" y1="${py(0).toFixed(1)}" x2="${Wd-14}" y2="${py(0).toFixed(1)}" `+
+       `stroke="var(--neg)" stroke-dasharray="4 4" opacity=".6"/>`+
+       `<text class="cl" x="${Wd-16}" y="${(py(0)-5).toFixed(1)}" text-anchor="end" `+
+       `fill="var(--neg)">R\u00b2 = 0 (predicting the mean)</text>`;
+  g+=`<path class="ln2" style="--len:900" d="${path(s.tr)}" fill="none" `+
+     `stroke="var(--global-theme-color)" stroke-width="2"/>`+
+     `<path class="ln2" style="--len:900;animation-delay:.12s" d="${path(s.va)}" fill="none" `+
+     `stroke="var(--pos)" stroke-width="2" stroke-dasharray="4 3"/>`;
+  $("curvesvg").innerHTML=g;
+  const test=isReal?EDA_REAL.circuitTest(CUR.pdk,CUR.stage,CUR.circuit):null;
+  const tv=test&&test[curveTab==="r2"?"r2":curveTab];
+  $("curvestat").innerHTML=
+    `<div class="st"><span>first → last (train)</span><b class="mono">${fmt(s.tr[0],4)} → ${fmt(s.tr[N-1],4)}</b></div>`+
+    (tv!==undefined&&tv!==null
+      ? `<div class="st"><span>final test</span><b class="mono">${fmt(tv,4)}</b></div>`
+      : `<div class="st"><span>early stopping</span><b>never fired</b></div>`)+
+    `<div class="st"><span>gradient steps</span><b class="mono big">50</b></div>`+
+    (isReal?`<div class="st"><span>source</span><b>events.out.tfevents</b></div>`:"");
+}
+
+/* ---------- measured result ----------
+   What the lab's own evaluation pass recorded for this circuit under this
+   configuration, next to the OpenROAD estimate it was scored against. */
+function drawMeasured(){
+  const card=$("k-measured");
+  if(!realLoaded()){card.style.display="none";return;}
+  card.style.display="";
+  const run=EDA_REAL.run(CUR.pdk,CUR.stage);
+  const per=EDA_REAL.circuitEval(CUR.pdk,CUR.stage,CUR.circuit);
+  const ri=run.run||{};
+  const stage=SL[STAGES.indexOf(CUR.stage)];
+  $("ms-sub").innerHTML=`<b>${CUR.circuit}</b> on ${PDKL[CUR.pdk]}, predicting the routed `+
+    `total area from ${stage}. Lower MAE and MAPE win; higher R² wins.`;
+
+  const num=(v,kind)=>kind==="mape"?(v*100).toFixed(2)+"%"
+    :kind==="r2"?v.toFixed(4)
+    :Math.abs(v)>=100?Math.round(v).toLocaleString("en-US"):v.toFixed(3);
+  const rows=[["MAE","µm²","mae"],["MAPE","","mape"],["R²","","r2"]];
+  const cell=(v,other,kind,higher)=>{
+    const win=higher?v>other:v<other;
+    return `<div class="mono" style="text-align:right;padding:.28rem .6rem;`+
+      `color:${win?"var(--pos)":"var(--global-text-color)"};font-weight:${win?600:400}">`+
+      `${num(v,kind)}</div>`;
+  };
+  const head=`<div class="dim" style="padding:.28rem .6rem">metric</div>`+
+    `<div class="dim" style="text-align:right;padding:.28rem .6rem">this checkpoint</div>`+
+    `<div class="dim" style="text-align:right;padding:.28rem .6rem">OpenROAD at ${stage}</div>`+
+    `<div class="dim" style="text-align:right;padding:.28rem .6rem">config aggregate</div>`;
+  let body="";
+  rows.forEach(([label,unit,kind],i)=>{
+    const higher=kind==="r2";
+    body+=`<div style="padding:.28rem .6rem">${label}${unit?` <span class="dim">${unit}</span>`:""}</div>`+
+      cell(per.m[i],per.b[i],kind,higher)+
+      cell(per.b[i],per.m[i],kind,higher)+
+      `<div class="mono dim" style="text-align:right;padding:.28rem .6rem">`+
+      `${num(run.agg.m[i],kind)}</div>`;
+  });
+  $("ms-grid").innerHTML=`<div style="display:grid;grid-template-columns:1fr repeat(3,minmax(90px,auto));`+
+    `gap:0;border-top:1px solid var(--global-divider-color);border-bottom:1px solid var(--global-divider-color);`+
+    `margin:.4rem 0 .6rem">${head}${body}</div>`+
+    `<div class="pg" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));display:grid;gap:.5rem">`+
+    [["run",run.dir],["dataset",(ri.dataset||"").split("/").pop()||"—"],
+     ["train wall clock",ri.wall||"—"],["peak GPU",ri.gpuMemMb?ri.gpuMemMb+" MB":"—"],
+     ["CPU share",ri.cpuPct?ri.cpuPct+"%":"—"],["evaluated",(ri.evaluated||"").slice(0,10)||"—"]]
+    .map(([k,v])=>`<div class="st" style="display:block"><span class="dim">${k}</span>`+
+      `<b class="mono" style="display:block;font-size:.82rem;overflow-wrap:anywhere">${v}</b></div>`).join("")+
+    `</div>`;
+  $("ms-cap").innerHTML=`Read from <code>${run.dir}/eval.log</code>. The aggregate column is the `+
+    `figure this configuration contributes to the leaderboard, over all `+
+    `${EDA_REAL.circuits.length} circuits. A model that sits at initialization can still beat a `+
+    `floorplan-stage estimate, because predicting close to the mean beats an estimate that is `+
+    `biased low — that is a fact about the baseline, not evidence of learning.`;
+}
+
+/* ---------- pickers ---------- */
+function drawPicker(){
+  $("circhips").innerHTML=CIRCUITS.map(c=>
+    `<button class="chipc${CUR.circuit===c?" on":""}" data-c="${c}">${c}</button>`).join("");
+  $("circhips").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{
+    CUR.circuit=b.dataset.c;loadModel();});
+  $("cmpgrid").innerHTML=`<div class="pg"><div></div>`+
+    SL.map(s=>`<div class="pgh">${s}</div>`).join("")+
+    PDKS.map(p=>`<div class="pgl">${PDKL[p]}</div>`+STAGES.map(s=>
+      `<button class="pgc${CUR.pdk===p&&CUR.stage===s?" on":""}" data-ps="${p}|${s}"></button>`)
+      .join("")).join("")+`</div>`;
+  $("cmpgrid").querySelectorAll("[data-ps]").forEach(b=>b.onclick=()=>{
+    const[p,s]=b.dataset.ps.split("|");CUR.pdk=p;CUR.stage=s;loadModel();});
+  drawGlance();
+}
+
+let glanceHover=null, glanceMode="params", glanceKey="", glancePrev=null;
+
+/* Parameter counts belong to the architecture, so they do not change when you
+   pick a different circuit or PDK. These two modes read the weights themselves,
+   which do. */
+function glanceSeries(){
+  const per=M.map(l=>l.W.length+l.B.length);
+  if(glanceMode==="params")
+    return{vals:per, fmt:v=>nf(v)+" params", total:per.reduce((a,b)=>a+b,0), share:true};
+  if(glanceMode==="mass"){
+    const m=M.map(l=>{let s=0;for(const v of l.W)s+=Math.abs(v);return s;});
+    return{vals:m, fmt:v=>"\u2211|W| "+v.toFixed(0), total:m.reduce((a,b)=>a+b,0), share:true};
+  }
+  /* drift: observed std over the std an untrained layer would have */
+  const d=M.map(l=>layerStats(l).ratio);
+  return{vals:d, fmt:v=>"\u00d7"+v.toFixed(3)+" of init", total:0, share:false};
+}
+
+function drawGlance(){
+  const el=$("glance");
+  if(isTree()){
+    el.innerHTML=
+      `<div class="gfig"><span class="gnum">300</span><span class="gunit">trees</span></div>`+
+      `<div class="glab">gradient-boosted ensemble</div>`+
+      `<div class="gchips"><span class="gchip">AutoML</span>`+
+      `<span class="gchip">scalar &middot; 41</span>`+
+      `<span class="gchip warn">no weight tensors</span></div>`+
+      `<div class="gaddr">${CUR.circuit} &middot; ${PDKL[CUR.pdk]} &middot; ${SL[STAGES.indexOf(CUR.stage)]}</div>`;
+    return;
+  }
+  const per=M.map(l=>l.W.length+l.B.length);
+  const tot=per.reduce((a,b)=>a+b,0);
+  const dims=[M[0].fi,...M.map(l=>l.fo)];
+  const wmax=Math.max(...dims);
+  const S=glanceSeries();
+
+  const PW=190,PH=40,bw=PW/dims.length;
+  const prof=dims.map((d,i)=>{
+    const h=Math.max(3,(d/wmax)*(PH-10));
+    const on=glanceHover===i-1||glanceHover===i;
+    return `<rect x="${(i*bw+1.5).toFixed(1)}" y="${(PH-h-9).toFixed(1)}" `+
+      `width="${(bw-3).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" `+
+      `fill="${i===0?"var(--global-text-color-light)":i===dims.length-1
+        ?"var(--lb-layer-out-br)":"var(--global-theme-color)"}" `+
+      `opacity="${on?1:.72}"/>`+
+      `<text x="${(i*bw+bw/2).toFixed(1)}" y="${PH-1}" text-anchor="middle" `+
+      `font-size="7.5" fill="var(--global-text-color-light)">${d}</text>`;}).join("");
+
+  const PAL=["#3b6fb0","#5b8ac4","#8fb0d8","#c4d4e8"];
+  let body;
+  if(S.share){
+    body=`<div class="gbar">`+S.vals.map((v,i)=>{
+      const pct=S.total?v/S.total*100:0;
+      return `<span class="gseg${glanceHover===i?" on":""}" data-gs="${i}" `+
+        `style="width:${pct}%;background:${PAL[i%4]}"></span>`;}).join("")+`</div>`;
+  }else{
+    /* drift has no total to share out, so each layer gets its own gauge */
+    body=`<div class="ggauges">`+S.vals.map((v,i)=>{
+      const off=Math.min(1,Math.abs(v-1)/0.25);
+      return `<div class="ggauge${glanceHover===i?" on":""}" data-gs="${i}">`+
+        `<div class="gtrack"><i style="left:${(50+(v-1)/0.25*50).toFixed(1)}%;`+
+        `background:${off>0.5?"var(--lb-warn)":"var(--global-theme-color)"}"></i>`+
+        `<b style="left:50%"></b></div>`+
+        `<span class="glbl">${v.toFixed(3)}</span></div>`;}).join("")+`</div>`;
+  }
+
+  const hv=glanceHover!==null&&M[glanceHover];
+  let note;
+  if(hv) note=`<b>${M[glanceHover].label} ${M[glanceHover].shape.join("\u00d7")}</b> &middot; `+
+              `${S.fmt(S.vals[glanceHover])}`;
+  else if(glanceMode==="params"){
+    const b=per.indexOf(Math.max(...per));
+    note=`<b>${(per[b]/tot*100).toFixed(0)}%</b> of the weights sit in `+
+         `${M[b].label} ${M[b].shape.join("\u00d7")}`;
+  }else if(glanceMode==="mass"){
+    const b=S.vals.indexOf(Math.max(...S.vals));
+    note=`<b>${(S.vals[b]/S.total*100).toFixed(1)}%</b> of total weight magnitude is in `+
+         `${M[b].label} ${M[b].shape.slice(0,2).join("\u00d7")} `+
+         `<span class="dim">(\u2211|W| ${S.total.toFixed(1)})</span>`;
+  }else{
+    const far=S.vals.filter(v=>Math.abs(v-1)>0.05).length;
+    note=far? `<b>${far}</b> of ${S.vals.length} layers have moved from initialisation`
+            : `every layer is within <b>5%</b> of its untrained distribution`;
+  }
+
+  el.innerHTML=
+    `<div class="gfig"><span class="gnum">${nf(tot)}</span>`+
+    `<span class="gunit">parameters</span></div>`+
+    `<div class="gsec">layer widths</div>`+
+    `<svg class="gprof" viewBox="0 0 ${PW} ${PH}">${prof}</svg>`+
+    `<div class="gmodes">`+
+      ["params","mass","drift"].map(m=>
+        `<button class="gmode${m===glanceMode?" on":""}" data-gm="${m}">`+
+        `${m==="params"?"params":m==="mass"?"weight mass":"drift"}</button>`).join("")+
+    `</div>`+
+    body+
+    `<div class="gnote">${note}</div>`+
+    `<div class="gchips">`+
+      `<span class="gchip">${FAM}</span>`+
+      `<span class="gchip">${ARCHSPEC[FAM].inputKind} &middot; ${inputWidth()}</span>`+
+      `<span class="gchip">${M.length} weighted</span>`+
+    `</div>`+
+    `<div class="gaddr">${CUR.circuit} &middot; ${PDKL[CUR.pdk]} &middot; `+
+      `${SL[STAGES.indexOf(CUR.stage)]}</div>`+
+    (glanceDelta?`<div class="gdelta ${glanceDelta.cls}">${glanceDelta.text}</div>`:"");
+
+  el.querySelectorAll("[data-gs]").forEach(s2=>{
+    s2.onmouseenter=()=>{glanceHover=+s2.dataset.gs;drawGlance();};
+    s2.onmouseleave=()=>{glanceHover=null;drawGlance();};
+    s2.onclick=()=>{hmLayer=+s2.dataset.gs;drawHeat();drawNull();
+      $("hm").scrollIntoView({behavior:"smooth",block:"center"});};
+  });
+  el.querySelectorAll("[data-gm]").forEach(b=>b.onclick=()=>{
+    glanceMode=b.dataset.gm;drawGlance();});
+
+  el.classList.toggle("gflash",flashing);
+}
+
+/* What changed relative to the previous selection. Switching PDK or stage barely
+   moves these weights — that is the audit finding, so the card says it rather
+   than appearing frozen. */
+let glanceDelta=null, flashing=false;
+function noteModelChange(){
+  const key=[CUR.task,CUR.arch,CUR.pdk,CUR.stage,CUR.circuit].join("|");
+  if(key===glanceKey)return;
+  const prev=glancePrev;
+  const cur=isTree()?null:{k:key,W:Float32Array.from(M[0].W),
+    task:CUR.task,arch:CUR.arch,pdk:CUR.pdk,stage:CUR.stage,circuit:CUR.circuit};
+  if(prev&&cur&&prev.W.length===cur.W.length){
+    const c=cosine(prev.W,cur.W);
+    const sameCircuit=prev.circuit===cur.circuit&&prev.task===cur.task&&prev.arch===cur.arch;
+    glanceDelta = c>0.99
+      ? {cls:"same", text:`cosine <b>${c.toFixed(4)}</b> against the previous selection`+
+          (sameCircuit?` &mdash; same circuit, so the weights barely move`:``)}
+      : {cls:"diff", text:`cosine <b>${c.toFixed(3)}</b> against the previous selection`+
+          (sameCircuit?``:` &mdash; a different circuit reseeds them entirely`)};
+  }else glanceDelta=null;
+  glancePrev=cur;glanceKey=key;
+  flashing=true;
+  setTimeout(()=>{flashing=false;const el=$("glance");if(el)el.classList.remove("gflash");},560);
+}
+
+function renderAll(){drawHeader();drawMeasured();drawPicker();drawNet();drawInspect();drawPred();
+  drawInputs();drawHeat();drawNull();drawCos();drawCols();drawCurves();}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll("[data-nm3]").forEach(b=>b.onclick=()=>{
+  netMode=b.dataset.nm3;
+  document.querySelectorAll("[data-nm3]").forEach(o=>o.setAttribute("aria-pressed",o===b));
+  drawNet();});
+$("edgecap").oninput=function(){V3.edgeCap=+this.value;$("edgecapv").textContent=V3.edgeCap;render3d();};
+$("edgetog").onchange=function(){V3.showEdges=this.checked;render3d();};
+$("reset3d").onclick=()=>{reset3d();render3d();};
+attach3d($("net3d"),
+  e=>{const cv=$("net3d"),r=cv.getBoundingClientRect();
+      const mx=(e.clientX-r.left)/r.width*cv.width, my=(e.clientY-r.top)/r.height*cv.height;
+      let best=null,bd=1e9;
+      for(const h of hits3d){const d=(h.x-mx)**2+(h.y-my)**2;
+        if(d<bd&&d<h.r*h.r*4){bd=d;best=h;}}
+      if(best!==hoverUnit){hoverUnit=best;render3d();}},
+  ()=>{if(hoverUnit&&hoverUnit.layer>0){pinNode={c:hoverUnit.layer,i:hoverUnit.unit};
+    drawInspect();}},
+  ()=>render3d());
+addEventListener("resize",()=>{if(netMode==="3d")render3d();});
+document.querySelectorAll("[data-cm]").forEach(b=>b.onclick=()=>{
+  cmpMode=b.dataset.cm;
+  document.querySelectorAll("[data-cm]").forEach(o=>o.setAttribute("aria-pressed",o===b));
+  drawCos();});
+document.querySelectorAll("[data-ct]").forEach(b=>b.onclick=()=>{
+  curveTab=b.dataset.ct;
+  document.querySelectorAll("[data-ct]").forEach(o=>o.setAttribute("aria-pressed",o===b));
+  drawCurves();});
+$("themebtn").onclick=function(){
+  const d=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",d?"light":"dark");
+  this.textContent=d?"dark":"light";drawHeat();drawCos();};
+
+/* read the full address handed over by the leaderboard */
+(function(){
+  const q=new URLSearchParams(location.search);
+  const t=q.get("task"),p=q.get("pdk"),s=q.get("stage"),m=q.get("model"),c=q.get("circuit");
+  if(t&&TASKS.some(x=>x[0]===t))CUR.task=t;
+  if(p&&PDKS.includes(p))CUR.pdk=p;
+  if(s&&STAGES.includes(s))CUR.stage=s;
+  if(m)CUR.arch=m;
+  if(c&&CIRCUITS.includes(c))CUR.circuit=c;
+})();
+loadModel();
+
+</script>
+</body>
+</html>

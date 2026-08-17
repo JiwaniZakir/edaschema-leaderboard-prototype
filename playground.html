@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="EDA Playground — Drexel ICE Lab">
+<meta property="og:description" content="Pick a prediction task, choose which schema attributes feed in, shape the network, and see if you can beat the OpenROAD estimate.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2307294D'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+<title>EDA Playground | Drexel ICE Lab</title>
+<style>
+/* ===================================================================
+   Canonical design tokens — identical across index, explorer and
+   playground. Two semantic palettes that must never collide:
+   model families (saturated) and schema entities (muted).
+   =================================================================== */
+:root{
+  /* radius scale */
+  --r-xs:3px; --r-sm:4px; --r-md:6px; --r-lg:8px; --r-pill:999px;
+
+  /* signed data, used by every chart */
+  --pos:#3b6fb0; --neg:#c06a2e; --dead:#b8b5ae;
+
+  /* model families — saturated */
+  --fam-gnn:#2f6bb5; --fam-cnn:#c25f22; --fam-mlp:#2f8f6b;
+  --fam-automl:#7a4bb8; --fam-hybrid:#a8762c;
+
+  /* schema entities — muted, deliberately distinct from the families */
+  --ent-netlist:#7d97cc; --ent-cell:#cf9b7e; --ent-power:#7cc9a8;
+  --ent-timing:#b58ad1; --ent-net:#6fb3b3; --ent-clock:#c4a463;
+  --ent-routing:#b07f96;
+}
+html[data-theme="dark"]{
+  --pos:#6da3d8; --neg:#dd9558; --dead:#55524c;
+  --fam-gnn:#6ba3de; --fam-cnn:#e08a4e; --fam-mlp:#5cbd94;
+  --fam-automl:#a882dd; --fam-hybrid:#d0a45c;
+  --ent-netlist:#93a9d6; --ent-cell:#d9ab92; --ent-power:#93d4ba;
+  --ent-timing:#c4a1dc; --ent-net:#87c4c4; --ent-clock:#d1b57e;
+  --ent-routing:#c295a8;
+}
+
+/* ==========================================================================
+   EDA-Schema Leaderboard — Drexel ICE Lab theme
+   Mirrors drexel-ice.github.io (al-folio Jekyll theme) so the leaderboard
+   reads as part of the lab site rather than a bolt-on.
+
+   Token names follow al-folio's --global-* convention exactly, so this file
+   can be swapped for the lab's own _themes.scss output without renaming.
+   Drop into static/css/ and link before the component styles.
+   ========================================================================== */
+
+/* --- Typography -----------------------------------------------------------
+   al-folio loads Roboto + Roboto Slab from Google Fonts. Add this to <head>:
+
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+   (this is the exact font URL from the lab's _config.yml)
+
+   The stacks below degrade cleanly if the fonts fail to load.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --global-font-sans:  "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                       Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --global-font-slab:  "Roboto Slab", Georgia, "Times New Roman", serif;
+  --global-font-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Drexel brand ---------------------------------------------------- */
+  --global-theme-color:   #07294D;   /* Drexel navy  — links, nav, headers   */
+  --global-accent-color:  #FFC600;   /* Drexel gold  — chrome accents ONLY,
+                                        never data: 1.4:1 on white          */
+  --global-hover-color:   #0E4276;   /* navy lightened for hover            */
+  --global-hover-text-color: #ffffff;
+
+  /* --- Surfaces and text ------------------------------------------------ */
+  --global-bg-color:          #ffffff;
+  --global-card-bg-color:     #fafafa;
+  --global-code-bg-color:     #f5f5f5;
+  --global-text-color:        #212529;
+  --global-text-color-light:  #6c757d;
+  --global-divider-color:     #e6e6e6;
+  --global-divider-strong:    #cfcfcf;
+  --global-highlight-color:   #FFC600;
+
+  --global-footer-bg-color:   #07294D;
+  --global-footer-text-color: #ffffff;
+  --global-footer-link-color: #FFC600;
+
+  /* --- Leaderboard data palette ----------------------------------------
+     Deliberately NOT brand colors. Navy on navy kills a heatmap and gold on
+     white fails contrast. Every pair below clears 4.5:1 on its own ground.  */
+  --lb-win-bg:    #dcecd4;  --lb-win-fg:    #24632e;  --lb-win-solid:  #3f8a45;
+  --lb-lose-bg:   #f8ded9;  --lb-lose-fg:   #9d2f26;  --lb-lose-solid: #b8453a;
+  --lb-none-bg:   transparent; --lb-none-fg: #9a9a9a;
+  --lb-sat-bg:    #e9e8f0;  --lb-sat-fg:    #4f4e5e;
+  --lb-undef-bg:  #f2f0ec;  --lb-undef-fg:  #6b6558;  /* "no ± error" state */
+  --lb-warn:      #a8701f;
+
+  /* Architecture-diagram blocks */
+  --lb-layer-in-bg:   #edebe6;  --lb-layer-in-br:   #cfcbc2;
+  --lb-layer-op-bg:   #e4e2f7;  --lb-layer-op-br:   #b0a9e6;
+  --lb-layer-pool-bg: #d8eae1;  --lb-layer-pool-br: #85c3a7;
+  --lb-layer-out-bg:  #fadfd8;  --lb-layer-out-br:  #e09b8c;
+
+  --global-radius: 6px;
+  --global-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+/* --- Dark mode -------------------------------------------------------------
+   al-folio ships a theme toggle writing [data-theme="dark"] on <html>.
+   Matching it means the leaderboard follows the lab site's switch for free.  */
+html[data-theme="dark"] {
+  --global-bg-color:          #1c1c1d;
+  --global-card-bg-color:     #212122;
+  --global-code-bg-color:     #212122;
+  --global-text-color:        #e8e8e8;
+  --global-text-color-light:  #a0a0a0;
+  --global-divider-color:     #3a3a3c;
+  --global-divider-strong:    #4a4a4c;
+  --global-theme-color:       #4d8fd1;   /* navy is unreadable on dark      */
+  --global-hover-color:       #6ba6e0;
+
+  /* Architecture blocks must darken too, or the label text is invisible */
+  --lb-layer-in-bg:   #33333a;  --lb-layer-in-br:   #55555f;
+  --lb-layer-op-bg:   #2f2b4d;  --lb-layer-op-br:   #5b52a0;
+  --lb-layer-pool-bg: #1f3a30;  --lb-layer-pool-br: #3f7a62;
+  --lb-layer-out-bg:  #402420;  --lb-layer-out-br:  #8a4c3f;
+
+  --lb-win-bg:   #1f3a24;  --lb-win-fg:   #8ed69a;
+  --lb-lose-bg:  #3d211e;  --lb-lose-fg:  #e8938a;
+  --lb-sat-bg:   #2a2a33;  --lb-sat-fg:   #a8a6b8;
+  --lb-undef-bg: #2e2c28;  --lb-undef-fg: #b0a894;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+
+body {
+  margin: 0;
+  background: var(--global-bg-color);
+  color: var(--global-text-color);
+  font-family: var(--global-font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* al-folio sets headings in the slab face — this is the single strongest
+   visual cue that a page belongs to the lab site. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--global-font-slab);
+  font-weight: 400;
+  color: var(--global-text-color);
+  letter-spacing: -.005em;
+  margin: 0 0 .5rem;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+
+/* al-folio lowercases page titles and nav labels. Keep it — it is a
+   recognizable signature of the lab site. */
+.page-title, .nav-link { text-transform: lowercase; }
+
+a {
+  color: var(--global-theme-color);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { color: var(--global-hover-color); text-decoration: underline; }
+
+code, pre, .mono { font-family: var(--global-font-mono); font-size: .9em; }
+code  { background: var(--global-code-bg-color); padding: .12em .4em;
+        border-radius:var(--r-xs); }
+pre   { background: var(--global-code-bg-color); padding: 1rem;
+        border-radius: var(--global-radius); overflow-x: auto; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* --- Navbar ---------------------------------------------------------------
+   al-folio: white ground, logo left, lowercase links right, thin bottom rule.
+   The leaderboard keeps that rather than a navy bar, so the two sites feel
+   continuous. Navy is reserved for links, active state, and the footer.      */
+
+.navbar {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .9rem 1.5rem;
+  background: var(--global-bg-color);
+  border-bottom: 1px solid var(--global-divider-color);
+  position: sticky; top: 0; z-index: 100;
+}
+.navbar .brand { display: flex; align-items: center; gap: .7rem; }
+.navbar .brand img { height: 34px; width: auto; }
+.navbar .brand .title {
+  font-family: var(--global-font-slab);
+  font-size: 1.05rem; color: var(--global-theme-color);
+}
+.navbar nav { margin-left: auto; display: flex; gap: 1.4rem; }
+.navbar nav a {
+  font-size: .95rem; color: var(--global-text-color);
+  text-transform: lowercase; padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.navbar nav a:hover { color: var(--global-theme-color); text-decoration: none; }
+.navbar nav a[aria-current="page"] {
+  color: var(--global-theme-color);
+  border-bottom-color: var(--global-accent-color);  /* gold underline */
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+/* al-folio sets max_width: 930px in _config.yml. Prose keeps that; the data grid
+   needs more room, so .container--wide is the one documented deviation. */
+.container { max-width: 930px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.container--wide { max-width: 1440px; }
+
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { margin-bottom: .25rem; }
+.page-header .lead {
+  font-size: 1.05rem; color: var(--global-text-color-light); margin: 0;
+}
+
+/* --- Tables ---------------------------------------------------------------
+   al-folio uses Bootstrap-ish tables: light header rule, row dividers,
+   no vertical borders, subtle row hover.                                     */
+
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  font-family: var(--global-font-sans);
+  font-size: .9rem; font-weight: 500;
+  color: var(--global-text-color-light);
+  text-align: left; padding: .6rem .7rem;
+  border-bottom: 2px solid var(--global-divider-strong);
+}
+.table td {
+  padding: .7rem; border-bottom: 1px solid var(--global-divider-color);
+}
+.table tbody tr:hover td { background: var(--global-card-bg-color); }
+.table .r { text-align: right; }
+.table .c { text-align: center; }
+
+/* --- Cards and pills ----------------------------------------------------- */
+
+.card {
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  border-radius: var(--global-radius);
+  padding: 1rem 1.2rem;
+}
+
+.pill {
+  font: inherit; font-size: .92rem;
+  padding: .4rem .9rem;
+  border: 1px solid transparent; border-radius:var(--r-pill);
+  background: none; color: var(--global-text-color);
+  cursor: pointer; transition: background .15s ease;
+}
+.pill:hover { background: var(--global-card-bg-color); }
+.pill[aria-pressed="true"] {
+  background: var(--global-theme-color);
+  color: #fff; border-color: var(--global-theme-color);
+}
+
+.badge {
+  font-size: .78rem; padding: .15rem .6rem; border-radius:var(--r-pill);
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  color: var(--global-text-color-light);
+}
+.badge--verified { background: var(--lb-win-bg); color: var(--lb-win-fg);
+                   border-color: transparent; }
+.badge--flagged  { color: var(--lb-warn); border-color: var(--lb-warn); }
+
+/* --- Leaderboard cells --------------------------------------------------- */
+
+.cell {
+  border-radius: var(--global-radius);
+  padding: .6rem .5rem; margin: .25rem;
+  text-align: center; cursor: pointer;
+  border: 1px solid transparent;
+  transition: box-shadow .12s ease;
+}
+.cell:hover { box-shadow: 0 0 0 2px rgba(7, 41, 77, .28); }
+.cell .who { font-size: .85rem; line-height: 1.3; }
+.cell .val { font-size: 1rem; font-weight: 500; margin-top: 1px; }
+
+.cell--win   { background: var(--lb-win-bg);   color: var(--lb-win-fg); }
+.cell--lose  { background: var(--lb-lose-bg);  color: var(--lb-lose-fg); }
+.cell--sat   { background: var(--lb-sat-bg);   color: var(--lb-sat-fg); }
+.cell--undef { background: var(--lb-undef-bg); color: var(--lb-undef-fg); }
+.cell--none  { background: var(--lb-none-bg);  color: var(--lb-none-fg);
+               cursor: default; }
+.cell--none:hover { box-shadow: none; }
+
+.row--void {
+  background: var(--global-card-bg-color);
+  color: var(--global-text-color-light);
+  text-align: center; font-size: .9rem; padding: .9rem;
+}
+
+/* --- Focus and motion ---------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--global-accent-color);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* --- Footer ---------------------------------------------------------------
+   al-folio's footer is a full-width bar with centered muted text. Ours is
+   navy with gold links, which is where the brand pair actually works.        */
+
+.footer {
+  background: var(--global-footer-bg-color);
+  color: var(--global-footer-text-color);
+  text-align: center; padding: 1.5rem; font-size: .85rem;
+}
+.footer a { color: var(--global-footer-link-color); }
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .matrix-scroll .table th:first-child,
+  .matrix-scroll .table td:first-child {
+    position: sticky; left: 0; background: var(--global-bg-color);
+    z-index: 2;
+  }
+  .navbar nav { gap: .9rem; font-size: .9rem; }
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--global-text-color);
+  font-family:var(--global-font-sans);font-size:15px;line-height:1.5}
+.mono{font-family:var(--global-font-mono);font-variant-numeric:tabular-nums}
+
+.bar{padding:.55rem 1.5rem;font-size:.82rem;background:#FFF4CC;
+  border-bottom:1px solid #E8CE72;color:#5c4708}
+html[data-theme="dark"] .bar{background:#3a2f0d;border-bottom-color:#6b5a1e;color:#e8d79a}
+.navbar{display:flex;align-items:center;gap:1.3rem;padding:.75rem 1.5rem;
+  background:var(--global-bg-color);border-bottom:1px solid var(--global-divider-color)}
+.navbar .title{font-family:var(--global-font-slab);font-size:1rem;color:var(--global-theme-color)}
+.navbar nav{margin-left:auto;display:flex;gap:1.1rem;font-size:.88rem;align-items:center}
+.navbar nav a{color:var(--global-text-color);text-decoration:none;text-transform:lowercase;
+  padding-bottom:2px;border-bottom:2px solid transparent}
+.navbar nav a[aria-current]{color:var(--global-theme-color);border-bottom-color:var(--gold)}
+.themebtn{font:inherit;font-size:.78rem;padding:.16rem .6rem;border-radius:var(--r-pill);
+  border:1px solid var(--global-divider-strong);background:none;cursor:pointer;
+  color:var(--global-text-color)}
+
+/* toolbar */
+.toolbar{background:var(--global-bg-color);border-bottom:1px solid var(--global-divider-color);
+  padding:.9rem 2rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap}
+.runbtns{display:flex;align-items:center;gap:.8rem}
+.rb{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+  background:var(--global-theme-color);color:#fff;font-size:1.15rem;
+  display:flex;align-items:center;justify-content:center;transition:opacity .15s}
+.rb:hover{opacity:.85}
+.rb.sm{width:32px;height:32px;background:none;color:var(--global-text-color-light);font-size:1rem}
+.rb.sm:hover{color:var(--global-theme-color);opacity:1}
+.tb{display:flex;flex-direction:column;gap:.1rem;min-width:84px}
+.tb label{font-size:.76rem;color:var(--global-text-color-light)}
+.tb select{font:inherit;font-size:.95rem;padding:.14rem .1rem;border:none;
+  border-bottom:1px solid var(--global-divider-strong);background:none;
+  color:var(--global-text-color);border-radius:0}
+.tb select:focus{outline:none;border-bottom-color:var(--global-theme-color)}
+.epoch{font-size:1.4rem;font-weight:300;font-variant-numeric:tabular-nums}
+.epochsub{font-size:.72rem;color:var(--global-text-color-light)}
+
+.wrap{max-width:1600px;margin:0 auto;padding:1.5rem 2rem 3rem}
+.cols{display:grid;grid-template-columns:196px 208px 1fr 470px;gap:1.7rem;align-items:start}
+@media(max-width:1420px){.cols{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.colh{font-size:1.3rem;font-weight:300;margin:0 0 .4rem}
+.colq{font-size:.85rem;color:var(--global-text-color-light);margin:0 0 .9rem;line-height:1.45}
+
+/* problem column */
+.psel{margin-bottom:.8rem}
+.psel label{font-size:.76rem;color:var(--global-text-color-light);display:block;margin-bottom:.05rem}
+.psel select{width:100%;font:inherit;font-size:.92rem;padding:.18rem 0;border:none;
+  border-bottom:1px solid var(--global-divider-strong);background:none;
+  color:var(--global-text-color);border-radius:0}
+.psel select:focus{outline:none;border-bottom-color:var(--global-theme-color)}
+.splitbox{background:var(--global-bg-color);border:1px solid var(--global-divider-color);
+  border-radius:var(--r-sm);padding:.55rem .65rem;margin:.9rem 0 .8rem;font-size:.76rem;
+  color:var(--global-text-color-light);line-height:1.5}
+.splitbox b{color:var(--global-text-color);font-weight:500}
+.cfgbtn{width:100%;font:inherit;font-size:.79rem;padding:.4rem;border-radius:var(--r-sm);cursor:pointer;
+  border:1px solid var(--global-divider-strong);background:var(--global-bg-color);
+  color:var(--global-text-color);margin-bottom:.35rem}
+.cfgbtn:hover{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+.cfgbtn.key{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+.cfgbtn.key:hover{background:var(--global-theme-color);color:#fff}
+.prov{font-size:.71rem;color:var(--global-text-color-light);line-height:1.45;margin:.4rem 0 0}
+.axr{margin-top:.55rem}
+.axr label{font-size:.72rem;color:var(--global-text-color-light);display:block}
+.axr select{width:100%;font:inherit;font-size:.8rem;padding:.16rem 0;border:none;
+  border-bottom:1px solid var(--global-divider-strong);background:none;
+  color:var(--global-text-color)}
+
+/* features */
+.fam{margin-bottom:.28rem}
+.famh{width:100%;display:flex;align-items:center;gap:.4rem;font:inherit;font-size:.78rem;
+  padding:.3rem .5rem;border-radius:var(--r-sm);cursor:pointer;background:var(--global-bg-color);
+  border:1px solid var(--global-divider-color);border-left:3px solid;
+  color:var(--global-text-color);text-align:left}
+.famh.allgated{opacity:.5}
+.famn{flex:1}
+.famc{font-family:var(--global-font-mono);font-size:.69rem;color:var(--global-text-color-light)}
+.famx{font-family:var(--global-font-mono);color:var(--global-text-color-light);width:9px}
+.famg{display:grid;grid-template-columns:1fr 1fr;gap:.22rem;padding:.3rem .05rem}
+.ft{position:relative;display:flex;flex-direction:column;align-items:center;gap:.08rem;
+  font:inherit;font-size:.56rem;padding:.15rem;border-radius:var(--r-sm);cursor:pointer;background:none;
+  border:1px solid transparent;color:var(--global-text-color-light);line-height:1.1;
+  text-align:center;word-break:break-word;opacity:.5}
+.ft:hover{background:var(--global-bg-color);opacity:.82}
+.ft.on{opacity:1;color:var(--global-text-color)}
+.ftc{border-radius:var(--r-xs);border:1px solid var(--global-divider-color);display:block}
+.ft.on .ftc{border:2px solid var(--global-text-color)}
+.ft.gated{opacity:.22;cursor:not-allowed}
+.ft.gated:hover{background:none;opacity:.22}
+.gt{position:absolute;top:0;right:1px;font-style:normal;font-size:.48rem;
+  font-family:var(--global-font-mono);background:var(--neg);color:#fff;
+  border-radius:var(--r-xs);padding:0 2px}
+.famnote{font-size:.68rem;color:var(--global-text-color-light);font-style:italic;
+  margin:.1rem 0 .3rem .2rem}
+.featcount{font-size:.76rem;color:var(--global-text-color-light);margin-top:.6rem;line-height:1.5}
+.gatenote{color:var(--neg)}
+.okgate{color:var(--global-text-color-light);font-style:italic}
+
+/* network */
+.lhead{display:flex;align-items:center;gap:.6rem;margin-bottom:.15rem}
+.lhead .n{font-size:1.3rem;font-weight:300}
+.lhead .t{font-size:1.3rem;font-weight:300}
+.pm{width:25px;height:25px;border-radius:50%;font:inherit;font-size:.85rem;cursor:pointer;
+  border:none;background:var(--global-card-bg-color);color:var(--global-text-color-light);
+  line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.pm:hover:not(:disabled){background:var(--global-theme-color);color:#fff}
+.pm:disabled{opacity:.3;cursor:default}
+#layerctl{position:relative;height:42px;margin-bottom:.1rem}
+.lcw{position:absolute;transform:translateX(-50%);text-align:center}
+.lcb{display:flex;gap:.22rem;justify-content:center}
+.lcn{font-size:.7rem;color:var(--global-text-color-light);margin-top:.12rem;white-space:nowrap}
+#netbox{position:relative;margin:0 auto}
+#edges{position:absolute;left:0;top:0;pointer-events:none}
+#netbox.running .lk{animation:flow .9s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-20}}
+.nd{position:absolute;border:2px solid var(--global-text-color);border-radius:var(--r-xs);
+  image-rendering:pixelated;cursor:pointer;transition:transform .14s;z-index:2}
+.nd:hover{transform:scale(1.8);z-index:9;box-shadow:0 3px 14px rgba(0,0,0,.22)}
+.nd.out{border-radius:50%}
+.ndl{position:absolute;transform:translateX(-100%);font-size:.62rem;
+  color:var(--global-text-color-light);white-space:nowrap;z-index:2;
+  font-family:var(--global-font-mono)}
+.netnote{font-size:.79rem;color:var(--global-text-color-light);font-style:italic;
+  max-width:34ch;margin:.9rem 0 0}
+.innote{font-size:.72rem;color:var(--neg);margin-top:.2rem}
+
+/* output */
+.lossrow{font-size:.92rem;margin-bottom:.05rem;display:flex;align-items:baseline;gap:.3rem}
+.lossrow .lbl{color:var(--global-text-color-light);font-size:.82rem;min-width:100px}
+.lossrow b{font-variant-numeric:tabular-nums;font-weight:500}
+.lossrow .u{font-size:.72rem;color:var(--global-text-color-light)}
+.basenote{font-size:.72rem;color:var(--global-text-color-light);line-height:1.45;
+  margin:.25rem 0 .5rem}
+.plotwrap{position:relative;margin-top:.7rem;padding:0 0 22px 34px}
+#out{width:100%;height:auto;aspect-ratio:1;border:1px solid var(--global-divider-color);
+  border-radius:var(--r-xs);cursor:crosshair;display:block}
+.axlbl{position:absolute;font-size:.72rem;color:var(--global-text-color-light);
+  font-family:var(--global-font-sans)}
+.axlbl.x{bottom:2px;left:50%;transform:translateX(-50%)}
+.axlbl.y{left:2px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:center}
+.axtick{position:absolute;font-size:.64rem;font-family:var(--global-font-mono);
+  color:var(--global-text-color-light)}
+.axtick.x0{bottom:9px;left:34px}
+.axtick.x1{bottom:9px;right:0}
+.axtick.y0{left:16px;bottom:24px;writing-mode:vertical-rl}
+.axtick.y1{left:16px;top:0;writing-mode:vertical-rl}
+.plotleg{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.76rem;
+  color:var(--global-text-color-light);margin-top:.15rem}
+.plotleg i{width:9px;height:9px;border-radius:var(--r-pill);display:inline-block;margin-right:.35rem}
+.outtog{display:inline-flex;border:1px solid var(--global-divider-strong);border-radius:var(--r-pill);
+  overflow:hidden;margin-top:.6rem}
+.outtog button{font:inherit;font-size:.73rem;padding:.18rem .68rem;background:none;border:none;
+  cursor:pointer;color:var(--global-text-color)}
+.outtog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
+.outcap{font-size:.75rem;color:var(--global-text-color-light);margin:.45rem 0 .6rem;line-height:1.45}
+.vd{display:inline-block;font-size:.73rem;padding:.1rem .6rem;border-radius:var(--r-pill);
+  font-family:var(--global-font-mono);margin-top:.3rem}
+.vd.idle{background:var(--global-card-bg-color);color:var(--global-text-color-light)}
+.vd.win{background:var(--lb-win-bg);color:var(--lb-win-fg)}
+.vd.lose{background:var(--lb-lose-bg);color:var(--lb-lose-fg)}
+.cbx{font-size:.78rem;display:flex;align-items:center;gap:.35rem;margin-top:.45rem}
+.cbx input{accent-color:var(--global-theme-color)}
+.scale{margin-top:.9rem;font-size:.78rem;color:var(--global-text-color-light);line-height:1.4}
+.scalebar{height:9px;border-radius:var(--r-xs);margin:.3rem 0 .15rem;
+  background:linear-gradient(to right,#c06a2e,#f7fbff,#3b6fb0)}
+.scalen{display:flex;justify-content:space-between;font-size:.68rem;
+  font-family:var(--global-font-mono)}
+text.cl{font-size:10px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+
+#tip{position:fixed;z-index:200;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--global-text-color);color:var(--global-bg-color);font-size:.74rem;
+  line-height:1.5;padding:.45rem .6rem;border-radius:var(--r-sm);max-width:210px;
+  box-shadow:0 3px 12px rgba(0,0,0,.2)}
+#tip.on{opacity:1}
+#tip .dim{opacity:.7}
+
+.foot{text-align:center;padding:1.3rem;font-size:.8rem;
+  background:var(--global-footer-bg-color);color:#fff;margin-top:2.5rem}
+.foot a{color:var(--global-footer-link-color)}
+@media(prefers-reduced-motion:reduce){.nd:hover{transform:none}
+  #netbox.running .lk{animation:none}}
+.splithd{display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem}
+.splithd b{color:var(--global-text-color);flex:1}
+.divtag{font-size:.62rem;font-family:var(--global-font-mono);padding:.05rem .35rem;
+  border-radius:var(--r-xs);text-transform:uppercase;letter-spacing:.03em}
+.divtag.closed{background:var(--lb-win-bg);color:var(--lb-win-fg)}
+.divtag.open{background:var(--global-card-bg-color);color:var(--global-text-color-light);
+  border:1px solid var(--global-divider-color)}
+.splitbox .dim{opacity:.75}
+.splithard{display:block;color:var(--neg);margin-top:.3rem;font-size:.72rem;line-height:1.4}
+
+/* ---- output: bigger plot, expandable ---- */
+.outbar{display:flex;align-items:center;gap:.6rem;margin-top:.6rem}
+.outbar .outtog{margin-top:0}
+.expandb{margin-left:auto;font:inherit;font-size:.74rem;padding:.2rem .6rem;border-radius:var(--r-sm);
+  cursor:pointer;border:1px solid var(--global-divider-strong);background:var(--global-bg-color);
+  color:var(--global-text-color)}
+.expandb:hover{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+.offnote{font-size:.75rem;color:var(--neg);margin:.45rem 0 0;line-height:1.4}
+.cbxhint{color:var(--global-text-color-light);font-size:.72rem;margin-left:.25rem}
+
+/* expanded: the plot takes the screen */
+body.plotbig{overflow:hidden}
+body.plotbig .cols>div:nth-child(4){
+  position:fixed;inset:2.5vh 2.5vw;z-index:300;background:var(--global-bg-color);
+  border:1px solid var(--global-divider-strong);border-radius:var(--r-lg);
+  padding:1.2rem 1.5rem;overflow-y:auto;
+  box-shadow:0 12px 60px rgba(0,0,0,.28);
+  display:grid;grid-template-columns:1fr 300px;gap:1.6rem;align-content:start}
+body.plotbig .cols>div:nth-child(4)>h2{grid-column:1/-1}
+body.plotbig .plotwrap{grid-row:span 8;padding:0 0 26px 40px;align-self:start}
+body.plotbig #out{max-height:82vh;width:auto;margin:0 auto}
+body.plotbig::after{content:"";position:fixed;inset:0;z-index:299;
+  background:rgba(0,0,0,.35);backdrop-filter:blur(2px)}
+html[data-theme="dark"] body.plotbig::after{background:rgba(0,0,0,.55)}
+
+/* the two plots are the same size */
+.plotwrap--loss{padding:0;margin-top:.8rem}
+.plotwrap--loss #loss{width:100%;height:auto;aspect-ratio:1;display:block;
+  border:1px solid var(--global-divider-color);border-radius:var(--r-xs);
+  background:var(--global-bg-color)}
+body.plotbig .plotwrap--loss{grid-column:1;grid-row:auto}
+body.plotbig .plotwrap--loss #loss{max-height:82vh;width:auto;margin:0 auto}
+
+</style>
+</head>
+<body>
+
+<div class="bar"><b>Prototype.</b> The design space, circuit characteristics, parameter sweep,
+QoR ranges, parameter&ndash;metric correlations and OpenROAD baselines are all taken from the
+EDA-Schema-V2 paper, and the <b>lab&rsquo;s fixed_mlp line</b> is what its own run actually scored.
+The 41 per-instance feature <i>values</i> live in the dataset Parquet and are modelled here until
+the lab cluster is reachable.</div>
+
+<div class="navbar">
+  <span class="title">Drexel ICE Lab</span>
+  <nav>
+    <a href="https://drexel-ice.github.io/">team</a>
+    <a href="index.html" data-ctxlink="index.html">leaderboard</a>
+    <a href="explorer.html" data-ctxlink="explorer.html">model explorer</a>
+    <a href="playground.html" aria-current="page">playground</a>
+    <button class="themebtn" id="themebtn">dark</button>
+  </nav>
+</div>
+
+<div class="toolbar">
+  <div class="runbtns">
+    <button class="rb sm" id="resetb" title="reset">&#8635;</button>
+    <button class="rb" id="play" title="run">&#9654;</button>
+    <button class="rb sm" id="stepb" title="one epoch">&#9654;&#124;</button>
+  </div>
+  <div class="tb"><label>Epoch</label>
+    <div><span class="epoch mono" id="epoch">000</span>
+    <span class="epochsub">of <span id="epochcap">25</span></span></div></div>
+  <div class="tb"><label>Learning rate</label>
+    <select id="lr"><option>0.003</option><option selected>0.01</option><option>0.03</option>
+      <option>0.1</option><option>0.3</option></select></div>
+  <div class="tb"><label>Activation</label>
+    <select id="actsel"><option>tanh</option><option selected>relu</option>
+      <option>sigmoid</option><option>linear</option></select></div>
+  <div class="tb"><label>Batch size</label>
+    <select id="bsz"><option>32</option><option>64</option><option>256</option>
+      <option selected>1024</option></select></div>
+  <div class="tb"><label>Momentum</label>
+    <select id="mom"><option selected>0</option><option>0.5</option><option>0.9</option></select></div>
+  <div class="tb"><label>Weight decay</label>
+    <select id="wd"><option selected>0</option><option>0.0001</option><option>0.001</option></select></div>
+  <div class="tb"><label>Epochs</label>
+    <select id="epcap"><option selected>25</option><option>50</option><option>100</option>
+      <option>150</option><option>300</option></select></div>
+  <div class="tb"><label>Network</label><span class="mono" id="shape">&mdash;</span></div>
+  <div class="tb"><label>Steps</label><span class="mono" id="steps">0</span>
+    <span class="epochsub"><span id="batches">0</span> batches/epoch</span></div>
+</div>
+
+<div class="wrap">
+<div class="cols">
+
+  <!-- PROBLEM -->
+  <div>
+    <h2 class="colh">Problem</h2>
+    <p class="colq">What are you predicting, on which technology, and from how early in the flow?</p>
+    <div class="psel"><label>Task</label><select id="tasksel"></select></div>
+    <div class="psel"><label>PDK</label><select id="pdksel"></select></div>
+    <div class="psel"><label>Predict from</label><select id="stagesel"></select></div>
+    <div class="psel"><label>Training regime</label><select id="regsel"></select></div>
+    <p class="colq" style="font-size:.78rem;margin-bottom:.4rem">
+      Every task predicts the value at <b>detailed route</b>. Earlier stages know less
+      &mdash; and expose fewer schema attributes.</p>
+
+    <div class="splitbox">
+      <div class="splithd"><b id="splitname"></b><span class="divtag" id="splitdiv"></span></div>
+      <span id="splitwhat"></span><br>
+      <span id="splitn"></span><br>
+      <span class="dim">1,944 design instances: 18 circuits &times; 108 sweep configurations.</span>
+      <span class="splithard" id="splithard"></span>
+    </div>
+
+    <button class="cfgbtn key" id="labcfg">Load the lab&rsquo;s configuration</button>
+    <button class="cfgbtn" id="tunedcfg">Load a tuned configuration</button>
+    <p class="prov">The lab&rsquo;s: 41 features, 64-32-16, ReLU, SGD at lr&nbsp;0.01,
+      batch&nbsp;1024, 25&nbsp;epochs, no momentum &mdash; exactly what
+      <code>hparams.yaml</code> specifies. It is also the default here, so you can watch it
+      fail before fixing it.</p>
+
+    <div class="axr"><label>slice x axis</label><select id="axsel"></select></div>
+    <div class="axr"><label>slice y axis</label><select id="aysel"></select></div>
+  </div>
+
+  <!-- FEATURES -->
+  <div>
+    <h2 class="colh">Features</h2>
+    <p class="colq">Which schema attributes do you want to feed in?</p>
+    <div id="features"></div>
+    <p class="featcount" id="featcount"></p>
+  </div>
+
+  <!-- NETWORK -->
+  <div>
+    <div class="lhead">
+      <button class="pm" id="addl">+</button>
+      <button class="pm" id="dell">&minus;</button>
+      <span class="n" id="layercount">3</span>
+      <span class="t">HIDDEN LAYERS</span>
+    </div>
+    <div id="layerctl"></div>
+    <div id="netbox"><svg id="edges"></svg></div>
+    <p class="innote" id="innote"></p>
+    <p class="netnote">Each square is one unit, showing what it responds to across the slice.
+      Hover to enlarge. Line thickness is weight magnitude, colour is its sign.</p>
+  </div>
+
+  <!-- OUTPUT -->
+  <div>
+    <h2 class="colh">Output</h2>
+    <div class="lossrow"><span class="lbl">OpenROAD</span>
+      <b class="mono" id="basev">&mdash;</b><span class="u" id="baseunit"></span></div>
+    <div class="basenote" id="basenote"></div>
+    <div class="lossrow" id="labrow"><span class="lbl">Lab&rsquo;s fixed_mlp</span>
+      <b class="mono" id="labv">&mdash;</b><span class="u" id="labunit"></span></div>
+    <div class="basenote" id="labnote"></div>
+    <div class="lossrow"><span class="lbl">Your model</span>
+      <b class="mono" id="yourv">&mdash;</b><span class="u" id="yourunit"></span></div>
+    <div class="lossrow"><span class="lbl">Training MAE</span>
+      <b class="mono" id="trainv">&mdash;</b></div>
+    <div><span class="vd idle" id="verdict">not trained</span></div>
+
+    <div class="outbar">
+      <div class="outtog">
+        <button data-out="scatter" aria-pressed="true">predicted vs actual</button>
+        <button data-out="surface" aria-pressed="false">response</button>
+      </div>
+      <button class="expandb" id="expandb">&#8599; expand</button>
+    </div>
+    <div class="plotwrap">
+      <canvas id="out" width="880" height="880"></canvas>
+      <span class="axlbl x" id="axx">true value</span>
+      <span class="axlbl y" id="axy">predicted</span>
+      <span class="axtick x0" id="tx0"></span>
+      <span class="axtick x1" id="tx1"></span>
+      <span class="axtick y0" id="ty0"></span>
+      <span class="axtick y1" id="ty1"></span>
+    </div>
+    <div class="plotleg" id="plotleg">
+      <span><i style="background:#3b6fb0"></i>your model</span>
+      <span><i style="background:#c06a2e"></i>OpenROAD estimate</span>
+      <span><i style="background:#9a9a9a"></i>perfect prediction</span>
+    </div>
+    <p class="offnote" id="offnote"></p>
+    <p class="outcap" id="outcap"></p>
+    <label class="cbx"><input type="checkbox" id="showbase" checked> Show the OpenROAD estimate</label>
+    <label class="cbx"><input type="checkbox" id="fitax" checked> Fit the axis to the model
+      <span class="cbxhint">keeps bad predictions on-chart</span></label>
+
+    <div class="plotwrap plotwrap--loss">
+      <svg viewBox="0 0 880 880" id="loss"></svg>
+    </div>
+    <div class="plotleg">
+      <span><i style="background:#3b6fb0"></i>validation</span>
+      <span><i style="background:#9a9a9a"></i>training</span>
+      <span><i style="background:#c06a2e"></i>OpenROAD &mdash; anything below it wins</span>
+      <span><i style="background:#7a5ea8"></i>the lab&rsquo;s own run</span>
+    </div>
+    <p class="outcap">Validation MAE per epoch, log scale. An untrained model and the tool
+      differ by an order of magnitude, so a linear axis flattens one of them against an edge.</p>
+
+    <div class="scale">
+      Colour shows feature, neuron and weight values.
+      <div class="scalebar"></div>
+      <div class="scalen"><span>&minus;1</span><span>0</span><span>1</span></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div id="tip"></div>
+
+<div class="foot">&copy; ICE Lab, Drexel University. All rights reserved. &middot; prototype &middot;
+  <a href="https://drexel-ice.github.io/eda-schema/">EDA-Schema-V2</a></div>
+
+<script src="real-data.js"></script>
+<script src="data/real.js"></script>
+<script>
+/* ===================================================================
+   Published EDA-Schema-V2 data, transcribed from arXiv:2605.06952.
+   Everything in this file is real. Nothing here is invented.
+   =================================================================== */
+
+/* Table 2 — IWLS'05 circuits, from pre-synthesis RTL */
+const CIRCUITS=[
+ ["ac97_ctrl",   84, 48, 2211],
+ ["aes_core",   259,129,  562],
+ ["des3_area",  240, 64,   64],
+ ["ethernet",    96,115,10544],
+ ["i2c",         19, 14,  129],
+ ["jpeg",        20, 27, 4383],
+ ["mem_ctrl",   115,152, 1083],
+ ["pci",        162,207, 3220],
+ ["sasc",        16, 12,  118],
+ ["simple_spi",  16, 12,  131],
+ ["spi",         47, 45,  229],
+ ["ss_pcm",      19,  9,   87],
+ ["systemcaes", 260,129,  670],
+ ["systemcdes", 132, 65,  190],
+ ["tv80",        14, 32,  361],
+ ["usb_funct",  128,121, 1740],
+ ["usb_phy",     15, 18,  108],
+ ["wb_dma",     217,215,  521]];
+
+/* Table 4 — barely-pass and barely-fail target clock period, ns, per circuit per PDK */
+const BPBF={
+ ng45:  [[0.6,0.5],[1.5,1.25],[2.5,2.25],[1.65,1.5],[0.65,0.55],[1.8,1.6],[1.75,1.25],
+         [1,0.75],[0.6,0.5],[0.55,0.45],[1.5,1.25],[0.38,0.325],[1.75,1.5],[1.45,1.25],
+         [2.25,1.9],[1,0.8],[0.45,0.35],[1.25,0.9]],
+ asap7: [[0.375,0.35],[0.75,0.725],[1.225,1.2],[0.75,0.725],[0.375,0.35],[1.125,1.1],
+         [0.875,0.85],[0.825,0.81],[0.4,0.375],[0.325,0.3],[0.775,0.75],[0.275,0.25],
+         [0.85,0.825],[0.75,0.725],[1.2,1.175],[0.425,0.4],[0.3,0.275],[0.7,0.675]],
+ sky130:[[2.5,2.25],[4.75,4.5],[7.75,7.5],[5.25,5],[2.75,2.5],[6,5.75],[6.25,6],
+         [3.75,3.5],[2.25,2],[2.25,1.9],[4.75,4.5],[1.5,1.35],[5.75,5.5],[5,4.8],
+         [8.25,8],[2.75,2.5],[1.75,1.5],[4.25,4]],
+ ihp130:[[2.35,2.3],[4.25,4],[8.5,8.25],[5.5,5.25],[2.25,2],[9.5,9.25],[5.25,5],
+         [3.5,3.25],[2,1.75],[1.75,1.5],[4.75,4.5],[1.4,1.2],[5.5,5.25],[4,3.75],
+         [7.5,7.25],[3.25,3],[1.4,1.25],[4.5,4.25]]};
+
+/* Table 5 — the parameter sweep. 4 x 3 x 3 x 3 = 108 configurations per circuit. */
+const SWEEP={
+ tcp:      ["0.8xBF","BF","BP","1.2xBP"],
+ aspect:   [0.5,1.0,1.5],
+ util:     {ng45:[0.3,0.4,0.5],sky130:[0.2,0.3,0.4],
+            ihp130:[0.2,0.3,0.4],asap7:[0.3,0.4,0.5]},
+ density:  [1.0,1.25,1.5]};
+
+/* Table 6 — final-stage QoR ranges per PDK */
+const QOR_RANGE={
+ total_area:          {ng45:[723,100505],sky130:[3576,513155],
+                       ihp130:[16056,5592904],asap7:[58,9333]},
+ total_power:         {ng45:[2230,456000],sky130:[3690,700000],
+                       ihp130:[3410,383000],asap7:[654,115000]},
+ total_wirelength:    {ng45:[2326.59,900314.625],sky130:[5639.58,2137809.055],
+                       ihp130:[10166.155,3621758.23],asap7:[751.681,591701.235]},
+ worst_slack:         {ng45:[-0.3474,0.5806],sky130:[-4.792,0.5328],
+                       ihp130:[-1.555,2.102],asap7:[-0.4188,0.2555]},
+ total_negative_slack:{ng45:[-463.9339,0],sky130:[-3045.1636,0],
+                       ihp130:[-1672.6881,0],asap7:[-434.9989,0]}};
+
+/* Figs 12, 16, 18, 20 — mean Pearson correlation, design parameter vs QoR metric.
+   Order: [target_clock_period, aspect_ratio, core_utilization, placement_density] */
+const PEARSON={
+ ng45:  {total_area:[-0.20,0.00,-0.06,0.04], total_power:[-0.85,0.00,-0.04,0.29],
+         worst_slack:[0.66,0.00,0.02,-0.22], total_negative_slack:[0.46,0.00,0.01,-0.17],
+         total_wirelength:[-0.04,0.02,-0.18,-0.07]},
+ sky130:{total_area:[-0.15,0.01,-0.12,0.01], total_power:[-0.59,0.01,-0.11,0.17],
+         worst_slack:[0.41,0.01,0.03,-0.14], total_negative_slack:[0.43,0.00,0.03,-0.14],
+         total_wirelength:[-0.05,0.03,-0.25,-0.06]},
+ ihp130:{total_area:[-0.00,0.00,-0.15,-0.00], total_power:[-0.79,0.00,-0.07,0.26],
+         worst_slack:[0.55,-0.00,0.01,-0.19], total_negative_slack:[0.25,0.00,0.01,-0.09],
+         total_wirelength:[-0.00,0.05,-0.27,-0.10]},
+ asap7: {total_area:[-0.07,0.01,-0.06,-0.00], total_power:[-0.73,0.01,-0.06,0.23],
+         worst_slack:[0.86,0.00,0.03,-0.27], total_negative_slack:[0.62,-0.01,0.03,-0.21],
+         total_wirelength:[-0.02,0.05,-0.18,-0.09]}};
+
+/* Table 8 — OpenROAD baseline MAE. null = not estimable, 0 = saturated. */
+const BASE_MAE={
+ total_area:{ng45:[1781.97,871.07,571.13,49.02,0],sky130:[18567.03,8385.61,7505.03,854.81,0],
+   ihp130:[48738.62,35724.45,19487.21,2339.67,0],asap7:[225.06,73.79,47.23,1.98,0]},
+ total_power:{ng45:[11875.86,5670.15,5043.04,280.22,0],sky130:[46947.57,19274.83,19382.95,2270.66,0],
+   ihp130:[17699.64,16651.34,15644.47,123.65,0],asap7:[6071.61,2266.72,2177.82,55.15,0]},
+ total_wirelength:{ng45:[null,30529.92,20115.77,13920.52,13698.67],
+   sky130:[null,83777.43,61602.30,40751.29,38941.02],
+   ihp130:[null,117233.52,57977.64,26046.32,25473.38],
+   asap7:[null,6460.04,3479.88,2562.35,2491.87]},
+ worst_slack:{ng45:[3.18,0.21,0.15,0.01,0],sky130:[11.28,1.15,1.62,0.09,0],
+   ihp130:[8.83,0.27,0.31,0.04,0],asap7:[0.03,0.05,0.05,0.01,0]},
+ total_negative_slack:{ng45:[1764.18,57.74,22.45,2.11,0],sky130:[17768.52,727.04,959.12,70.22,0],
+   ihp130:[3755.75,0.57,1.05,0.04,0],asap7:[1.09,5.65,5.75,1.01,0]}};
+
+/* PDK properties, Sec 4.1 and Table 3 */
+const PDK_INFO={
+ ng45:  {label:"NG45",  node:"45 nm", metals:10, util:0.40, railPitch:1.40},
+ sky130:{label:"SKY130",node:"130 nm",metals: 5, util:0.30, railPitch:2.72},
+ ihp130:{label:"IHP130",node:"130 nm",metals: 7, util:0.30, railPitch:3.78},
+ asap7: {label:"ASAP7", node:"7 nm",  metals: 9, util:0.40, railPitch:0.27}};
+
+/* hparams.yaml — the 41 configured features, in checkpoint insertion order,
+   with the stage each becomes available per Table 1 (0=FP,1=GP,3=CTS,4=DR) */
+const FEATS=[];
+const add=(g,st,ns)=>ns.forEach(n=>FEATS.push({g,n,stage:st}));
+add("netlist",0,["no_of_inputs","no_of_outputs","no_of_cells","no_of_nets","no_of_pins",
+ "utilization","width","height","total_hpwl"]);
+add("cell_metrics",0,["no_of_combinational_cells","no_of_sequential_cells","no_of_buffers",
+ "no_of_inverters","no_of_fillers","no_of_tap_cells","no_of_diodes","no_of_macros",
+ "no_of_total_cells","combinational_cell_area","sequential_cell_area","buffer_area",
+ "inverter_area","filler_area","tap_cell_area","diode_area","macro_area","cell_area",
+ "total_area"]);
+add("power_metrics",0,["combinational_power","sequential_power","macro_power",
+ "internal_power","switching_power","leakage_power","total_power"]);
+add("timing_metrics",0,["total_negative_slack","worst_slack","worst_arrival_time",
+ "worst_required_time","no_of_endpoints","no_of_violating_endpoints"]);
+const N_LAB=FEATS.length;                 /* 41 — the lab's configured set */
+
+/* Schema attributes NOT in the lab's config, gated to later stages by Table 1.
+   These are what the stage gate actually bites on. */
+add("net",1,["mean_hpwl","max_hpwl","pin_density"]);
+add("clock_tree",3,["no_of_clock_buffers","no_of_clock_sinks"]);
+add("routing",4,["total_wirelength","mean_net_length","net_resistance","net_capacitance",
+ "rudy_net","rudy_pin"]);
+const N_FEAT=FEATS.length;
+
+/* The four design parameters, which are themselves inputs the flow was swept over */
+const PARAMS=["target_clock_period","aspect_ratio","core_utilization","placement_density"];
+const STAGES=["floorplan","global_place","detailed_place","cts","global_route"];
+const SL=["floorplan","global place","detailed place","cts","global route"];
+const PDKS=["ng45","sky130","ihp130","asap7"];
+const STAGE_TAG=["FP","GP","DP","CTS","DR"];
+const GCOL={netlist:"var(--ent-netlist)",cell_metrics:"var(--ent-cell)",power_metrics:"var(--ent-power)",timing_metrics:"var(--ent-timing)",net:"var(--ent-net)",clock_tree:"var(--ent-clock)",routing:"var(--ent-routing)"};
+
+/* ===================================================================
+   Design-instance generator.
+
+   Every row is a REAL design point: a named IWLS'05 circuit at a real
+   barely-pass/barely-fail-derived clock period, with an aspect ratio,
+   core utilization and placement density taken from the Table 5 sweep.
+   18 circuits x 108 configurations = 1,944 instances per PDK.
+
+   Feature VALUES are modelled, not measured — they live in the Parquet
+   we do not have. They are constructed so that:
+     - circuit size follows the real register and I/O counts (Table 2)
+     - parameter-to-QoR Pearson correlations match Figs 12/16/18/20
+     - final QoR spans the real Table 6 range
+     - the OpenROAD estimate reproduces the real Table 8 MAE
+   Swap in tools/extract_features.py output and this file is deleted.
+   =================================================================== */
+
+function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function hash(s){let x=2166136261;for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);
+  x=Math.imul(x,16777619);}return x>>>0;}
+
+/* enumerate the real design space for one PDK */
+function designPoints(pdk){
+  const pts=[];
+  CIRCUITS.forEach(([name,nIn,nOut,nReg],ci)=>{
+    const[BP,BF]=BPBF[pdk][ci];
+    const tcps=[0.8*BF,BF,BP,1.2*BP];
+    tcps.forEach((tcp,ti)=>SWEEP.aspect.forEach(ar=>
+      SWEEP.util[pdk].forEach(u=>SWEEP.density.forEach(dn=>{
+        pts.push({circuit:name,ci,nIn,nOut,nReg,tcp,tcpLabel:SWEEP.tcp[ti],
+                  aspect:ar,util:u,density:dn,BP,BF});
+      }))));
+  });
+  return pts;   /* 1,944 */
+}
+
+/* z-score a column in place, returning mean and sd */
+function zs(col){
+  const n=col.length;let m=0;for(const v of col)m+=v;m/=n;
+  let s=0;for(const v of col)s+=(v-m)**2;s=Math.sqrt(s/n)||1;
+  for(let i=0;i<n;i++)col[i]=(col[i]-m)/s;
+  return[m,s];
+}
+function pearson(a,b){
+  const n=a.length;let ma=0,mb=0;
+  for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
+  let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){const x=a[i]-ma,y=b[i]-mb;num+=x*y;da+=x*x;db+=y*y;}
+  return num/Math.sqrt(da*db||1);
+}
+
+function buildDataset(task,pdk,stage,seed,regime){
+  regime=regime||"within_circuit";
+  const P=designPoints(pdk),N=P.length,r=rng32(seed^hash(task+pdk+stage));
+  const X=new Float32Array(N*N_FEAT),y=new Float32Array(N),base=new Float32Array(N);
+
+  /* the four swept design parameters, z-scored — these drive everything */
+  const pTcp=new Float64Array(N),pAr=new Float64Array(N),
+        pUt=new Float64Array(N),pDn=new Float64Array(N);
+  P.forEach((d,i)=>{pTcp[i]=d.tcp/d.BP;pAr[i]=d.aspect;pUt[i]=d.util;pDn[i]=d.density;});
+  [pTcp,pAr,pUt,pDn].forEach(zs);
+
+  /* circuit scale, from the real Table 2 register and I/O counts */
+  const scale=new Float64Array(N);
+  P.forEach((d,i)=>{scale[i]=Math.log(d.nReg+d.nIn+d.nOut);});
+  const[sm,ss]=zs(scale);
+
+  /* --- features --- */
+  for(let i=0;i<N;i++){
+    const d=P[i];
+    for(let j=0;j<N_FEAT;j++){
+      const f=FEATS[j];let v;
+      /* structural counts track circuit scale; areas add utilization;
+         power adds density; timing tracks the clock period */
+      if(f.g==="netlist")           v=scale[i]*0.95 + pUt[i]*0.10 + gauss(r)*0.16;
+      else if(f.g==="cell_metrics") v=scale[i]*0.90 + pUt[i]*0.22 + pDn[i]*0.12 + gauss(r)*0.20;
+      else if(f.g==="power_metrics")v=scale[i]*0.70 + pDn[i]*0.38 - pTcp[i]*0.34 + gauss(r)*0.22;
+      else if(f.g==="timing_metrics")v=pTcp[i]*0.72 - pDn[i]*0.24 + scale[i]*0.18 + gauss(r)*0.28;
+      else if(f.g==="net")          v=scale[i]*0.80 - pUt[i]*0.26 + pAr[i]*0.08 + gauss(r)*0.18;
+      else if(f.g==="clock_tree")   v=scale[i]*0.86 - pTcp[i]*0.20 + gauss(r)*0.18;
+      else                          v=scale[i]*0.74 - pUt[i]*0.30 + pAr[i]*0.06 + gauss(r)*0.20;
+      X[i*N_FEAT+j]=v;
+    }
+    /* a couple of features are the design parameters themselves, as in the schema */
+    X[i*N_FEAT+5]=pUt[i];                                   /* netlist.utilization */
+    X[i*N_FEAT+6]=scale[i]*0.5+pAr[i]*0.62+gauss(r)*0.1;    /* width  */
+    X[i*N_FEAT+7]=scale[i]*0.5-pAr[i]*0.62+gauss(r)*0.1;    /* height */
+  }
+
+  /* --- target, built so its correlation with each swept parameter
+         matches the published Pearson coefficients --- */
+  const C=PEARSON[pdk][task]||[0,0,0,0];
+  /* The swept parameters are z-scored and near-orthogonal by construction, so if
+     lat = sum(C_j * p_j) + w*scale + noise, then corr(lat, p_k) = C_k / sd(lat).
+     Solving sd(lat) = 1 for w reproduces every published coefficient at once. */
+  const S=C.reduce((a,c)=>a+c*c,0), sn=0.045;
+  const w=Math.sqrt(Math.max(0.04, 1 - S - sn*sn));
+  const lat=new Float64Array(N);
+  for(let i=0;i<N;i++){
+    lat[i]= C[0]*pTcp[i] + C[1]*pAr[i] + C[2]*pUt[i] + C[3]*pDn[i]
+          + w*scale[i] + gauss(r)*sn;
+  }
+  /* rank-map onto the real Table 6 range */
+  const[lo,hi]=QOR_RANGE[task][pdk];
+  const logScale=lo>0&&hi/lo>50;
+  const ord=[...Array(N).keys()].sort((a,b)=>lat[a]-lat[b]);
+  for(let k=0;k<N;k++){
+    const q=k/(N-1);
+    y[ord[k]]= logScale ? Math.exp(Math.log(lo)+q*(Math.log(hi)-Math.log(lo)))
+                        : lo+q*(hi-lo);
+  }
+
+  /* --- OpenROAD estimate, calibrated to the real Table 8 MAE --- */
+  const tgt=BASE_MAE[task][pdk][stage];
+  if(tgt===null){for(let i=0;i<N;i++)base[i]=NaN;}
+  else if(tgt===0){for(let i=0;i<N;i++)base[i]=y[i];}
+  else{
+    let acc=0;
+    for(let i=0;i<N;i++){
+      /* early stages under-estimate; the bias shrinks as the flow progresses */
+      const bias=logScale?(1-0.11*(1-stage/4)):0;
+      base[i]=logScale? y[i]*(bias||1)*(1+gauss(r)*0.05)
+                      : y[i]+gauss(r)*Math.abs(hi-lo)*0.05;
+      acc+=Math.abs(base[i]-y[i]);
+    }
+    const k=tgt/((acc/N)||1);
+    for(let i=0;i<N;i++)base[i]=y[i]+(base[i]-y[i])*k;
+  }
+
+  /* z-score the target, as the lab's pipeline does */
+  const yz=Float64Array.from(y);const[ym,ysd]=zs(yz);
+  const mu=new Float32Array(N_FEAT);
+  for(let j=0;j<N_FEAT;j++){let a=0;for(let i=0;i<N;i++)a+=X[i*N_FEAT+j];mu[j]=a/N;}
+
+  /* --- split ---
+     within_circuit  : random 80/20 over instances. Every circuit appears in
+                       both halves. This is the regime the lab's checkpoints
+                       were trained under, and it is the easier claim.
+     cross_circuit   : four whole circuits held out, stratified across the
+                       register-count range so the model interpolates rather
+                       than extrapolates. The canonical, harder division. */
+  const byReg=CIRCUITS.map((c,i)=>({reg:c[3],i})).sort((a,b)=>a.reg-b.reg);
+  const heldOut=[2,6,11,15].map(k=>byReg[k].i);
+  const train=[],val=[];
+  if(regime==="cross_circuit"){
+    P.forEach((d,i)=>(heldOut.includes(d.ci)?val:train).push(i));
+  }else{
+    const idx=[...Array(N).keys()];
+    for(let i=idx.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+    const nTr=Math.floor(N*0.8);
+    train.push(...idx.slice(0,nTr));val.push(...idx.slice(nTr));
+  }
+
+  /* verify the correlations we promised */
+  const got=[pearson(pTcp,Array.from(y)),pearson(pAr,Array.from(y)),
+             pearson(pUt,Array.from(y)),pearson(pDn,Array.from(y))];
+
+  return{points:P,X,y,yz:Float32Array.from(yz),base,mean:ym,std:ysd,mu,
+         train,val,heldOut,regime,range:[lo,hi],log:logScale,
+         params:{tcp:pTcp,ar:pAr,ut:pUt,dn:pDn},
+         pearsonTarget:C,pearsonGot:got,baselineTarget:tgt};
+}
+
+/* ===================================================================
+   Network and training. Mirrors the lab's pipeline: z-scored target,
+   MSE loss, SGD with optional momentum and weight decay.
+   =================================================================== */
+const ACTS={tanh:0,relu:1,sigmoid:2,linear:3};
+const act =(v,k)=>k===0?Math.tanh(v):k===1?Math.max(0,v):k===2?1/(1+Math.exp(-v)):v;
+const dact=(a,k)=>k===0?1-a*a:k===1?(a>0?1:0):k===2?a*(1-a):1;
+
+function makeNet(nIn,widths,actKind,seed){
+  const dims=[nIn,...widths,1],L=[],r=rng32(seed);
+  for(let i=0;i<dims.length-1;i++){
+    const fi=dims[i],fo=dims[i+1],b=1/Math.sqrt(fi);
+    const W=new Float32Array(fo*fi),B=new Float32Array(fo);
+    for(let k=0;k<W.length;k++)W[k]=(r()*2-1)*b;
+    for(let k=0;k<B.length;k++)B[k]=(r()*2-1)*b;
+    L.push({fi,fo,W,B,a:new Float32Array(fo),d:new Float32Array(fo),
+      gW:new Float32Array(fo*fi),gB:new Float32Array(fo),
+      mW:new Float32Array(fo*fi),mB:new Float32Array(fo)});
+  }
+  return{L,dims,actKind,params:L.reduce((t,l)=>t+l.W.length+l.B.length,0)};
+}
+function fwd(net,x){
+  const L=net.L,k=net.actKind;let a=x;
+  for(let li=0;li<L.length;li++){
+    const l=L[li],out=l.a,last=li===L.length-1;
+    for(let o=0;o<l.fo;o++){
+      let s=l.B[o];const b=o*l.fi;
+      for(let i=0;i<l.fi;i++)s+=l.W[b+i]*a[i];
+      out[o]=last?s:act(s,k);
+    }
+    a=out;
+  }
+  return a[0];
+}
+function step(net,D,en,lr,mom,batch,wd){
+  const L=net.L,tr=D.train,n=tr.length,k=net.actKind,ne=en.length;
+  const x=new Float32Array(ne);let loss=0;
+  for(let b0=0;b0<n;b0+=batch){
+    const b1=Math.min(n,b0+batch),bs=b1-b0;
+    for(const l of L){l.gW.fill(0);l.gB.fill(0);}
+    for(let s=b0;s<b1;s++){
+      const si=tr[s];
+      for(let j=0;j<ne;j++)x[j]=D.X[si*N_FEAT+en[j]];
+      const p=fwd(net,x),e=p-D.yz[si];loss+=e*e;
+      L[L.length-1].d[0]=2*e/bs;
+      for(let li=L.length-1;li>=0;li--){
+        const l=L[li],ain=li===0?x:L[li-1].a,d=l.d,fi=l.fi;
+        if(li<L.length-1)for(let o=0;o<l.fo;o++)d[o]*=dact(l.a[o],k);
+        for(let o=0;o<l.fo;o++){
+          const go=d[o],b=o*fi;l.gB[o]+=go;
+          for(let i=0;i<fi;i++)l.gW[b+i]+=go*ain[i];
+        }
+        if(li>0){const pd=L[li-1].d;pd.fill(0);
+          for(let o=0;o<l.fo;o++){const go=d[o],b=o*fi;
+            for(let i=0;i<fi;i++)pd[i]+=go*l.W[b+i];}}
+      }
+    }
+    for(const l of L){
+      for(let j=0;j<l.W.length;j++){
+        const g=l.gW[j]+(wd||0)*l.W[j];
+        l.mW[j]=(mom||0)*l.mW[j]-lr*g;l.W[j]+=l.mW[j];}
+      for(let j=0;j<l.B.length;j++){
+        l.mB[j]=(mom||0)*l.mB[j]-lr*l.gB[j];l.B[j]+=l.mB[j];}
+    }
+  }
+  return loss/n;
+}
+function evalMAE(net,D,en,idx){
+  const ne=en.length,x=new Float32Array(ne);let s=0;
+  for(const si of idx){
+    for(let j=0;j<ne;j++)x[j]=D.X[si*N_FEAT+en[j]];
+    s+=Math.abs(fwd(net,x)*D.std+D.mean-D.y[si]);
+  }
+  return s/idx.length;
+}
+function predict(net,D,en,si){
+  const ne=en.length,x=new Float32Array(ne);
+  for(let j=0;j<ne;j++)x[j]=D.X[si*N_FEAT+en[j]];
+  return fwd(net,x)*D.std+D.mean;
+}
+function baselineMAE(D,idx){
+  let s=0,n=0;
+  for(const si of idx){if(!isFinite(D.base[si]))continue;s+=Math.abs(D.base[si]-D.y[si]);n++;}
+  return n?s/n:NaN;
+}
+const GRID=22, SPAN=2.4;
+function sweep(net,D,en,ax,ay){
+  const ne=en.length,x=new Float32Array(ne);
+  const acts=net.L.map(l=>new Float32Array(GRID*GRID*l.fo));
+  const out=new Float32Array(GRID*GRID);
+  for(let gy=0;gy<GRID;gy++)for(let gx=0;gx<GRID;gx++){
+    const vx=-SPAN+(2*SPAN)*gx/(GRID-1),vy=SPAN-(2*SPAN)*gy/(GRID-1);
+    for(let j=0;j<ne;j++){const f=en[j];x[j]= f===ax?vx : f===ay?vy : D.mu[f];}
+    const p=fwd(net,x),c=gy*GRID+gx;out[c]=p;
+    net.L.forEach((l,li)=>{for(let o=0;o<l.fo;o++)acts[li][c*l.fo+o]=l.a[o];});
+  }
+  return{acts,out};
+}
+function featSweep(f,ax,ay,D){
+  const g=new Float32Array(GRID*GRID);
+  for(let gy=0;gy<GRID;gy++)for(let gx=0;gx<GRID;gx++){
+    const vx=-SPAN+(2*SPAN)*gx/(GRID-1),vy=SPAN-(2*SPAN)*gy/(GRID-1);
+    g[gy*GRID+gx]= f===ax?vx : f===ay?vy : D.mu[f];
+  }
+  return g;
+}
+const legalAt=(f,s)=>FEATS[f].stage<=s;
+
+const $=id=>document.getElementById(id);
+function nf(v){
+  if(!isFinite(v))return "\u2014";
+  const a=Math.abs(v);
+  if(a>=1000)return Math.round(v).toLocaleString("en-US");
+  if(a>=10)return v.toFixed(1);
+  if(a>=1)return v.toFixed(2);
+  return v.toFixed(a>=0.01?3:4);
+}
+const TASKLBL={total_area:"Total area",total_power:"Total power",
+  total_wirelength:"Total wirelength",worst_slack:"Worst slack",
+  total_negative_slack:"Total negative slack"};
+const TASKUNIT={total_area:"\u00b5m\u00b2",total_power:"\u00b5W",total_wirelength:"\u00b5m",
+  worst_slack:"ns",total_negative_slack:"ns"};
+
+/* ---- state: the lab's configuration, verbatim ---- */
+let task="total_area", pdk="ng45", stage=0, regime="within_circuit";
+let enabled=[...Array(N_LAB).keys()];
+let widths=[64,32,16], actKind=ACTS.relu;
+let lr=0.01, batch=1024, mom=0, wd=0, epochCap=25;
+let ax=2, ay=8;
+let D=null, net=null, ep=0, hist=[], playing=false;
+let BASE_VAL=NaN, SW=null, openFam="netlist", outMode="scatter", showBase=true;
+/* the lab's own run at this address, rescaled onto this split by the same
+   factor as the tool estimate, so the ratio you see is the real one */
+let LAB_VAL=NaN, LAB_RATIO=NaN;
+let scatterPts=[], fitAxis=true, expanded=false;
+
+/* ---- colour: orange negative, white zero, blue positive ---- */
+function heat(t){
+  t=Math.max(-1,Math.min(1,t));
+  if(t>=0)return `rgb(${Math.round(247-140*t)},${Math.round(251-101*t)},${Math.round(255-72*t)})`;
+  const k=-t;
+  return `rgb(${Math.round(247+8*k)},${Math.round(251-90*k)},${Math.round(255-186*k)})`;
+}
+function paint(cv,vals,n,scale){
+  const ctx=cv.getContext("2d"),px=cv.width/n;
+  for(let gy=0;gy<n;gy++)for(let gx=0;gx<n;gx++){
+    ctx.fillStyle=heat(vals[gy*n+gx]/(scale||1));
+    ctx.fillRect(gx*px,gy*px,px+1,px+1);
+  }
+}
+
+/* ================= problem ================= */
+/* What the lab's fixed_mlp actually scored here. Its MAE lives on the real
+   dataset, so it is carried across by the ratio it beat the tool by — the
+   quantity that is comparable at all. */
+function labTarget(raw){
+  const R=window.EDA_REAL;
+  const rec=R&&R.runs&&task===R.REAL_TASK?R.run(pdk,STAGES[stage]):null;
+  const row=$("labrow"),note=$("labnote");
+  LAB_VAL=NaN;LAB_RATIO=NaN;
+  if(!rec||!raw||!isFinite(BASE_VAL)){
+    row.style.display="none";note.style.display="none";return;}
+  row.style.display="";note.style.display="";
+  LAB_RATIO=rec.agg.m[0]/rec.agg.b[0];
+  LAB_VAL=BASE_VAL*LAB_RATIO;
+  $("labv").textContent=nf(LAB_VAL);
+  $("labunit").textContent=TASKUNIT[task];
+  const pct=Math.abs(1-LAB_RATIO)*100;
+  note.innerHTML=`the lab measured <b>${nf(rec.agg.m[0])}</b> against the tool&rsquo;s `+
+    `<b>${nf(rec.agg.b[0])}</b> &mdash; ${LAB_RATIO<1?pct.toFixed(0)+"% better":pct.toFixed(0)+"% worse"} `+
+    `&mdash; from a network still at initialization. `+
+    `<a href="explorer.html?${new URLSearchParams({task,pdk,stage:STAGES[stage],
+      model:R.REAL_MODEL})}">see its weights &rarr;</a>`;
+}
+
+function problemChanged(){
+  enabled=enabled.filter(f=>legalAt(f,stage));
+  if(!enabled.length)enabled=[...Array(N_LAB).keys()].filter(f=>legalAt(f,stage));
+  if(!enabled.includes(ax))ax=enabled[0];
+  if(!enabled.includes(ay))ay=enabled[1]!==undefined?enabled[1]:enabled[0];
+  D=buildDataset(task,pdk,stage,0xEDA,regime);
+  BASE_VAL=baselineMAE(D,D.val);
+  const raw=BASE_MAE[task][pdk][stage];
+  $("basev").textContent=raw===null?"n/a":nf(BASE_VAL);
+  $("baseunit").textContent=raw===null?"":TASKUNIT[task];
+  $("basenote").innerHTML= raw===null
+      ? "not estimable before placement \u2014 wirelength has no meaning without coordinates"
+    : raw===0
+      ? "<b>saturated</b> \u2014 the tool estimate already equals the final value"
+      : `Table&nbsp;8 reports <b>${nf(raw)}</b> over the full set; this is the same estimate scored on the four held-out circuits`;
+  labTarget(raw);
+  const cross=regime==="cross_circuit";
+  $("splitname").textContent=cross?"Leave-one-circuit-out":"Within-circuit";
+  $("splitwhat").innerHTML=cross
+    ? `held out: <b>${D.heldOut.map(i=>CIRCUITS[i][0]).join(", ")}</b><br>`+
+      `four whole circuits the model never sees`
+    : `random 80/20 over design instances<br>`+
+      `every circuit appears in both halves &mdash; the regime the lab&rsquo;s checkpoints used`;
+  $("splitn").textContent=`${D.train.length} train / ${D.val.length} validation`;
+  $("splitdiv").textContent=cross?"closed division":"open division";
+  $("splithard").innerHTML=cross
+    ? "Much harder. The model must extrapolate to a circuit it has never seen, "+
+      "while the tool is already looking at the real placed design."
+    : "";
+  $("splitdiv").className="divtag "+(cross?"closed":"open");
+  drawFeatures();drawAxes();rebuild();
+}
+function rebuild(){
+  net=makeNet(enabled.length,widths,actKind,42);
+  ep=0;hist=[];playing=false;
+  $("play").innerHTML="&#9654;";$("netbox").classList.remove("running");
+  refresh();
+}
+function refresh(){
+  if(!enabled.length)return;
+  SW=sweep(net,D,enabled,ax,ay);
+  drawNetwork();drawOutput();drawLoss();drawStats();
+}
+
+/* ================= features ================= */
+function drawFeatures(){
+  const fams=["netlist","cell_metrics","power_metrics","timing_metrics",
+              "net","clock_tree","routing"];
+  $("features").innerHTML=fams.map(f=>{
+    const idxs=FEATS.map((x,i)=>[x,i]).filter(([x])=>x.g===f).map(([,i])=>i);
+    if(!idxs.length)return"";
+    const on=idxs.filter(i=>enabled.includes(i)).length;
+    const legal=idxs.filter(i=>legalAt(i,stage)).length;
+    const open=openFam===f;
+    const inLab=FEATS[idxs[0]].stage===0;
+    return `<div class="fam">
+      <button class="famh${legal?"":" allgated"}" data-fam="${f}" style="border-left-color:${GCOL[f]}">
+        <span class="famn">${f.replace(/_/g," ")}</span>
+        <span class="famc">${on}/${idxs.length}</span>
+        <span class="famx">${open?"\u2212":"+"}</span></button>
+      ${open?`<div class="famg">`+idxs.map(i=>{
+        const ok=legalAt(i,stage);
+        return `<button class="ft${enabled.includes(i)?" on":""}${ok?"":" gated"}"
+          data-f="${i}" ${ok?"":"disabled"}
+          title="${ok?FEATS[i].n:FEATS[i].n+" \u2014 not produced until "+SL[FEATS[i].stage]}">
+          <canvas class="ftc" width="24" height="24" data-fc="${i}"></canvas>
+          <span>${FEATS[i].n}</span>
+          ${ok?"":`<em class="gt">${STAGE_TAG[FEATS[i].stage]}</em>`}</button>`;}).join("")
+        +`</div>`:""}
+      ${open&&!inLab?`<p class="famnote">In the schema, not in the lab&rsquo;s 41-feature config.</p>`:""}
+    </div>`;}).join("");
+
+  $("features").querySelectorAll("[data-fam]").forEach(b=>b.onclick=()=>{
+    openFam=openFam===b.dataset.fam?null:b.dataset.fam;drawFeatures();});
+  $("features").querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.f;
+    if(!legalAt(i,stage))return;
+    enabled.includes(i)?enabled=enabled.filter(x=>x!==i):enabled.push(i);
+    enabled.sort((a,b)=>a-b);
+    if(!enabled.length){enabled=[i];}
+    if(!enabled.includes(ax))ax=enabled[0];
+    if(!enabled.includes(ay))ay=enabled[1]!==undefined?enabled[1]:enabled[0];
+    drawFeatures();drawAxes();rebuild();});
+  $("features").querySelectorAll("[data-fc]").forEach(cv=>
+    paint(cv,featSweep(+cv.dataset.fc,ax,ay,D),GRID,SPAN));
+
+  const nLegal=FEATS.filter((f,i)=>legalAt(i,stage)).length;
+  const nGated=N_FEAT-nLegal;
+  $("featcount").innerHTML=`<b>${enabled.length}</b> of ${nLegal} legal attributes feeding in`+
+    (nGated?`<br><span class="gatenote">${nGated} greyed out &mdash; Table&nbsp;1 says they do not exist until a later stage</span>`:
+     `<br><span class="okgate">every schema attribute is available at this stage</span>`);
+}
+function drawAxes(){
+  const opts=enabled.map(i=>`<option value="${i}">${FEATS[i].n}</option>`).join("");
+  $("axsel").innerHTML=opts;$("aysel").innerHTML=opts;
+  $("axsel").value=ax;$("aysel").value=ay;
+}
+
+/* ================= network ================= */
+const NODE=32, VGAP=46, HGAP=112, PAD=24, MAXIN=12;
+function layout(){
+  const nIn=Math.min(enabled.length,MAXIN);
+  const cols=[nIn,...widths.map(w=>Math.min(w,12)),1];
+  const H=Math.max(...cols)*VGAP+PAD*2;
+  const W=(cols.length-1)*HGAP+NODE+PAD*2;
+  const pos=cols.map(n=>{
+    const y0=(H-(n-1)*VGAP)/2;
+    return Array.from({length:n},(_,i)=>({x:0,y:y0+i*VGAP-NODE/2}));});
+  pos.forEach((c,ci)=>c.forEach(p=>p.x=PAD+ci*HGAP));
+  return{pos,W,H,cols};
+}
+function drawNetwork(){
+  const{pos,W,H,cols}=layout();
+  const host=$("netbox");
+  host.style.width=W+"px";host.style.height=H+"px";
+  const nIn=cols[0];
+
+  let g="";
+  for(let li=0;li<net.L.length;li++){
+    const l=net.L[li];
+    let mx=0;for(const v of l.W)mx=Math.max(mx,Math.abs(v));
+    const nSrc=cols[li],nDst=cols[li+1];
+    for(let o=0;o<nDst;o++)for(let i=0;i<nSrc;i++){
+      const w=l.W[o*l.fi+i],a=Math.abs(w)/(mx||1);
+      const A=pos[li][i],B=pos[li+1][o];
+      const x1=A.x+NODE,y1=A.y+NODE/2,x2=B.x,y2=B.y+NODE/2,dx=(x2-x1)*.5;
+      g+=`<path class="lk" d="M${x1} ${y1} C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}" `+
+         `fill="none" stroke="${w<0?"var(--neg)":"var(--pos)"}" `+
+         `stroke-width="${(0.4+3.2*a).toFixed(2)}" opacity="${(0.14+0.66*a).toFixed(2)}" `+
+         `stroke-dasharray="6 4"/>`;
+    }
+  }
+  const sv=$("edges");
+  sv.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  sv.style.width=W+"px";sv.style.height=H+"px";sv.innerHTML=g;
+
+  host.querySelectorAll(".nd,.ndl").forEach(e=>e.remove());
+  let n="";
+  cols.forEach((cnt,c)=>{
+    for(let i=0;i<cnt;i++){
+      const p=pos[c][i],isIn=c===0,isOut=c===cols.length-1;
+      const lbl=isIn?FEATS[enabled[i]].n:"";
+      n+=`<canvas class="nd${isOut?" out":""}" width="${GRID}" height="${GRID}"
+        style="left:${p.x}px;top:${p.y}px;width:${NODE}px;height:${NODE}px"
+        data-nd="${c}_${i}" title="${isIn?lbl:isOut?"predicted "+TASKLBL[task].toLowerCase():"hidden "+c+", unit "+(i+1)}"></canvas>`;
+      if(isIn)n+=`<span class="ndl" style="left:${p.x-7}px;top:${p.y+NODE/2-7}px">${lbl}</span>`;
+    }});
+  host.insertAdjacentHTML("beforeend",n);
+
+  cols.forEach((cnt,c)=>{
+    for(let i=0;i<cnt;i++){
+      const cv=host.querySelector(`[data-nd="${c}_${i}"]`);
+      if(!cv)continue;
+      let vals,sc;
+      if(c===0){vals=featSweep(enabled[i],ax,ay,D);sc=SPAN;}
+      else{
+        const li=c-1,w=net.L[li].fo,a=SW.acts[li];
+        vals=new Float32Array(GRID*GRID);
+        for(let k=0;k<GRID*GRID;k++)vals[k]=a[k*w+i];
+        sc=0;for(const v of vals)sc=Math.max(sc,Math.abs(v));
+      }
+      paint(cv,vals,GRID,sc);
+    }});
+
+  $("layerctl").innerHTML=widths.map((w,i)=>`
+    <div class="lcw" style="left:${PAD+(i+1)*HGAP+NODE/2}px">
+      <div class="lcb"><button class="pm" data-np="${i}" ${w>=64?"disabled":""}>+</button>
+      <button class="pm" data-nm="${i}" ${w<=1?"disabled":""}>&minus;</button></div>
+      <div class="lcn">${w} neuron${w>1?"s":""}${w>12?" (12 shown)":""}</div>
+    </div>`).join("");
+  $("layerctl").style.width=W+"px";
+  $("layerctl").querySelectorAll("[data-nm]").forEach(b=>b.onclick=()=>{
+    widths[+b.dataset.nm]=Math.max(1,widths[+b.dataset.nm]-(widths[+b.dataset.nm]>16?8:1));rebuild();});
+  $("layerctl").querySelectorAll("[data-np]").forEach(b=>b.onclick=()=>{
+    widths[+b.dataset.np]+=widths[+b.dataset.np]>=16?8:1;rebuild();});
+  $("layercount").textContent=widths.length;
+  $("innote").textContent=enabled.length>MAXIN
+    ? `showing ${MAXIN} of ${enabled.length} inputs` : "";
+}
+
+/* ================= output ================= */
+function drawOutput(){
+  const cv=$("out"),S=cv.width,ctx=cv.getContext("2d");
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  ctx.clearRect(0,0,S,S);
+  scatterPts=[];
+
+  if(outMode==="surface"){
+    let mx=0;for(const v of SW.out)mx=Math.max(mx,Math.abs(v));
+    const px=S/GRID;
+    for(let gy=0;gy<GRID;gy++)for(let gx=0;gx<GRID;gx++){
+      ctx.fillStyle=heat(SW.out[gy*GRID+gx]/(mx||1));
+      ctx.fillRect(gx*px,gy*px,px+1,px+1);}
+    for(const si of D.val){
+      const vx=D.X[si*N_FEAT+ax],vy=D.X[si*N_FEAT+ay];
+      if(Math.abs(vx)>SPAN||Math.abs(vy)>SPAN)continue;
+      const X0=((vx+SPAN)/(2*SPAN))*S,Y0=((SPAN-vy)/(2*SPAN))*S;
+      ctx.beginPath();ctx.arc(X0,Y0,3,0,6.284);
+      ctx.fillStyle=heat(Math.max(-1,Math.min(1,D.yz[si])));ctx.fill();
+      ctx.lineWidth=S/500;ctx.strokeStyle="rgba(0,0,0,.3)";ctx.stroke();
+      scatterPts.push({x:X0,y:Y0,si});
+    }
+    $("outcap").innerHTML=`Network response across <b>${FEATS[ax].n}</b> &times; `+
+      `<b>${FEATS[ay].n}</b>. Circles are the ${D.val.length} validation design instances.`;
+    $("axx").textContent=FEATS[ax].n;$("axy").textContent=FEATS[ay].n;
+    $("tx0").textContent="\u22122.4";$("tx1").textContent="+2.4";
+    $("ty0").textContent="\u22122.4";$("ty1").textContent="+2.4";
+    $("plotleg").style.display="none";
+    return;
+  }
+
+  /* predicted vs actual — how the leaderboard actually scores a model.
+     The axis fits BOTH the true values and the model's predictions, so an
+     untrained model is visibly wrong rather than invisibly off-canvas.    */
+  const lg=D.log,[tlo,thi]=D.range;
+
+  /* gather predictions first so the axis can be sized to include them */
+  const preds=[],trues=[],bases=[];
+  for(const si of D.val){
+    preds.push(predict(net,D,enabled,si));
+    trues.push(D.y[si]);
+    bases.push(isFinite(D.base[si])?D.base[si]:null);
+  }
+  let lo=tlo,hi=thi;
+  if(fitAxis){
+    const pool=[...trues,...preds.filter(isFinite)];
+    if(showBase)pool.push(...bases.filter(v=>v!==null));
+    let pmin=Math.min(...pool),pmax=Math.max(...pool);
+    if(lg){                                  /* log axis needs a positive floor */
+      const floor=tlo/50;
+      pmin=Math.max(floor,Math.min(tlo,pmin));
+      pmax=Math.max(thi,pmax);
+    }else{
+      const pad=(pmax-pmin)*0.05||1;
+      pmin-=pad;pmax+=pad;
+    }
+    lo=pmin;hi=pmax;
+  }
+  const clampV=v=>lg?Math.max(lo,Math.min(hi,v)):Math.max(lo,Math.min(hi,v));
+  const T=lg?(v=>(Math.log(clampV(v))-Math.log(lo))/(Math.log(hi)-Math.log(lo)))
+            :(v=>(clampV(v)-lo)/((hi-lo)||1));
+
+  ctx.fillStyle=dark?"#1c1c1d":"#fff";ctx.fillRect(0,0,S,S);
+  ctx.strokeStyle=dark?"#3a3a3c":"#ececec";ctx.lineWidth=S/440;
+  for(let k=0;k<=4;k++){const p=k/4*S;
+    ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(S,p);ctx.stroke();}
+
+  /* shade the region the true values actually occupy, so an inflated axis is legible */
+  if(fitAxis&&(lo<tlo*0.98||hi>thi*1.02)){
+    const a=T(tlo)*S,b=T(thi)*S;
+    ctx.fillStyle=dark?"rgba(255,255,255,.035)":"rgba(7,41,77,.035)";
+    ctx.fillRect(a,S-b,b-a,b-a);
+    ctx.strokeStyle=dark?"rgba(255,255,255,.14)":"rgba(7,41,77,.16)";
+    ctx.lineWidth=S/700;ctx.strokeRect(a,S-b,b-a,b-a);
+  }
+
+  ctx.strokeStyle=dark?"#8a8781":"#9a9a9a";ctx.lineWidth=S/440;
+  ctx.setLineDash([S/70,S/90]);
+  ctx.beginPath();ctx.moveTo(T(lo)*S,(1-T(lo))*S);ctx.lineTo(T(hi)*S,(1-T(hi))*S);
+  ctx.stroke();ctx.setLineDash([]);
+
+  const R=S/170;
+  let off=0;
+  if(showBase)for(let k=0;k<D.val.length;k++){
+    if(bases[k]===null)continue;
+    ctx.beginPath();
+    ctx.arc(T(trues[k])*S,(1-T(bases[k]))*S,R*1.15,0,6.284);
+    ctx.fillStyle="rgba(192,106,46,.45)";ctx.fill();
+  }
+  for(let k=0;k<D.val.length;k++){
+    const si=D.val[k],p=preds[k];
+    const X0=T(trues[k])*S;
+    const outOfRange=!isFinite(p)||p<lo||p>hi;
+    if(outOfRange)off++;
+    const Y0=(1-T(isFinite(p)?p:lo))*S;
+    const Yc=Math.max(R*1.6,Math.min(S-R*1.6,Y0));
+    ctx.beginPath();ctx.arc(X0,Yc,R*1.25,0,6.284);
+    ctx.fillStyle=outOfRange?"rgba(192,60,46,.75)":"rgba(59,111,176,.70)";
+    ctx.fill();
+    ctx.lineWidth=R*0.3;
+    ctx.strokeStyle=outOfRange?"rgba(150,30,20,.7)":"rgba(30,70,130,.5)";
+    ctx.stroke();
+    scatterPts.push({x:X0,y:Yc,si,pred:p,off:outOfRange});
+  }
+
+  $("tx0").textContent=nf(lo);$("tx1").textContent=nf(hi);
+  $("ty0").textContent=nf(lo);$("ty1").textContent=nf(hi);
+  $("axx").textContent="true "+TASKLBL[task].toLowerCase()+" ("+TASKUNIT[task]+")";
+  $("axy").textContent="predicted";
+  $("plotleg").style.display="";
+  $("offnote").innerHTML= off
+    ? `<b>${off}</b> of ${D.val.length} predictions fall outside the real range &mdash; shown in red at the edge`
+    : "";
+  const widened=fitAxis&&(lo<tlo*0.98||hi>thi*1.02);
+  $("outcap").innerHTML=`Predicted vs true ${TASKLBL[task].toLowerCase()} on `+
+    `${D.val.length} validation instances. Points on the diagonal are exact. `+
+    (widened?`Axis widened to fit the model &mdash; the shaded box is the real `+
+             `${nf(tlo)}&ndash;${nf(thi)} ${TASKUNIT[task]} range.`
+            :`${lg?"Log":"Linear"} axes, ${nf(tlo)}&ndash;${nf(thi)} ${TASKUNIT[task]}.`);
+}
+
+/* hovering a point names the real design instance */
+$("out").addEventListener("mousemove",e=>{
+  const r=$("out").getBoundingClientRect();
+  const mx=(e.clientX-r.left)/r.width*$("out").width;
+  const my=(e.clientY-r.top)/r.height*$("out").height;
+  let best=null,bd=1e9;
+  for(const p of scatterPts){
+    const d=(p.x-mx)**2+(p.y-my)**2;
+    if(d<bd){bd=d;best=p;}}
+  const tip=$("tip");
+  if(best&&bd<260){
+    const d=D.points[best.si];
+    tip.innerHTML=`<b>${d.circuit}</b><br>`+
+      `clock ${d.tcp.toFixed(3)} ns <span class="dim">(${d.tcpLabel})</span><br>`+
+      `aspect ${d.aspect} &middot; util ${d.util} &middot; density ${d.density}<br>`+
+      `<span class="dim">true</span> ${nf(D.y[best.si])} ${TASKUNIT[task]}`+
+      (best.pred!==undefined?`<br><span class="dim">model</span> ${nf(best.pred)}`:"")+
+      (isFinite(D.base[best.si])?`<br><span class="dim">OpenROAD</span> ${nf(D.base[best.si])}`:"");
+    tip.style.left=Math.min(e.clientX+14,innerWidth-210)+"px";
+    tip.style.top=(e.clientY+14)+"px";tip.classList.add("on");
+  }else tip.classList.remove("on");
+});
+$("out").addEventListener("mouseleave",()=>$("tip").classList.remove("on"));
+
+/* ================= loss ================= */
+function drawLoss(){
+  const W=880,H=880,X0=96,Y0=H-58,XR=W-24,YT=34;
+  const svg=$("loss");
+  if(!hist.length){
+    svg.innerHTML=`<text class="cl" x="${W/2}" y="${H/2}" text-anchor="middle" `+
+      `font-size="22" opacity=".45">press run to train</text>`;
+    return;}
+  const va=hist.map(h=>h.va),tr=hist.map(h=>h.tr);
+  const all=[...va,...tr,BASE_VAL,LAB_VAL].filter(v=>isFinite(v)&&v>0);
+  /* log scale: MAE spans orders of magnitude between an untrained model and
+     the tool, and a linear axis collapses one of them against an edge. */
+  const lo=Math.min(...all)*0.80, hi=Math.max(...all)*1.25;
+  const L=Math.log(lo),Hh=Math.log(hi),span=(Hh-L)||1;
+  const px=i=>X0+(i/Math.max(1,epochCap-1))*(XR-X0);
+  const py=v=>Y0-((Math.log(Math.max(lo,Math.min(hi,v)))-L)/span)*(Y0-YT);
+  const path=a=>a.map((v,i)=>(i?"L":"M")+px(i*2).toFixed(1)+" "+py(v).toFixed(1)).join(" ");
+
+  let g="";
+  /* decade gridlines with labels — the point of a log axis */
+  const d0=Math.floor(Math.log10(lo)),d1=Math.ceil(Math.log10(hi));
+  for(let d=d0;d<=d1;d++)for(const m of [1,2,5]){
+    const v=m*Math.pow(10,d);
+    if(v<lo||v>hi)continue;
+    const y=py(v);
+    g+=`<line x1="${X0}" y1="${y.toFixed(1)}" x2="${XR}" y2="${y.toFixed(1)}" `+
+       `stroke="var(--global-divider-color)" stroke-width="${m===1?1.6:1}"/>`+
+       `<text class="cl" x="${X0-10}" y="${(y+6).toFixed(1)}" text-anchor="end" `+
+       `font-size="17">${nf(v)}</text>`;
+  }
+  g+=`<line x1="${X0}" y1="${Y0}" x2="${XR}" y2="${Y0}" stroke="var(--global-divider-strong)" stroke-width="1.6"/>`+
+     `<line x1="${X0}" y1="${YT}" x2="${X0}" y2="${Y0}" stroke="var(--global-divider-strong)" stroke-width="1.6"/>`;
+
+  /* the line to cross */
+  if(isFinite(BASE_VAL)){
+    const yb=py(BASE_VAL);
+    g+=`<line x1="${X0}" y1="${yb.toFixed(1)}" x2="${XR}" y2="${yb.toFixed(1)}" `+
+       `stroke="var(--neg)" stroke-width="3" stroke-dasharray="12 8"/>`+
+       `<rect x="${XR-236}" y="${(yb-30).toFixed(1)}" width="232" height="26" rx="4" `+
+       `fill="var(--global-bg-color)" opacity=".88"/>`+
+       `<text class="cl" x="${XR-6}" y="${(yb-11).toFixed(1)}" text-anchor="end" `+
+       `font-size="18" fill="var(--neg)">OpenROAD ${nf(BASE_VAL)}</text>`;
+    /* everything below the line is a win */
+    g+=`<rect x="${X0}" y="${yb.toFixed(1)}" width="${XR-X0}" height="${(Y0-yb).toFixed(1)}" `+
+       `fill="var(--lb-win-fg)" opacity=".05"/>`;
+  }
+
+  /* the lab's own run, on the same axis */
+  if(isFinite(LAB_VAL)){
+    const yl=py(LAB_VAL);
+    g+=`<line x1="${X0}" y1="${yl.toFixed(1)}" x2="${XR}" y2="${yl.toFixed(1)}" `+
+       `stroke="#7a5ea8" stroke-width="2.4" stroke-dasharray="6 6"/>`+
+       `<rect x="${XR-300}" y="${(yl+4).toFixed(1)}" width="296" height="26" rx="4" `+
+       `fill="var(--global-bg-color)" opacity=".88"/>`+
+       `<text class="cl" x="${XR-6}" y="${(yl+23).toFixed(1)}" text-anchor="end" `+
+       `font-size="18" fill="#7a5ea8">lab&#8217;s fixed_mlp ${nf(LAB_VAL)}</text>`;
+  }
+  g+=`<path d="${path(tr)}" fill="none" stroke="var(--global-text-color-light)" `+
+     `stroke-width="2.6" opacity=".5"/>`+
+     `<path d="${path(va)}" fill="none" stroke="var(--pos)" stroke-width="4"/>`;
+  const lx=px((va.length-1)*2),ly=py(va[va.length-1]);
+  g+=`<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="7" fill="var(--pos)"/>`+
+     `<text class="cl" x="${(lx-12).toFixed(1)}" y="${(ly-14).toFixed(1)}" text-anchor="end" `+
+     `font-size="19" fill="var(--pos)">${nf(va[va.length-1])}</text>`;
+
+  /* annotate the gap so empty space between the curve and the line means something */
+  if(isFinite(BASE_VAL)){
+    const cur=va[va.length-1],yb=py(BASE_VAL),yc=py(cur);
+    if(Math.abs(yb-yc)>90){
+      const mid=(yb+yc)/2,gx=X0+(XR-X0)*0.30;
+      const above=cur>BASE_VAL;
+      g+=`<line x1="${gx}" y1="${(Math.min(yb,yc)+8).toFixed(1)}" x2="${gx}" `+
+         `y2="${(Math.max(yb,yc)-8).toFixed(1)}" stroke="var(--global-text-color-light)" `+
+         `stroke-width="1.4" opacity=".5" marker-start="url(#ar)" marker-end="url(#ar)"/>`+
+         `<rect x="${(gx+8)}" y="${(mid-19).toFixed(1)}" width="196" height="38" rx="5" `+
+         `fill="var(--global-bg-color)" opacity=".9"/>`+
+         `<text class="cl" x="${gx+18}" y="${(mid-2).toFixed(1)}" font-size="20" `+
+         `fill="${above?"var(--neg)":"var(--lb-win-fg)"}">`+
+         `${above?(cur/BASE_VAL).toFixed(1)+"\u00d7 above the tool":(BASE_VAL/cur).toFixed(2)+"\u00d7 better"}</text>`+
+         `<text class="cl" x="${gx+18}" y="${(mid+16).toFixed(1)}" font-size="15" opacity=".8">`+
+         `${above?"still losing":"beating OpenROAD"}</text>`;
+    }
+  }
+  g=`<defs><marker id="ar" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" `+
+    `orient="auto"><path d="M1,1 L6,3.5 L1,6" fill="none" `+
+    `stroke="var(--global-text-color-light)" stroke-width="1.2"/></marker></defs>`+g;
+
+  g+=`<text class="cl" x="${X0}" y="${H-26}" font-size="17">epoch 0</text>`+
+     `<text class="cl" x="${XR}" y="${H-26}" text-anchor="end" font-size="17">${epochCap}</text>`+
+     `<text class="cl" x="${(X0+XR)/2}" y="${H-6}" text-anchor="middle" font-size="17">epoch</text>`+
+     `<text class="cl" x="22" y="${(YT+Y0)/2}" text-anchor="middle" font-size="17" `+
+     `transform="rotate(-90 22 ${(YT+Y0)/2})">validation MAE (${TASKUNIT[task]}, log)</text>`;
+  svg.innerHTML=g;
+}
+
+function drawStats(){
+  const c=hist.length?hist[hist.length-1]:null;
+  $("epoch").textContent=String(ep).padStart(3,"0");
+  $("epochcap").textContent=epochCap;
+  $("yourv").textContent=c?nf(c.va):"\u2014";
+  $("yourunit").textContent=c?TASKUNIT[task]:"";
+  $("trainv").textContent=c?nf(c.tr):"\u2014";
+  $("shape").textContent=[enabled.length,...widths,1].join("\u2013");
+  const nb=Math.ceil(D.train.length/batch);
+  $("steps").textContent=(ep*nb).toLocaleString("en-US");
+  $("batches").textContent=nb;
+  const b=$("verdict");
+  if(!c){b.className="vd idle";b.textContent="not trained";}
+  else if(!isFinite(BASE_VAL)){b.className="vd idle";b.textContent="no baseline here";}
+  else if(c.va<BASE_VAL){b.className="vd win";
+    b.textContent=`beats OpenROAD ${(BASE_VAL/c.va).toFixed(2)}\u00d7`+
+      (isFinite(LAB_VAL)?(c.va<LAB_VAL?` \u00b7 and the lab\u2019s run`
+                                      :` \u00b7 not the lab\u2019s run`):"");}
+  else{b.className="vd lose";
+    b.textContent=`${((c.va/BASE_VAL-1)*100).toFixed(0)}% behind the tool`;}
+}
+
+/* ================= run loop ================= */
+function tick(){
+  if(!playing)return;
+  const t0=performance.now();
+  while(performance.now()-t0<26&&ep<epochCap){
+    step(net,D,enabled,lr,mom,batch,wd);ep++;
+    if(ep%2===0||ep===epochCap)
+      hist.push({tr:evalMAE(net,D,enabled,D.train),va:evalMAE(net,D,enabled,D.val)});
+  }
+  refresh();
+  if(ep>=epochCap){playing=false;$("play").innerHTML="&#9654;";
+    $("netbox").classList.remove("running");return;}
+  requestAnimationFrame(tick);
+}
+function play(){
+  if(ep>=epochCap&&!playing)rebuild();
+  playing=!playing;
+  $("play").innerHTML=playing?"&#10074;&#10074;":"&#9654;";
+  $("netbox").classList.toggle("running",playing);
+  if(playing)requestAnimationFrame(tick);
+}
+
+/* ================= wiring ================= */
+$("play").onclick=play;
+$("stepb").onclick=()=>{if(ep>=epochCap)return;
+  step(net,D,enabled,lr,mom,batch,wd);ep++;
+  hist.push({tr:evalMAE(net,D,enabled,D.train),va:evalMAE(net,D,enabled,D.val)});refresh();};
+$("resetb").onclick=rebuild;
+$("addl").onclick=()=>{if(widths.length<5){widths.push(4);rebuild();}};
+$("dell").onclick=()=>{if(widths.length>1){widths.pop();rebuild();}};
+$("tasksel").onchange=function(){task=this.value;problemChanged();syncLinks();};
+$("pdksel").onchange=function(){pdk=this.value;problemChanged();syncLinks();};
+$("stagesel").onchange=function(){stage=+this.value;problemChanged();syncLinks();};
+$("regsel").onchange=function(){regime=this.value;problemChanged();syncLinks();};
+$("lr").onchange=function(){lr=+this.value;};
+$("actsel").onchange=function(){actKind=ACTS[this.value];rebuild();};
+$("bsz").onchange=function(){batch=+this.value;rebuild();};
+$("mom").onchange=function(){mom=+this.value;};
+$("wd").onchange=function(){wd=+this.value;};
+$("epcap").onchange=function(){epochCap=+this.value;drawStats();};
+$("axsel").onchange=function(){ax=+this.value;drawFeatures();refresh();};
+$("aysel").onchange=function(){ay=+this.value;drawFeatures();refresh();};
+$("showbase").onchange=function(){showBase=this.checked;drawOutput();};
+$("fitax").onchange=function(){fitAxis=this.checked;drawOutput();};
+$("expandb").onclick=()=>{
+  expanded=!expanded;
+  document.body.classList.toggle("plotbig",expanded);
+  $("expandb").innerHTML=expanded?"&#10005; close":"&#8599; expand";
+  drawOutput();};
+addEventListener("keydown",e=>{if(e.key==="Escape"&&expanded){
+  expanded=false;document.body.classList.remove("plotbig");
+  $("expandb").innerHTML="&#8599; expand";drawOutput();}});
+document.querySelectorAll("[data-out]").forEach(b=>b.onclick=()=>{
+  outMode=b.dataset.out;
+  document.querySelectorAll("[data-out]").forEach(o=>o.setAttribute("aria-pressed",o===b));
+  drawOutput();});
+$("labcfg").onclick=()=>{
+  enabled=[...Array(N_LAB).keys()].filter(f=>legalAt(f,stage));
+  widths=[64,32,16];actKind=ACTS.relu;lr=0.01;batch=1024;mom=0;wd=0;epochCap=25;
+  $("lr").value="0.01";$("actsel").value="relu";$("bsz").value="1024";
+  $("mom").value="0";$("wd").value="0";$("epcap").value="25";
+  ax=2;ay=8;drawFeatures();drawAxes();rebuild();};
+$("tunedcfg").onclick=()=>{
+  enabled=[...Array(N_LAB).keys()].filter(f=>legalAt(f,stage));
+  widths=[6,4];actKind=ACTS.tanh;lr=0.03;batch=64;mom=0.9;wd=0;epochCap=150;
+  $("lr").value="0.03";$("actsel").value="tanh";$("bsz").value="64";
+  $("mom").value="0.9";$("wd").value="0";$("epcap").value="150";
+  ax=2;ay=8;drawFeatures();drawAxes();rebuild();};
+$("themebtn").onclick=function(){
+  const d=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",d?"light":"dark");
+  this.textContent=d?"dark":"light";refresh();drawFeatures();};
+
+/* ---- boot ---- */
+/* accept the cell address handed over by the leaderboard or the explorer,
+   and hand it back on every link out */
+let fromCircuit=null, askedTask=null;
+(function(){
+  const q=new URLSearchParams(location.search);
+  const t=q.get("task"),p=q.get("pdk"),st=q.get("stage"),c=q.get("circuit");
+  /* the leaderboard covers twelve tasks; five of them are trainable here */
+  if(t){if(TASKLBL[t])task=t;else askedTask=t;}
+  if(p&&PDKS.includes(p))pdk=p;
+  if(st!==null){
+    const i=STAGES.indexOf(st);
+    if(i>=0)stage=i;
+    else if(/^[0-4]$/.test(st))stage=+st;
+  }
+  if(c)fromCircuit=c;
+})();
+function syncLinks(){
+  document.querySelectorAll("[data-ctxlink]").forEach(a=>{
+    const to=a.dataset.ctxlink,q={task,pdk,stage:STAGES[stage]};
+    if(to==="explorer.html"){
+      q.model=(window.EDA_REAL||{}).REAL_MODEL||"fixed_mlp";
+      if(fromCircuit)q.circuit=fromCircuit;
+    }
+    a.href=to+"?"+new URLSearchParams(q);});
+}
+/* selectors are filled after the address is read, so they show where you came from */
+$("tasksel").innerHTML=Object.keys(TASKLBL).map(t=>
+  `<option value="${t}"${t===task?" selected":""}>${TASKLBL[t]}</option>`).join("");
+$("pdksel").innerHTML=PDKS.map(p=>
+  `<option value="${p}"${p===pdk?" selected":""}>${PDK_INFO[p].label} &middot; ${PDK_INFO[p].node}</option>`).join("");
+$("stagesel").innerHTML=SL.map((s,i)=>
+  `<option value="${i}"${i===stage?" selected":""}>${s}</option>`).join("");
+$("regsel").innerHTML=
+  `<option value="cross_circuit"${regime==="cross_circuit"?" selected":""}>leave-one-circuit-out</option>`+
+  `<option value="within_circuit"${regime==="within_circuit"?" selected":""}>within-circuit</option>`;
+problemChanged();
+syncLinks();
+/* say so when the cell you came from has no trainable target here */
+if(askedTask){
+  const bar=document.querySelector(".bar");
+  const el=document.createElement("div");
+  el.className="bar";
+  el.innerHTML="<b>That task is not trainable here.</b> The leaderboard scores twelve tasks; "+
+    "this playground carries the five with a circuit-level target and a published baseline. "+
+    "Showing <b>"+TASKLBL[task]+"</b> instead.";
+  bar.parentNode.insertBefore(el,bar.nextSibling);
+}
+
+</script>
+</body>
+</html>

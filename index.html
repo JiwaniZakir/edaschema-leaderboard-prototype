@@ -1,0 +1,2712 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Benchmark leaderboard for ML predictors of final-stage QoR, scored against OpenROAD baselines from EDA-Schema-V2. Drexel ICE Lab.">
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:title" content="EDA-Schema Leaderboard — Drexel ICE Lab">
+<meta property="og:description" content="12 prediction tasks across 4 PDKs and 5 design stages. Real OpenROAD baselines; model results are synthetic placeholders.">
+<meta property="og:site_name" content="Drexel ICE Lab">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="EDA-Schema Leaderboard — Drexel ICE Lab">
+<meta name="twitter:description" content="Interaction mockup. Real baselines, synthetic model results.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2307294D'/><text x='16' y='23' font-family='Georgia,serif' font-size='18' fill='%23FFC600' text-anchor='middle'>E</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+<title>EDA-Schema Leaderboard | Drexel ICE Lab</title>
+<style>
+/* ===================================================================
+   Canonical design tokens — identical across index, explorer and
+   playground. Two semantic palettes that must never collide:
+   model families (saturated) and schema entities (muted).
+   =================================================================== */
+:root{
+  /* radius scale */
+  --r-xs:3px; --r-sm:4px; --r-md:6px; --r-lg:8px; --r-pill:999px;
+
+  /* signed data, used by every chart */
+  --pos:#3b6fb0; --neg:#c06a2e; --dead:#b8b5ae;
+
+  /* model families — saturated */
+  --fam-gnn:#2f6bb5; --fam-cnn:#c25f22; --fam-mlp:#2f8f6b;
+  --fam-automl:#7a4bb8; --fam-hybrid:#a8762c;
+
+  /* schema entities — muted, deliberately distinct from the families */
+  --ent-netlist:#7d97cc; --ent-cell:#cf9b7e; --ent-power:#7cc9a8;
+  --ent-timing:#b58ad1; --ent-net:#6fb3b3; --ent-clock:#c4a463;
+  --ent-routing:#b07f96;
+}
+html[data-theme="dark"]{
+  --pos:#6da3d8; --neg:#dd9558; --dead:#55524c;
+  --fam-gnn:#6ba3de; --fam-cnn:#e08a4e; --fam-mlp:#5cbd94;
+  --fam-automl:#a882dd; --fam-hybrid:#d0a45c;
+  --ent-netlist:#93a9d6; --ent-cell:#d9ab92; --ent-power:#93d4ba;
+  --ent-timing:#c4a1dc; --ent-net:#87c4c4; --ent-clock:#d1b57e;
+  --ent-routing:#c295a8;
+}
+
+/* ==========================================================================
+   EDA-Schema Leaderboard — Drexel ICE Lab theme
+   Mirrors drexel-ice.github.io (al-folio Jekyll theme) so the leaderboard
+   reads as part of the lab site rather than a bolt-on.
+
+   Token names follow al-folio's --global-* convention exactly, so this file
+   can be swapped for the lab's own _themes.scss output without renaming.
+   Drop into static/css/ and link before the component styles.
+   ========================================================================== */
+
+/* --- Typography -----------------------------------------------------------
+   al-folio loads Roboto + Roboto Slab from Google Fonts. Add this to <head>:
+
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+   (this is the exact font URL from the lab's _config.yml)
+
+   The stacks below degrade cleanly if the fonts fail to load.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --global-font-sans:  "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                       Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  --global-font-slab:  "Roboto Slab", Georgia, "Times New Roman", serif;
+  --global-font-mono:  ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Drexel brand ---------------------------------------------------- */
+  --global-theme-color:   #07294D;   /* Drexel navy  — links, nav, headers   */
+  --global-accent-color:  #FFC600;   /* Drexel gold  — chrome accents ONLY,
+                                        never data: 1.4:1 on white          */
+  --global-hover-color:   #0E4276;   /* navy lightened for hover            */
+  --global-hover-text-color: #ffffff;
+
+  /* --- Surfaces and text ------------------------------------------------ */
+  --global-bg-color:          #ffffff;
+  --global-card-bg-color:     #fafafa;
+  --global-code-bg-color:     #f5f5f5;
+  --global-text-color:        #212529;
+  --global-text-color-light:  #6c757d;
+  --global-divider-color:     #e6e6e6;
+  --global-divider-strong:    #cfcfcf;
+  --global-highlight-color:   #FFC600;
+
+  --global-footer-bg-color:   #07294D;
+  --global-footer-text-color: #ffffff;
+  --global-footer-link-color: #FFC600;
+
+  /* --- Leaderboard data palette ----------------------------------------
+     Deliberately NOT brand colors. Navy on navy kills a heatmap and gold on
+     white fails contrast. Every pair below clears 4.5:1 on its own ground.  */
+  --lb-win-bg:    #dcecd4;  --lb-win-fg:    #24632e;  --lb-win-solid:  #3f8a45;
+  --lb-lose-bg:   #f8ded9;  --lb-lose-fg:   #9d2f26;  --lb-lose-solid: #b8453a;
+  --lb-none-bg:   transparent; --lb-none-fg: #9a9a9a;
+  --lb-sat-bg:    #e9e8f0;  --lb-sat-fg:    #4f4e5e;
+  --lb-undef-bg:  #f2f0ec;  --lb-undef-fg:  #6b6558;  /* "no ± error" state */
+  --lb-warn:      #a8701f;
+
+  /* Architecture-diagram blocks */
+  --lb-layer-in-bg:   #edebe6;  --lb-layer-in-br:   #cfcbc2;
+  --lb-layer-op-bg:   #e4e2f7;  --lb-layer-op-br:   #b0a9e6;
+  --lb-layer-pool-bg: #d8eae1;  --lb-layer-pool-br: #85c3a7;
+  --lb-layer-out-bg:  #fadfd8;  --lb-layer-out-br:  #e09b8c;
+
+  --global-radius: 6px;
+  --global-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+/* --- Dark mode -------------------------------------------------------------
+   al-folio ships a theme toggle writing [data-theme="dark"] on <html>.
+   Matching it means the leaderboard follows the lab site's switch for free.  */
+html[data-theme="dark"] {
+  --global-bg-color:          #1c1c1d;
+  --global-card-bg-color:     #212122;
+  --global-code-bg-color:     #212122;
+  --global-text-color:        #e8e8e8;
+  --global-text-color-light:  #a0a0a0;
+  --global-divider-color:     #3a3a3c;
+  --global-divider-strong:    #4a4a4c;
+  --global-theme-color:       #4d8fd1;   /* navy is unreadable on dark      */
+  --global-hover-color:       #6ba6e0;
+
+  /* Architecture blocks must darken too, or the label text is invisible */
+  --lb-layer-in-bg:   #33333a;  --lb-layer-in-br:   #55555f;
+  --lb-layer-op-bg:   #2f2b4d;  --lb-layer-op-br:   #5b52a0;
+  --lb-layer-pool-bg: #1f3a30;  --lb-layer-pool-br: #3f7a62;
+  --lb-layer-out-bg:  #402420;  --lb-layer-out-br:  #8a4c3f;
+
+  --lb-win-bg:   #1f3a24;  --lb-win-fg:   #8ed69a;
+  --lb-lose-bg:  #3d211e;  --lb-lose-fg:  #e8938a;
+  --lb-sat-bg:   #2a2a33;  --lb-sat-fg:   #a8a6b8;
+  --lb-undef-bg: #2e2c28;  --lb-undef-fg: #b0a894;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+
+body {
+  margin: 0;
+  background: var(--global-bg-color);
+  color: var(--global-text-color);
+  font-family: var(--global-font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* al-folio sets headings in the slab face — this is the single strongest
+   visual cue that a page belongs to the lab site. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--global-font-slab);
+  font-weight: 400;
+  color: var(--global-text-color);
+  letter-spacing: -.005em;
+  margin: 0 0 .5rem;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+
+/* al-folio lowercases page titles and nav labels. Keep it — it is a
+   recognizable signature of the lab site. */
+.page-title, .nav-link { text-transform: lowercase; }
+
+a {
+  color: var(--global-theme-color);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { color: var(--global-hover-color); text-decoration: underline; }
+
+code, pre, .mono { font-family: var(--global-font-mono); font-size: .9em; }
+code  { background: var(--global-code-bg-color); padding: .12em .4em;
+        border-radius:var(--r-xs); }
+pre   { background: var(--global-code-bg-color); padding: 1rem;
+        border-radius: var(--global-radius); overflow-x: auto; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* --- Navbar ---------------------------------------------------------------
+   al-folio: white ground, logo left, lowercase links right, thin bottom rule.
+   The leaderboard keeps that rather than a navy bar, so the two sites feel
+   continuous. Navy is reserved for links, active state, and the footer.      */
+
+.navbar {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .9rem 1.5rem;
+  background: var(--global-bg-color);
+  border-bottom: 1px solid var(--global-divider-color);
+  position: sticky; top: 0; z-index: 100;
+}
+.navbar .brand { display: flex; align-items: center; gap: .7rem; }
+.navbar .brand img { height: 34px; width: auto; }
+.navbar .brand .title {
+  font-family: var(--global-font-slab);
+  font-size: 1.05rem; color: var(--global-theme-color);
+}
+.navbar nav { margin-left: auto; display: flex; gap: 1.4rem; }
+.navbar nav a {
+  font-size: .95rem; color: var(--global-text-color);
+  text-transform: lowercase; padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+.navbar nav a:hover { color: var(--global-theme-color); text-decoration: none; }
+.navbar nav a[aria-current="page"] {
+  color: var(--global-theme-color);
+  border-bottom-color: var(--global-accent-color);  /* gold underline */
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+/* al-folio sets max_width: 930px in _config.yml. Prose keeps that; the data grid
+   needs more room, so .container--wide is the one documented deviation. */
+.container { max-width: 930px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.container--wide { max-width: 1440px; }
+
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { margin-bottom: .25rem; }
+.page-header .lead {
+  font-size: 1.05rem; color: var(--global-text-color-light); margin: 0;
+}
+
+/* --- Tables ---------------------------------------------------------------
+   al-folio uses Bootstrap-ish tables: light header rule, row dividers,
+   no vertical borders, subtle row hover.                                     */
+
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  font-family: var(--global-font-sans);
+  font-size: .9rem; font-weight: 500;
+  color: var(--global-text-color-light);
+  text-align: left; padding: .6rem .7rem;
+  border-bottom: 2px solid var(--global-divider-strong);
+}
+.table td {
+  padding: .7rem; border-bottom: 1px solid var(--global-divider-color);
+}
+.table tbody tr:hover td { background: var(--global-card-bg-color); }
+.table .r { text-align: right; }
+.table .c { text-align: center; }
+
+/* --- Cards and pills ----------------------------------------------------- */
+
+.card {
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  border-radius: var(--global-radius);
+  padding: 1rem 1.2rem;
+}
+
+.pill {
+  font: inherit; font-size: .92rem;
+  padding: .4rem .9rem;
+  border: 1px solid transparent; border-radius:var(--r-pill);
+  background: none; color: var(--global-text-color);
+  cursor: pointer; transition: background .15s ease;
+}
+.pill:hover { background: var(--global-card-bg-color); }
+.pill[aria-pressed="true"] {
+  background: var(--global-theme-color);
+  color: #fff; border-color: var(--global-theme-color);
+}
+
+.badge {
+  font-size: .78rem; padding: .15rem .6rem; border-radius:var(--r-pill);
+  background: var(--global-card-bg-color);
+  border: 1px solid var(--global-divider-color);
+  color: var(--global-text-color-light);
+}
+.badge--verified { background: var(--lb-win-bg); color: var(--lb-win-fg);
+                   border-color: transparent; }
+.badge--flagged  { color: var(--lb-warn); border-color: var(--lb-warn); }
+
+/* --- Leaderboard cells --------------------------------------------------- */
+
+.cell {
+  border-radius: var(--global-radius);
+  padding: .6rem .5rem; margin: .25rem;
+  text-align: center; cursor: pointer;
+  border: 1px solid transparent;
+  transition: box-shadow .12s ease;
+}
+.cell:hover { box-shadow: 0 0 0 2px rgba(7, 41, 77, .28); }
+.cell .who { font-size: .85rem; line-height: 1.3; }
+.cell .val { font-size: 1rem; font-weight: 500; margin-top: 1px; }
+
+.cell--win   { background: var(--lb-win-bg);   color: var(--lb-win-fg); }
+.cell--lose  { background: var(--lb-lose-bg);  color: var(--lb-lose-fg); }
+.cell--sat   { background: var(--lb-sat-bg);   color: var(--lb-sat-fg); }
+.cell--undef { background: var(--lb-undef-bg); color: var(--lb-undef-fg); }
+.cell--none  { background: var(--lb-none-bg);  color: var(--lb-none-fg);
+               cursor: default; }
+.cell--none:hover { box-shadow: none; }
+
+.row--void {
+  background: var(--global-card-bg-color);
+  color: var(--global-text-color-light);
+  text-align: center; font-size: .9rem; padding: .9rem;
+}
+
+/* --- Focus and motion ---------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--global-accent-color);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* --- Footer ---------------------------------------------------------------
+   al-folio's footer is a full-width bar with centered muted text. Ours is
+   navy with gold links, which is where the brand pair actually works.        */
+
+.footer {
+  background: var(--global-footer-bg-color);
+  color: var(--global-footer-text-color);
+  text-align: center; padding: 1.5rem; font-size: .85rem;
+}
+.footer a { color: var(--global-footer-link-color); }
+
+/* --- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .matrix-scroll .table th:first-child,
+  .matrix-scroll .table td:first-child {
+    position: sticky; left: 0; background: var(--global-bg-color);
+    z-index: 2;
+  }
+  .navbar nav { gap: .9rem; font-size: .9rem; }
+}
+
+/* ===== mockup banner ===== */
+.mockbar{background:#FFF4CC;border-bottom:1px solid #E8CE72;color:#5c4708;padding:.55rem 1.5rem;
+  font-size:.85rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.mockbar b{font-weight:600}
+.mockbar button{margin-left:auto;font:inherit;font-size:.8rem;background:none;border:1px solid #C9A93C;
+  color:#5c4708;border-radius:var(--r-pill);padding:.12rem .7rem;cursor:pointer}
+html[data-theme="dark"] .mockbar{background:#3a2f0d;border-bottom-color:#6b5a1e;color:#e8d79a}
+
+/* ===== controls ===== */
+.ctrls{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.9rem}
+.ctrlrow .mini{font:inherit;font-size:.78rem;padding:.22rem .6rem;border:none;background:none;
+  color:var(--global-theme-color);cursor:pointer;text-decoration:underline;opacity:.75}
+.ctrlrow .mini:hover{opacity:1}
+.ctrlrow .sep{width:1px;height:18px;background:var(--global-divider-color);margin:0 .3rem}
+.ctrlrow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.ctrlrow .lbl{font-size:.82rem;color:var(--global-text-color-light);min-width:60px;
+  font-weight:500}
+.chk.sm{font-size:.8rem;padding:.24rem .65rem}
+.chk{font:inherit;font-size:.86rem;padding:.3rem .8rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--r-pill);background:var(--global-bg-color);color:var(--global-text-color);cursor:pointer;
+  display:inline-flex;align-items:center;gap:.35rem;transition:background .15s,border-color .15s,color .15s}
+.chk:hover{border-color:var(--global-theme-color)}
+.chk[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;border-color:var(--global-theme-color)}
+.chk .tick{opacity:0;transition:opacity .15s}
+.chk[aria-pressed="true"] .tick{opacity:1}
+.meta{font-size:.85rem;color:var(--global-text-color-light);margin:0 0 1rem}
+
+/* ===== matrix ===== */
+.mwrap{overflow-x:auto;overflow-y:visible;border:1px solid var(--global-divider-color);
+  border-radius:var(--global-radius);background:var(--global-bg-color)}
+table.mx{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+table.mx th,table.mx td{padding:0;margin:0}
+table.mx thead th{background:var(--global-bg-color);
+  font-family:var(--global-font-sans);font-weight:500;font-size:.82rem;
+  color:var(--global-text-color-light);padding:.45rem .5rem;text-align:center;white-space:nowrap;
+  border-bottom:1px solid var(--global-divider-color)}
+table.mx thead tr.g1 th{font-size:.9rem;color:var(--global-text-color);
+  border-bottom:1px solid var(--global-divider-color)}
+table.mx thead tr.g2 th{border-bottom:2px solid var(--global-divider-strong);font-size:.76rem}
+th.stg{border-left:2px solid var(--global-divider-color)}
+td.stg{border-left:2px solid var(--global-divider-color)}
+th.sk1,td.sk1{position:sticky;left:0;z-index:6;background:var(--global-bg-color);
+  min-width:148px;max-width:148px;text-align:left;padding-left:.7rem}
+th.sk2,td.sk2{position:sticky;left:148px;z-index:6;background:var(--global-bg-color);
+  min-width:104px;max-width:104px;text-align:left;padding-left:.5rem;
+  box-shadow:2px 0 0 var(--global-divider-color)}
+table.mx thead th.sk1,table.mx thead th.sk2{z-index:8}
+table.mx tbody td{border-bottom:1px solid var(--global-divider-color);vertical-align:middle;height:46px}
+td.sk1{font-size:.88rem;font-family:var(--global-font-slab)}
+td.sk2{font-size:.8rem;color:var(--global-text-color-light);font-variant-numeric:tabular-nums}
+tr.grpstart td{border-top:2px solid var(--global-divider-strong)}
+tr.hl td.sk1,tr.hl td.sk2{background:var(--global-card-bg-color)}
+td.colhl{background:rgba(7,41,77,.045)}
+html[data-theme="dark"] td.colhl{background:rgba(255,255,255,.05)}
+
+.c{margin:3px;border-radius:var(--r-sm);padding:.3rem .3rem;text-align:center;cursor:pointer;
+  min-width:88px;border:1px solid transparent;transition:box-shadow .12s,transform .12s;
+  opacity:0;transform:translateY(4px);animation:cin .32s ease forwards}
+@keyframes cin{to{opacity:1;transform:none}}
+.c:hover{box-shadow:0 0 0 2px rgba(7,41,77,.3);transform:translateY(-1px)}
+.c .w{font-size:.72rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c .v{font-size:.86rem;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.3}
+.c-win{background:var(--lb-win-bg);color:var(--lb-win-fg)}
+.c-lose{background:var(--lb-lose-bg);color:var(--lb-lose-fg)}
+.c-sat{background:var(--lb-sat-bg);color:var(--lb-sat-fg)}
+.c-undef{background:var(--lb-undef-bg);color:var(--lb-undef-fg)}
+.c-none{color:var(--lb-none-fg);cursor:default}
+.c-none:hover{box-shadow:none;transform:none}
+.c-void{color:var(--lb-none-fg);cursor:default;opacity:.55}
+.c-void:hover{box-shadow:none;transform:none}
+.legend{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.8rem;
+  color:var(--global-text-color-light);align-items:center;padding:.6rem .85rem;
+  background:var(--global-card-bg-color);border:1px solid var(--global-divider-color);
+  border-radius:var(--global-radius);margin:0 0 1rem}
+.legend span{display:flex;align-items:center;gap:.35rem}
+.sq{width:10px;height:10px;border-radius:var(--r-xs);display:inline-block}
+
+/* tooltip */
+#tip{position:fixed;z-index:200;pointer-events:none;background:var(--global-text-color);
+  color:var(--global-bg-color);font-size:.76rem;line-height:1.5;padding:.45rem .65rem;
+  border-radius:var(--r-sm);opacity:0;transition:opacity .12s;max-width:260px;box-shadow:0 3px 12px rgba(0,0,0,.2)}
+#tip.on{opacity:1}
+#tip b{font-weight:600}
+
+/* ===== ranking grid (div-based so FLIP transforms are reliable) ===== */
+.rk{border:1px solid var(--global-divider-color);border-radius:var(--global-radius);overflow-x:auto}
+.rkin{min-width:max-content}
+.rkhead,.rkrow{display:grid;align-items:center}
+.rkhead{position:sticky;top:0;z-index:3;background:var(--global-bg-color);
+  border-bottom:2px solid var(--global-divider-strong)}
+.rkhead>div{padding:.5rem .55rem;font-size:.8rem;font-weight:500;color:var(--global-text-color-light);
+  white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+.rkhead>div:hover{color:var(--global-theme-color)}
+.rkhead>div.act{color:var(--global-theme-color);font-weight:600}
+.rkhead>div.act::after{content:"\25be";margin-left:.25rem;font-size:.7rem;display:inline-block}
+.rkhead>div.act.up::after{transform:rotate(180deg)}
+.rkrow{border-bottom:1px solid var(--global-divider-color);will-change:transform}
+.rkrow>div{padding:.55rem;font-size:.86rem;white-space:nowrap}
+.rkrow:hover{background:var(--global-card-bg-color)}
+.rkrow.base{background:var(--global-card-bg-color);border-bottom:2px solid var(--global-theme-color);
+  font-weight:500}
+.rkrow.lead{background:var(--lb-win-bg)}
+.rkrow.lead:hover{background:#d2e5c8}
+html[data-theme="dark"] .rkrow.lead:hover{background:#254529}
+.mcell{display:flex;align-items:baseline;justify-content:flex-end;gap:.3rem;
+  font-variant-numeric:tabular-nums}
+.mcell .rkb{font-size:.68rem;padding:0 .28rem;border-radius:var(--r-xs);background:var(--global-divider-color);
+  color:var(--global-text-color-light);min-width:17px;text-align:center}
+.mcell.r1 .rkb{background:var(--lb-win-fg);color:#fff}
+.mcell.colact{background:rgba(7,41,77,.055);border-radius:var(--r-sm)}
+html[data-theme="dark"] .mcell.colact{background:rgba(255,255,255,.06)}
+.mono{font-variant-numeric:tabular-nums}
+.fam{color:var(--global-text-color-light);font-size:.8rem}
+/* marks the one row that is a measured run rather than placeholder data */
+.realtag{display:inline-block;margin-left:.45rem;padding:0 .34rem;border-radius:3px;
+  font-size:.62rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--lb-win-bg);color:var(--lb-win-fg);border:1px solid var(--lb-win-solid);
+  vertical-align:1px}
+.rkrow.isreal{background:color-mix(in srgb,var(--lb-win-bg) 45%,transparent)}
+
+/* ===== charts ===== */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1.6rem;margin-top:1.6rem}
+.chart{border:1px solid var(--global-divider-color);border-radius:var(--global-radius);padding:1rem 1.1rem}
+.chart h3{font-size:.98rem;margin:0 0 .15rem}
+.chart p{font-size:.78rem;color:var(--global-text-color-light);margin:0 0 .7rem}
+.clg{display:flex;gap:1rem;font-size:.76rem;color:var(--global-text-color-light);margin-top:.5rem}
+.dot{width:9px;height:9px;border-radius:var(--r-pill);display:inline-block;margin-right:.3rem}
+.pt{opacity:0}
+.anim .pt{animation:ptin .4s ease forwards}
+@keyframes ptin{from{opacity:0;transform:scale(.3)}to{opacity:.62;transform:scale(1)}}
+.br{transform:scaleY(0);transform-origin:bottom}
+.anim .br{animation:brin .55s cubic-bezier(.22,.61,.36,1) forwards}
+@keyframes brin{to{transform:scaleY(1)}}
+.ln{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+.anim .ln{animation:draw 1.1s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.gl{opacity:0}
+.anim .gl{animation:glin .5s ease .35s forwards}
+@keyframes glin{to{opacity:1}}
+.bar-hit{cursor:pointer}
+
+/* ===== misc ===== */
+.crumb{font-size:.85rem;color:var(--global-text-color-light);margin-bottom:.9rem}
+.crumb a{cursor:pointer}
+.baserow{display:flex;justify-content:space-between;align-items:center;gap:1.2rem;padding:.85rem 1.1rem;
+  background:var(--global-card-bg-color);border-left:3px solid var(--global-theme-color);
+  border-radius:var(--global-radius);margin-bottom:1rem}
+.baserow .bv{font-size:1.5rem;font-family:var(--global-font-slab);font-variant-numeric:tabular-nums}
+.tog{display:inline-flex;border:1px solid var(--global-divider-strong);border-radius:var(--r-pill);overflow:hidden}
+.tog button{font:inherit;font-size:.8rem;padding:.28rem .8rem;background:none;border:none;cursor:pointer;
+  color:var(--global-text-color);transition:background .15s}
+.tog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1.3rem;margin:1.4rem 0}
+.kpi .k{font-size:.8rem;color:var(--global-text-color-light)}
+.kpi .v{font-size:1.3rem;font-family:var(--global-font-slab);font-variant-numeric:tabular-nums}
+.sec{border-top:1px solid var(--global-divider-color);padding-top:1.1rem;margin-top:1.5rem}
+.feats{display:flex;gap:.9rem;flex-wrap:wrap;font-family:var(--global-font-mono);font-size:.8rem}
+.btns{display:flex;gap:.5rem;flex-wrap:wrap}
+.btn{font:inherit;font-size:.88rem;padding:.4rem .85rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--global-radius);background:var(--global-bg-color);cursor:pointer;
+  color:var(--global-text-color);transition:border-color .15s,color .15s}
+.btn:hover{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+.hidden{display:none}
+.themebtn{font:inherit;font-size:.82rem;padding:.2rem .65rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--r-pill);background:none;cursor:pointer;color:var(--global-text-color)}
+@media (prefers-reduced-motion:reduce){
+  .c,.pt,.br,.ln,.gl{animation:none!important;opacity:1!important;transform:none!important;
+    stroke-dashoffset:0!important}
+  .rkrow{transition:none!important}
+}
+
+/* al-folio: enable_progressbar + back_to_top, both true in _config.yml */
+#prog{position:fixed;top:0;left:0;height:2px;background:var(--global-theme-color);
+  z-index:300;width:0;transition:width .08s linear}
+#top{position:fixed;right:1.2rem;bottom:1.2rem;z-index:120;width:38px;height:38px;
+  border-radius:50%;border:none;cursor:pointer;background:rgba(0,0,0,.4);color:#fff;
+  font-size:1rem;opacity:0;pointer-events:none;transition:opacity .2s}
+#top.on{opacity:1;pointer-events:auto}
+html[data-theme="dark"] #top{background:rgba(255,255,255,.25)}
+.navbar{position:sticky;top:0}
+
+/* ==================== HF-style leaderboard controls ==================== */
+.tabs{display:flex;gap:.15rem;border-bottom:1px solid var(--global-divider-color);margin-bottom:1.2rem}
+.tab{font:inherit;font-size:.92rem;padding:.55rem 1rem;background:none;border:none;cursor:pointer;
+  color:var(--global-text-color-light);border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s;display:flex;align-items:center;gap:.4rem}
+.tab:hover{color:var(--global-text-color)}
+.tab[aria-selected="true"]{color:var(--global-theme-color);border-bottom-color:var(--global-theme-color);
+  font-weight:500}
+
+.toolbar{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1rem}
+.srchwrap{position:relative;flex:1;min-width:220px}
+.srch{width:100%;font:inherit;font-size:.9rem;padding:.5rem .8rem .5rem 2rem;
+  border:1px solid var(--global-divider-strong);border-radius:var(--global-radius);
+  background:var(--global-bg-color);color:var(--global-text-color)}
+.srch:focus{outline:none;border-color:var(--global-theme-color)}
+.srchico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);
+  color:var(--global-text-color-light);font-size:.85rem;pointer-events:none}
+.srchhint{font-size:.72rem;color:var(--global-text-color-light);margin-top:.25rem}
+
+.qfrow{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.qf{font:inherit;font-size:.8rem;padding:.3rem .7rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--r-pill);background:var(--global-bg-color);color:var(--global-text-color-light);
+  cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;transition:.15s}
+.qf:hover{border-color:var(--global-theme-color);color:var(--global-text-color)}
+.qf[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;
+  border-color:var(--global-theme-color)}
+.qf .ct{font-size:.7rem;opacity:.75}
+
+.tbrow{display:flex;gap:.6rem;align-items:flex-start;flex-wrap:wrap}
+.drop{position:relative}
+.dropbtn{font:inherit;font-size:.82rem;padding:.45rem .8rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--global-radius);background:var(--global-bg-color);color:var(--global-text-color);
+  cursor:pointer;display:flex;align-items:center;gap:.4rem;white-space:nowrap}
+.dropbtn:hover{border-color:var(--global-theme-color)}
+.dropbtn .badge2{background:var(--global-theme-color);color:#fff;border-radius:var(--r-pill);
+  font-size:.68rem;padding:0 .35rem;min-width:16px;text-align:center}
+.dropmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:60;min-width:240px;max-height:340px;
+  overflow-y:auto;background:var(--global-bg-color);border:1px solid var(--global-divider-strong);
+  border-radius:var(--global-radius);box-shadow:0 6px 20px rgba(0,0,0,.13);padding:.5rem;display:none}
+.dropmenu.on{display:block}
+.dropmenu h4{font-family:var(--global-font-sans);font-size:.72rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--global-text-color-light);
+  margin:.5rem .4rem .3rem}
+.dropmenu h4:first-child{margin-top:.1rem}
+.opt{display:flex;align-items:center;gap:.5rem;padding:.32rem .4rem;border-radius:var(--r-sm);
+  font-size:.84rem;cursor:pointer}
+.opt:hover{background:var(--global-card-bg-color)}
+.opt input{cursor:pointer;accent-color:var(--global-theme-color)}
+.opt .cnt{margin-left:auto;font-size:.72rem;color:var(--global-text-color-light)}
+.rangewrap{padding:.4rem}
+.rangewrap input[type=range]{width:100%;accent-color:var(--global-theme-color)}
+.rangelbl{display:flex;justify-content:space-between;font-size:.75rem;
+  color:var(--global-text-color-light);margin-bottom:.2rem}
+
+.results{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;font-size:.82rem;
+  color:var(--global-text-color-light);margin-bottom:.6rem}
+.results .clr{font:inherit;font-size:.8rem;background:none;border:none;cursor:pointer;
+  color:var(--global-theme-color);text-decoration:underline;padding:0}
+
+/* score bars behind values */
+.mcell{position:relative;overflow:hidden}
+.sbar{position:absolute;left:0;top:50%;transform:translateY(-50%) scaleX(0);transform-origin:left;
+  height:60%;border-radius:var(--r-xs);background:var(--lb-win-solid);opacity:.16;
+  animation:sbin .5s cubic-bezier(.22,.61,.36,1) forwards;z-index:0}
+@keyframes sbin{to{transform:translateY(-50%) scaleX(1)}}
+.mcell>span{position:relative;z-index:1}
+.mcell.below .sbar{background:var(--lb-lose-solid)}
+
+/* pinning + expansion */
+.pinbtn{font:inherit;background:none;border:none;cursor:pointer;color:var(--global-text-color-light);
+  padding:0 .2rem;font-size:.85rem;opacity:.35;transition:opacity .15s,color .15s}
+.rkrow:hover .pinbtn{opacity:.8}
+.pinbtn.on{opacity:1;color:var(--global-theme-color)}
+.rkrow.pinned{background:rgba(7,41,77,.045);box-shadow:inset 3px 0 0 var(--global-theme-color)}
+html[data-theme="dark"] .rkrow.pinned{background:rgba(255,255,255,.05)}
+.expbtn{font:inherit;background:none;border:none;cursor:pointer;
+  color:var(--global-text-color-light);font-size:.7rem;padding:0 .3rem}
+.detail{grid-column:1/-1;padding:.9rem 1.1rem;background:var(--global-card-bg-color);
+  border-top:1px solid var(--global-divider-color);font-size:.84rem;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.9rem}
+.detail .dl{font-size:.72rem;color:var(--global-text-color-light);text-transform:uppercase;
+  letter-spacing:.03em}
+.detail .dv{font-size:.9rem}
+.medal{font-size:.9rem}
+
+.pager{display:flex;align-items:center;gap:.5rem;justify-content:center;margin-top:1rem;
+  font-size:.85rem;color:var(--global-text-color-light)}
+.pager button{font:inherit;font-size:.85rem;padding:.3rem .7rem;border:1px solid var(--global-divider-strong);
+  border-radius:var(--global-radius);background:var(--global-bg-color);cursor:pointer;
+  color:var(--global-text-color)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager select{font:inherit;font-size:.82rem;padding:.25rem .4rem;border-radius:var(--r-sm);
+  border:1px solid var(--global-divider-strong);background:var(--global-bg-color);
+  color:var(--global-text-color)}
+
+/* about page */
+.about{max-width:760px}
+.about h2{font-size:1.35rem;margin:2rem 0 .6rem}
+.about h2:first-child{margin-top:0}
+.about h3{font-size:1.05rem;margin:1.4rem 0 .4rem}
+.about p{margin:0 0 .9rem;line-height:1.7}
+.about ul{margin:0 0 .9rem;padding-left:1.2rem;line-height:1.7}
+.about li{margin-bottom:.3rem}
+.about table{width:100%;border-collapse:collapse;margin:0 0 1.2rem;font-size:.9rem}
+.about th{text-align:left;font-weight:500;font-size:.82rem;color:var(--global-text-color-light);
+  border-bottom:2px solid var(--global-divider-strong);padding:.45rem .6rem}
+.about td{padding:.5rem .6rem;border-bottom:1px solid var(--global-divider-color);vertical-align:top}
+.about code{font-size:.86em}
+.callout{border-left:3px solid var(--global-theme-color);background:var(--global-card-bg-color);
+  padding:.8rem 1rem;border-radius:0 var(--global-radius) var(--global-radius) 0;margin:0 0 1.2rem}
+.callout p:last-child{margin:0}
+.toc{background:var(--global-card-bg-color);border:1px solid var(--global-divider-color);
+  border-radius:var(--global-radius);padding:.9rem 1.1rem;margin-bottom:1.6rem}
+.toc a{display:block;padding:.15rem 0;font-size:.88rem}
+
+/* ===== contextual About page ===== */
+.ab{max-width:920px}
+.abkick{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--global-theme-color);font-weight:600;margin-bottom:.3rem}
+.abtitle{font-family:var(--global-font-slab);font-weight:400;font-size:1.75rem;
+  margin:0 0 .4rem;line-height:1.25}
+.ablead{font-size:1.02rem;color:var(--global-text-color-light);margin:0 0 1.5rem;max-width:70ch}
+.abgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--global-divider-color);border:1px solid var(--global-divider-color);
+  border-radius:var(--r-lg);overflow:hidden;margin-bottom:2rem}
+.abstat{background:var(--global-bg-color);padding:.8rem .9rem}
+.abstat .t{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--global-text-color-light)}
+.abstat .v{font-family:var(--global-font-slab);font-size:1.25rem;margin:.1rem 0}
+.abstat .s{font-size:.75rem;color:var(--global-text-color-light)}
+.ab h2{font-family:var(--global-font-slab);font-weight:400;font-size:1.28rem;
+  margin:2rem 0 .5rem;padding-bottom:.3rem;border-bottom:1px solid var(--global-divider-color)}
+.ab p{margin:0 0 .85rem;line-height:1.7;max-width:72ch}
+.abcall{border-left:3px solid var(--global-theme-color);background:var(--global-card-bg-color);
+  padding:.8rem 1rem;border-radius:0 6px 6px 0;margin:.2rem 0 1.2rem}
+.abcall.warn{border-left-color:var(--lb-warn)}
+.abcall p{margin:0}
+.abfigs{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem;margin:1rem 0 .5rem}
+@media(max-width:800px){.abfigs{grid-template-columns:1fr}}
+.abfigs figure{margin:0}
+.abfigs canvas{width:100%;height:auto;border:1px solid var(--global-divider-color);
+  border-radius:var(--r-md);display:block}
+.abfigs figcaption{font-size:.78rem;color:var(--global-text-color-light);
+  margin-top:.45rem;line-height:1.5}
+.abnote{font-size:.76rem!important;color:var(--global-text-color-light);font-style:italic}
+.abtab{width:100%;border-collapse:collapse;margin:.4rem 0 1.3rem;font-size:.92rem}
+.abtab th{text-align:left;font-weight:500;color:var(--global-text-color-light);
+  padding:.55rem .7rem .55rem 0;vertical-align:top;
+  border-bottom:1px solid var(--global-divider-color)}
+.abtab td{padding:.55rem 0;border-bottom:1px solid var(--global-divider-color);line-height:1.6}
+.abdir{display:inline-block;font-size:.72rem;padding:.05rem .5rem;border-radius:var(--r-pill);
+  background:var(--global-card-bg-color);color:var(--global-text-color-light);margin-left:.4rem}
+.abcta{display:flex;align-items:center;justify-content:space-between;gap:1.2rem;flex-wrap:wrap;
+  border:1px solid var(--global-theme-color);border-radius:var(--r-lg);padding:1.1rem 1.3rem;
+  margin:2rem 0 1rem;background:var(--global-card-bg-color)}
+.abctat{font-family:var(--global-font-slab);font-size:1.1rem}
+.abctas{font-size:.88rem;color:var(--global-text-color-light);margin-top:.2rem}
+.btn.primary{background:var(--global-theme-color);color:#fff;border:1px solid var(--global-theme-color);
+  padding:.55rem 1.1rem;border-radius:var(--r-md);text-decoration:none;font-size:.92rem;white-space:nowrap}
+.btn.primary:hover{opacity:.9;text-decoration:none;color:#fff}
+
+/* beat-openroad strip on the ranking pane */
+.beatstrip{display:flex;align-items:center;gap:.8rem;justify-content:space-between;
+  border:1px dashed var(--global-theme-color);border-radius:var(--r-lg);padding:.7rem 1rem;
+  margin:1.2rem 0 0;flex-wrap:wrap}
+.beatstrip .bt{font-size:.92rem}
+.beatstrip .bs{font-size:.8rem;color:var(--global-text-color-light)}
+
+
+/* ===== rank matrix, Arena-style ===== */
+.mxhead{display:flex;align-items:flex-start;justify-content:space-between;gap:1.2rem;
+  flex-wrap:wrap;margin-bottom:.9rem}
+.mxtitle{font-family:var(--global-font-slab);font-size:1.12rem;margin-bottom:.15rem}
+.mxsub{font-size:.82rem;color:var(--global-text-color-light);max-width:62ch;line-height:1.5}
+.mxctl{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.mxcount{font-family:var(--global-font-mono);font-size:.74rem;
+  color:var(--global-text-color-light)}
+.cbx2{font-size:.78rem;display:inline-flex;align-items:center;gap:.3rem;
+  color:var(--global-text-color-light)}
+.cbx2 input{accent-color:var(--global-theme-color)}
+.mxwrap{overflow-x:auto;border:1px solid var(--global-divider-color);border-radius:var(--r-md)}
+table.mx{border-collapse:separate;border-spacing:0;width:100%;font-size:.86rem}
+table.mx th{position:sticky;top:0;background:var(--global-bg-color);z-index:2;
+  font-weight:500;font-size:.76rem;color:var(--global-text-color-light);
+  padding:.5rem .55rem;text-align:center;white-space:nowrap;
+  border-bottom:2px solid var(--global-divider-strong)}
+table.mx th.mxc{cursor:pointer;transition:color .12s}
+table.mx th.mxc:hover{color:var(--global-theme-color)}
+table.mx th.mxc.act{color:var(--global-theme-color);font-weight:600}
+.mxdir{display:block;font-size:.6rem;opacity:.7;font-weight:400;text-transform:none}
+table.mx th.mxm,table.mx td.mxm{text-align:left;min-width:230px;padding-left:.7rem;
+  position:sticky;left:0;background:var(--global-bg-color);z-index:1;
+  box-shadow:1px 0 0 var(--global-divider-color)}
+table.mx th.mxm{z-index:3}
+.mxrk{display:inline-block;min-width:20px;color:var(--global-text-color-light);
+  font-size:.76rem;text-align:right;margin-right:.5rem}
+.mxnm{font-weight:500}
+.mxfam{color:var(--global-text-color-light);font-size:.74rem;margin-left:.45rem}
+table.mx th.mxa,table.mx td.mxa{width:78px;text-align:center;
+  color:var(--global-text-color-light);border-left:1px solid var(--global-divider-color)}
+table.mx td{padding:.42rem .5rem;border-bottom:1px solid var(--global-divider-color)}
+table.mx.compact td{padding:.2rem .4rem;font-size:.8rem}
+table.mx tbody tr:hover td{background:var(--global-card-bg-color)}
+table.mx tbody tr:hover td.mxm{background:var(--global-card-bg-color)}
+.mxrow[data-n]{cursor:pointer}
+td.mxv{text-align:center;padding:.28rem .3rem}
+.mxin{display:flex;align-items:center;justify-content:center;gap:.22rem;
+  border-radius:var(--r-sm);padding:.2rem .3rem;font-variant-numeric:tabular-nums}
+td.mxv.win .mxin{background:var(--lb-win-bg);color:var(--lb-win-fg)}
+td.mxv.lose .mxin{background:var(--lb-lose-bg);color:var(--lb-lose-fg)}
+td.mxv.act .mxin{outline:1.5px solid var(--global-theme-color);outline-offset:-1.5px}
+.mdl{font-size:.82rem;line-height:1}
+.ci{font-size:.66rem;opacity:.62;font-family:var(--global-font-mono)}
+.mxbase td{background:var(--global-card-bg-color);font-weight:500;
+  border-top:2px solid var(--global-theme-color)}
+.mxbase td.mxm{background:var(--global-card-bg-color)}
+.mxbase .mxin{background:none!important;color:var(--global-text-color)!important}
+.mxlegend{display:flex;gap:1.3rem;flex-wrap:wrap;align-items:center;margin-top:.8rem;
+  font-size:.78rem;color:var(--global-text-color-light)}
+.mxlegend span{display:inline-flex;align-items:center;gap:.3rem}
+.mxlegend .sw{width:12px;height:12px;border-radius:var(--r-xs);display:inline-block}
+.mxlegend .sw.win{background:var(--lb-win-bg);border:1px solid var(--lb-win-fg)}
+.mxlegend .sw.lose{background:var(--lb-lose-bg);border:1px solid var(--lb-lose-fg)}
+
+
+/* input representation */
+.ivec{margin:.8rem 0 1.3rem}
+.ivbar{display:flex;height:26px;border-radius:var(--r-sm);overflow:hidden}
+.ivseg{display:flex;align-items:center;justify-content:center;color:#fff;
+  font-size:.72rem;font-family:var(--global-font-mono);cursor:default}
+.ivkey{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:.5rem;font-size:.78rem;
+  color:var(--global-text-color-light)}
+.ivkey span{display:inline-flex;align-items:center;gap:.32rem}
+.ivkey i{width:11px;height:11px;border-radius:var(--r-xs);display:inline-block}
+.ivcells{display:flex;gap:2px;flex-wrap:wrap;margin-top:.7rem}
+.ivcells i{width:13px;height:13px;border-radius:var(--r-xs);display:block;opacity:.82}
+.ivnote{font-size:.8rem;color:var(--global-text-color-light);margin-top:.6rem}
+
+
+/* ===== chart gallery ===== */
+.gallery{border:1px solid var(--global-divider-color);border-radius:var(--r-lg);
+  padding:.9rem 1rem 1rem;margin-top:1.4rem;background:var(--global-bg-color)}
+.galbar{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:.7rem}
+.galtabs{display:flex;gap:.25rem;flex-wrap:wrap;flex:1}
+.galtab{font:inherit;font-size:.76rem;padding:.26rem .7rem;border-radius:var(--r-pill);cursor:pointer;
+  border:1px solid var(--global-divider-color);background:var(--global-bg-color);
+  color:var(--global-text-color-light);white-space:nowrap}
+.galtab:hover{border-color:var(--global-theme-color);color:var(--global-text-color)}
+.galtab.on{background:var(--global-theme-color);color:#fff;border-color:var(--global-theme-color)}
+.galctl{display:flex;align-items:center;gap:.6rem}
+.galcount{font-family:var(--global-font-mono);font-size:.72rem;
+  color:var(--global-text-color-light)}
+.galstage{border:1px solid var(--global-divider-color);border-radius:var(--r-md);
+  background:var(--global-bg-color);overflow:hidden}
+#chartsvg{display:block;width:100%;height:auto}
+.cpt{cursor:pointer;transition:opacity .1s,r .1s}
+.cln{cursor:pointer;transition:opacity .1s,stroke-width .1s}
+.galinfo{font-size:.8rem;margin-top:.6rem;min-height:1.5em;display:flex;gap:.7rem;
+  flex-wrap:wrap;align-items:baseline}
+.galinfo .fam{color:var(--global-text-color-light);font-size:.74rem}
+.galinfo .mi{font-size:.76rem;color:var(--global-text-color-light);
+  font-variant-numeric:tabular-nums}
+.galinfo .mi b{color:var(--global-text-color)}
+.galinfo .dim{color:var(--global-text-color-light);opacity:.8}
+.galcap{font-size:.78rem;color:var(--global-text-color-light);margin:.35rem 0 .5rem}
+.galkey{display:flex;gap:1rem;flex-wrap:wrap;font-size:.76rem;
+  color:var(--global-text-color-light)}
+.galkey span{display:inline-flex;align-items:center;gap:.32rem}
+.galkey i{width:11px;height:11px;border-radius:var(--r-xs);display:inline-block}
+.galkey i.dashed{width:16px;height:0;border-top:2.4px dashed var(--neg);border-radius:0}
+text.cl{font-size:11px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+text.cl2{font-size:9px;fill:var(--global-text-color-light);font-family:var(--global-font-sans)}
+
+/* expanded */
+body.chartbig{overflow:hidden}
+body.chartbig .gallery{position:fixed;inset:2.5vh 2.5vw;z-index:300;overflow-y:auto;
+  box-shadow:0 12px 60px rgba(0,0,0,.3);background:var(--global-bg-color)}
+body.chartbig::after{content:"";position:fixed;inset:0;z-index:299;
+  background:rgba(0,0,0,.35);backdrop-filter:blur(2px)}
+html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
+
+</style>
+</head>
+<body>
+
+<div id="prog"></div>
+
+<div class="mockbar" id="mockbar">
+  <span><b>Interaction mockup.</b> Baselines are real (published Table&nbsp;8), and
+    <b>fixed_mlp</b> under <b>Total area</b> is a real run &mdash; weights, curves and per-circuit
+    scores read out of the lab&rsquo;s tree. Every other model name, score and architecture on this
+    page is a synthetic placeholder.</span>
+  <button onclick="document.getElementById('mockbar').remove()">dismiss</button>
+</div>
+
+<div class="navbar">
+  <div class="brand"><span class="title">Drexel ICE Lab</span></div>
+  <nav>
+    <a href="https://drexel-ice.github.io/">team</a>
+    <a href="https://drexel-ice.github.io/publications/">publications</a>
+    <a href="index.html" aria-current="page">leaderboard</a>
+    <a href="explorer.html" data-ctxlink="explorer.html">model explorer</a>
+    <a href="playground.html" data-ctxlink="playground.html">playground</a>
+    <button class="themebtn" id="themebtn">dark</button>
+  </nav>
+</div>
+
+<div class="container container--wide">
+
+<!-- ============ MATRIX ============ -->
+<section id="v-matrix">
+  <div class="page-header">
+    <h1 class="page-title">eda-schema leaderboard</h1>
+    <p class="lead">Machine-learning predictors of final-stage quality-of-results, scored against the OpenROAD baseline from EDA-Schema-V2.</p>
+  </div>
+
+  <div class="legend">
+    <span><i class="sq" style="background:var(--lb-win-solid)"></i> model beats OpenROAD</span>
+    <span><i class="sq" style="background:var(--lb-lose-solid)"></i> baseline still leads</span>
+    <span><i class="sq" style="background:var(--lb-none-fg)"></i> no submission</span>
+    <span><i class="sq" style="background:var(--lb-sat-fg)"></i> &#9670; saturated</span>
+    <span><i class="sq" style="background:var(--lb-undef-fg)"></i> no &plusmn; error</span>
+    <span style="margin-left:auto">all predicting &rarr; detailed route</span>
+  </div>
+
+  <div class="ctrls">
+    <div class="ctrlrow">
+      <span class="lbl">PDKs</span>
+      <button class="chk sm" data-pdk="ng45" aria-pressed="true"><span class="tick">&#10003;</span>NG45</button>
+      <button class="chk sm" data-pdk="sky130" aria-pressed="true"><span class="tick">&#10003;</span>SKY130</button>
+      <button class="chk sm" data-pdk="ihp130" aria-pressed="false"><span class="tick">&#10003;</span>IHP130</button>
+      <button class="chk sm" data-pdk="asap7" aria-pressed="false"><span class="tick">&#10003;</span>ASAP7</button>
+      <span class="sep"></span>
+      <button class="mini" data-bulk="pdk:all">all</button>
+      <button class="mini" data-bulk="pdk:none">none</button>
+    </div>
+
+    <div class="ctrlrow">
+      <span class="lbl">Stages</span>
+      <button class="chk sm" data-stg="0" aria-pressed="true"><span class="tick">&#10003;</span>floorplan</button>
+      <button class="chk sm" data-stg="1" aria-pressed="true"><span class="tick">&#10003;</span>global place</button>
+      <button class="chk sm" data-stg="2" aria-pressed="true"><span class="tick">&#10003;</span>detailed place</button>
+      <button class="chk sm" data-stg="3" aria-pressed="true"><span class="tick">&#10003;</span>cts</button>
+      <button class="chk sm" data-stg="4" aria-pressed="true"><span class="tick">&#10003;</span>global route</button>
+      <span class="sep"></span>
+      <button class="mini" data-bulk="stg:all">all</button>
+      <button class="mini" data-bulk="stg:none">none</button>
+    </div>
+
+    <div class="ctrlrow" style="align-items:flex-start">
+      <span class="lbl" style="padding-top:.28rem">Tasks</span>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;flex:1">
+        <button class="chk sm" data-task="total_area" aria-pressed="true"><span class="tick">&#10003;</span>Total area</button>
+        <button class="chk sm" data-task="total_power" aria-pressed="true"><span class="tick">&#10003;</span>Total power</button>
+        <button class="chk sm" data-task="total_wirelength" aria-pressed="true"><span class="tick">&#10003;</span>Total wirelength</button>
+        <button class="chk sm" data-task="interconnect_length" aria-pressed="true"><span class="tick">&#10003;</span>Interconnect length</button>
+        <button class="chk sm" data-task="worst_arrival_time" aria-pressed="true"><span class="tick">&#10003;</span>Worst arrival time</button>
+        <button class="chk sm" data-task="worst_slack" aria-pressed="true"><span class="tick">&#10003;</span>Worst slack</button>
+        <button class="chk sm" data-task="total_negative_slack" aria-pressed="true"><span class="tick">&#10003;</span>Total negative slack</button>
+        <button class="chk sm" data-task="timing_path_arrival_time" aria-pressed="true"><span class="tick">&#10003;</span>Path arrival time</button>
+        <button class="chk sm" data-task="timing_path_slack" aria-pressed="true"><span class="tick">&#10003;</span>Path slack</button>
+        <button class="chk sm" data-task="net_arc_delay" aria-pressed="true"><span class="tick">&#10003;</span>Net arc delay</button>
+        <button class="chk sm" data-task="cell_arc_delay" aria-pressed="true"><span class="tick">&#10003;</span>Cell arc delay</button>
+        <button class="chk sm" data-task="cell_arc_slew" aria-pressed="true"><span class="tick">&#10003;</span>Cell arc slew</button>
+        <span class="sep"></span>
+        <button class="mini" data-bulk="task:all">all</button>
+        <button class="mini" data-bulk="task:none">none</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mwrap">
+    <table class="mx">
+      <thead id="mhead"></thead>
+      <tbody id="mbody"></tbody>
+    </table>
+  </div>
+
+</section>
+
+<!-- ============ CELL ============ -->
+<section id="v-cell" class="hidden">
+  <div class="crumb"><a data-nav="matrix">leaderboard</a> / <span id="c-crumb"></span></div>
+  <div class="page-header">
+    <h1 id="c-title"></h1>
+    <p class="lead" id="c-sub"></p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab" data-ctab="rankings" aria-selected="true">&#127942; Rankings</button>
+    <button class="tab" data-ctab="matrix" aria-selected="false">&#128202; Rank matrix</button>
+    <button class="tab" data-ctab="about" aria-selected="false">&#128221; About</button>
+  </div>
+
+<div id="pane-rankings">
+  <div class="baserow">
+    <div>
+      <div style="font-weight:500" id="c-bt"></div>
+      <div style="font-size:.8rem;color:var(--global-text-color-light)">reference baseline &middot; Table 8 &middot; click any metric header to re-rank</div>
+    </div>
+    <div class="bv" id="c-bv">&mdash;</div>
+  </div>
+
+  <div class="toolbar" id="toolbar"></div>
+  <div class="results" id="results"></div>
+
+  <div class="rk"><div class="rkin">
+    <div class="rkhead" id="rkhead"></div>
+    <div id="rkbody"></div>
+  </div></div>
+  <div class="pager" id="pager"></div>
+
+  <div class="beatstrip">
+    <div>
+      <div class="bt"><b>Think you can beat this?</b></div>
+      <div class="bs">Build a network, train it in your browser on real design data, and find out.</div>
+    </div>
+    <a class="btn primary" id="beatbtn" href="playground.html">&#9889; Beat OpenROAD &rarr;</a>
+  </div>
+
+  <div class="gallery">
+    <div class="galbar">
+      <div class="galtabs" id="galtabs"></div>
+      <div class="galctl">
+        <span class="galcount" id="galcount"></span>
+        <button class="mini" id="chartexp">&#8599; expand</button>
+      </div>
+    </div>
+    <div class="galstage" id="galstage">
+      <svg id="chartsvg"></svg>
+    </div>
+    <div class="galinfo" id="chartinfo"></div>
+    <p class="galcap" id="chartcap"></p>
+    <div class="galkey" id="galkey"></div>
+  </div>
+
+</div><!-- /pane-rankings -->
+
+<div id="pane-matrix" class="hidden">
+  <div class="mxhead">
+    <div>
+      <div class="mxtitle">Every model across every metric of this task</div>
+      <div class="mxsub">Cells show <b>rank</b>, not score. Each metric is ranked
+        independently &mdash; a model that leads on MAE can sit mid-table on R&sup2;,
+        and that disagreement is the point.</div>
+    </div>
+    <div class="mxctl">
+      <span class="mxcount" id="mxcount"></span>
+      <div class="tog">
+        <button data-mxv="rank" aria-pressed="true">rank</button>
+        <button data-mxv="score" aria-pressed="false">score</button>
+        <button data-mxv="delta" aria-pressed="false">vs tool</button>
+      </div>
+      <label class="cbx2"><input type="checkbox" id="mxcompact"> compact</label>
+    </div>
+  </div>
+  <div class="mxwrap"><table class="mx" id="mxtable"></table></div>
+  <div class="mxlegend">
+    <span><i class="mdl">&#129351;</i>best on this metric</span>
+    <span><i class="mdl">&#129352;</i>second</span>
+    <span><i class="mdl">&#129353;</i>third</span>
+    <span><i class="sw win"></i>beats the OpenROAD estimate</span>
+    <span><i class="sw lose"></i>behind it</span>
+    <span>&mdash; not defined for this task</span>
+  </div>
+</div>
+
+<div id="pane-about" class="hidden">
+<div class="about">
+
+  <div class="toc">
+    <a href="#a-problem">1 &nbsp; The problem</a>
+    <a href="#a-goals">2 &nbsp; Goals of this leaderboard</a>
+    <a href="#a-setup">3 &nbsp; How a prediction task is defined</a>
+    <a href="#a-baseline">4 &nbsp; The baseline you have to beat</a>
+    <a href="#a-metrics">5 &nbsp; Metrics and why there is no single score</a>
+    <a href="#a-states">6 &nbsp; Cell states, including saturation</a>
+    <a href="#a-divisions">7 &nbsp; Divisions and verification</a>
+    <a href="#a-limits">8 &nbsp; Known limitations</a>
+    <a href="#a-cite">9 &nbsp; Citation</a>
+  </div>
+
+  <h2 id="a-problem">1 &nbsp; The problem</h2>
+  <p>A digital chip goes through a sequence of physical-design stages &mdash; floorplanning,
+  placement, clock-tree synthesis, routing. Each stage produces an estimate of the design&rsquo;s
+  final quality: how much area it will occupy, how much power it will draw, whether it will
+  meet timing. Those early estimates are what a designer steers by.</p>
+  <p>They are also wrong, and they are most wrong exactly when they matter most. At floorplan
+  &mdash; the point where changing course is cheapest &mdash; the OpenROAD estimate of total
+  area is off by 12&ndash;22% depending on the technology node, and its estimate of worst slack
+  is off by more than the slack itself. By the time the estimate is accurate, the design is
+  routed and the expensive decisions are already made.</p>
+  <div class="callout">
+    <p><b>The question this benchmark asks:</b> can a machine-learning model, given only the
+    information available at an early stage, predict the final post-route value more accurately
+    than the EDA tool&rsquo;s own estimate at that same stage?</p>
+  </div>
+
+  <h2 id="a-goals">2 &nbsp; Goals of this leaderboard</h2>
+  <ul>
+    <li><b>Make ML-for-EDA comparable.</b> Published work in this area uses commercial tools,
+    proprietary PDKs and unreleased netlists, so results cannot be checked against each other.
+    Everything here runs on open tools, open PDKs and a public dataset.</li>
+    <li><b>Give a baseline that is honest and hard.</b> The comparison is against the tool
+    estimate at the same stage, taken from the EDA-Schema-V2 paper rather than re-derived.
+    A model does not &ldquo;win&rdquo; by beating a straw man.</li>
+    <li><b>Show where the problem is actually open.</b> Not every cell is a research
+    opportunity. At global route the tool is already exact for ten of twelve tasks. Marking
+    those honestly is more useful than pretending the whole matrix is contested.</li>
+    <li><b>Make submissions cheap.</b> Results folders are ingested exactly as they come off
+    the cluster. No metadata file to write, no format to conform to.</li>
+  </ul>
+
+  <h2 id="a-setup">3 &nbsp; How a prediction task is defined</h2>
+  <p>A task is a triple: <b>what</b> you predict, <b>from which stage</b>, and <b>on which
+  PDK</b>. All twelve tasks predict the value at <code>detailed_route</code> &mdash; the final
+  stage &mdash; from an earlier one.</p>
+  <table>
+    <tr><th>Dimension</th><th>Values</th></tr>
+    <tr><td>Tasks</td><td>12 &mdash; circuit-level (area, power, wirelength), net-level
+      (interconnect length), timing (arrival time, slack, TNS), path-level and arc-level</td></tr>
+    <tr><td>PDKs</td><td>4 &mdash; NG45, SKY130, IHP130, ASAP7</td></tr>
+    <tr><td>Stages</td><td>5 &mdash; floorplan, global place, detailed place, CTS, global route</td></tr>
+    <tr><td>Circuits</td><td>18 IWLS&rsquo;05 designs, 108 parameter configurations each</td></tr>
+    <tr><td>Metric rows</td><td>46 &mdash; metrics differ by task</td></tr>
+  </table>
+  <p>That gives 232 live task&ndash;PDK&ndash;stage combinations and 880 scoreable cells.</p>
+
+  <h2 id="a-baseline">4 &nbsp; The baseline you have to beat</h2>
+  <p>Every number in the baseline row comes from Table 8 of the EDA-Schema-V2 paper: the error
+  of the OpenROAD estimate at that stage against the final routed value, averaged across the
+  dataset. It is not a model. It is what the tool already tells you for free.</p>
+  <p>A cell turns green when at least one submitted model has lower error than that figure, and
+  red when none does. The bar behind each value in the table shows performance relative to the
+  best and worst model in that column.</p>
+
+  <h2 id="a-metrics">5 &nbsp; Metrics and why there is no single score</h2>
+  <p>Each task carries the metrics that are meaningful for it, following the paper. Circuit-level
+  tasks use MAE, MAPE and R&sup2;. Long-tailed quantities such as interconnect length add
+  95th-percentile and top-5% variants, because the few long wires matter more than the many short
+  ones. Slack-based tasks drop MAPE entirely &mdash; slack clusters near zero, so percentage error
+  explodes &mdash; and add directional metrics instead.</p>
+  <table>
+    <tr><th>Metric</th><th>Direction</th><th>Meaning</th></tr>
+    <tr><td>MAE</td><td>lower</td><td>Mean absolute error, in the metric&rsquo;s own units</td></tr>
+    <tr><td>MAPE</td><td>lower</td><td>Mean absolute percentage error</td></tr>
+    <tr><td>R&sup2;</td><td>higher</td><td>Variance explained; unstable when the target barely varies</td></tr>
+    <tr><td>MPE / MNE</td><td>lower</td><td>Mean over-estimate and under-estimate, reported separately.
+      For timing, over-estimating delay is safe; under-estimating hides a violation</td></tr>
+    <tr><td>TPR / TNR</td><td>higher</td><td>How often a violating or clean endpoint is correctly identified</td></tr>
+  </table>
+  <div class="callout">
+    <p><b>There is deliberately no aggregate score.</b> Averaging MAE against TPR against R&sup2;
+    would require weights nobody can justify, and it would let a model with a catastrophic R&sup2;
+    hide behind a good MAE. Every metric is ranked independently. A model that wins one column and
+    loses another is showing you something real, and the table is built so you see both at once.</p>
+  </div>
+
+  <h2 id="a-states">6 &nbsp; Cell states, including saturation</h2>
+  <table>
+    <tr><th>State</th><th>Meaning</th></tr>
+    <tr><td>Green</td><td>At least one model beats the OpenROAD estimate</td></tr>
+    <tr><td>Red</td><td>The tool estimate still leads</td></tr>
+    <tr><td>Grey</td><td>No submission yet</td></tr>
+    <tr><td>&#9670; Saturated</td><td>The tool estimate already equals the final value &mdash;
+      error is exactly zero and no model can improve on it. This is the case at global route for
+      ten of the twelve tasks, 132 cells in total</td></tr>
+    <tr><td>no &plusmn; error</td><td>MPE and MNE are undefined because there are no
+      over- or under-estimates left to average. 24 cells</td></tr>
+    <tr><td>n/a</td><td>Not estimable at that stage. Wirelength has no meaning before placement.
+      40 cells</td></tr>
+  </table>
+  <p>Saturated cells are still browsable but are never ranked and never counted as wins. The
+  live research frontier is floorplan, global place and detailed place.</p>
+
+  <h2 id="a-divisions">7 &nbsp; Divisions and verification</h2>
+  <p><b>Closed</b> uses the canonical leave-one-circuit-out split, the canonical feature set and
+  the canonical target &mdash; any architecture, but a controlled setup. <b>Open</b> is anything
+  else, documented. Division is derived from the submission&rsquo;s own directory structure
+  rather than declared, so it cannot be mis-stated.</p>
+  <table>
+    <tr><th>Tier</th><th>What it means</th></tr>
+    <tr><td>&#9675; self-reported</td><td>Passed automated validation: feature-stage legality,
+      split-overlap check, runnability smoke test, plausibility envelope</td></tr>
+    <tr><td>&#10003; verified</td><td>A maintainer re-ran the model and reproduced the numbers</td></tr>
+    <tr><td>&#9888; flagged</td><td>An automated check raised a concern; results are shown with
+      the warning attached rather than hidden</td></tr>
+  </table>
+  <p>The strongest guard is feature-stage legality. Because EDA-Schema-V2 declares the stage at
+  which every attribute becomes available, a submission claiming to predict from floorplan while
+  reading a post-route attribute is rejected mechanically. No other ML-for-EDA benchmark can do
+  this.</p>
+
+  <h2 id="a-limits">8 &nbsp; Known limitations</h2>
+  <ul>
+    <li><b>One submission is real; the rest are synthetic.</b> Baselines are real, and the
+    <code>fixed_mlp</code> row under Total area is the lab&rsquo;s own sweep &mdash; 20 (PDK, stage)
+    configurations, 18 per-circuit models each, read straight out of the run tree. Every other
+    model on this page is placeholder data for interface review.</li>
+    <li><b>The real submission is undertrained, and the page says so.</b> 25 epochs at 50 gradient
+    steps leaves the checkpoints statistically at initialization; the explorer shows the evidence
+    rather than hiding it. Its leaderboard numbers are still the numbers the lab measured.</li>
+    <li><b>Yosys is weaker than commercial synthesis.</b> Results are reported per tool so gains
+    attributable to the synthesis gap are not mistaken for modelling gains.</li>
+    <li><b>No hidden test set yet.</b> Until one exists, contamination is guarded procedurally
+    rather than structurally.</li>
+    <li><b>R&sup2; is fragile here.</b> Where the target has almost no variance across the
+    evaluation set, R&sup2; goes sharply negative and says more about the data than the model.
+    The paper thresholds these at &lt;-1 and so do we.</li>
+  </ul>
+
+  <h2 id="a-cite">9 &nbsp; Citation</h2>
+  <pre>@article{shrestha2026edaschema,
+  title  = {EDA-Schema-V2: A Multimodal Schema, Open Datasets, and
+            Benchmarks for Machine Learning in Digital Physical Design},
+  author = {Shrestha, Pratik and Aversa, Alec and Savidis, Ioannis},
+  journal= {arXiv preprint arXiv:2605.06952},
+  year   = {2026}
+}</pre>
+
+</div>
+</div><!-- /pane-about -->
+</section>
+
+</div>
+
+<div id="tip" role="tooltip"></div>
+
+<button id="top" title="Back to top">&#8593;</button>
+
+<div class="footer">
+  &copy; ICE Lab, Drexel University. All rights reserved. &middot; interaction mockup &middot;
+  <a href="https://drexel-ice.github.io/eda-schema/">baseline source</a>
+</div>
+
+<script src="real-data.js"></script>
+<script src="data/real.js"></script>
+<script>
+const BASE={"total_area":{"MAE":{"ng45":[1781.97,871.07,571.13,49.02,0],"sky130":[18567.03,8385.61,7505.03,854.81,0],"ihp130":[48738.62,35724.45,19487.21,2339.67,0],"asap7":[225.06,73.79,47.23,1.98,0]},"MAPE":{"ng45":[12.43,7.07,4.14,0.49,0],"sky130":[22.51,11.71,9.27,1.22,0],"ihp130":[20.74,13.6,5.56,0.72,0],"asap7":[15.35,7.5,3.79,0.24,0]},"R\u00b2":{"ng45":[0.989,0.997,0.998,1.0,1.0],"sky130":[0.957,0.991,0.991,1.0,1.0],"ihp130":[0.912,0.945,0.979,1.0,1.0],"asap7":[0.969,0.997,0.998,1.0,1.0]}},"total_power":{"MAE":{"ng45":[11875.86,5670.15,5043.04,280.22,0],"sky130":[46947.57,19274.83,19382.95,2270.66,0],"ihp130":[17699.64,16651.34,15644.47,123.65,0],"asap7":[6071.61,2266.72,2177.82,55.15,0]},"MAPE":{"ng45":[27.89,16.7,15.37,0.57,0],"sky130":[50.85,31.36,30.0,1.67,0],"ihp130":[23.71,18.87,16.83,0.24,0],"asap7":[33.47,19.23,17.57,0.29,0]},"R\u00b2":{"ng45":[0.948,0.987,0.989,1.0,1.0],"sky130":[0.648,0.946,0.944,0.997,1.0],"ihp130":[0.807,0.781,0.798,1.0,1.0],"asap7":[0.823,0.976,0.977,1.0,1.0]}},"total_wirelength":{"MAE":{"ng45":[null,30529.92,20115.77,13920.52,13698.67],"sky130":[null,83777.43,61602.3,40751.29,38941.02],"ihp130":[null,117233.52,57977.64,26046.32,25473.38],"asap7":[null,6460.04,3479.88,2562.35,2491.87]},"MAPE":{"ng45":[null,29.21,19.61,13.16,12.53],"sky130":[null,34.24,24.3,16.18,14.86],"ihp130":[null,24.43,11.49,5.51,5.33],"asap7":[null,17.17,7.05,3.4,3.28]},"R\u00b2":{"ng45":[null,0.916,0.959,0.98,0.981],"sky130":[null,0.902,0.939,0.975,0.977],"ihp130":[null,0.928,0.977,0.996,0.996],"asap7":[null,0.987,0.995,0.997,0.997]}},"interconnect_length":{"MAE":{"ng45":[null,4.83,4.13,4.19,4.19],"sky130":[null,12.41,11.8,12.01,11.84],"ihp130":[null,13.19,11.09,11.25,11.17],"asap7":[null,1.45,1.41,1.44,1.43]},"MAPE":{"ng45":[null,87.59,81.33,78.68,78.2],"sky130":[null,94.04,86.04,72.85,69.82],"ihp130":[null,72.6,73.29,71.34,70.16],"asap7":[null,113.14,125.55,123.19,122.69]},"R\u00b2":{"ng45":[null,0.735,0.77,0.777,0.779],"sky130":[null,0.751,0.773,0.791,0.798],"ihp130":[null,0.89,0.916,0.915,0.918],"asap7":[null,0.886,0.892,0.893,0.895]},"MAE-P95":{"ng45":[null,12.72,10.32,10.82,10.79],"sky130":[null,38.53,39.23,41.92,41.09],"ihp130":[null,53.88,46.46,46.28,46.08],"asap7":[null,5.57,5.44,5.85,5.83]},"MAPE-P95":{"ng45":[null,230.82,186.85,181.48,180.77],"sky130":[null,293.66,247.83,238.43,234.56],"ihp130":[null,339.2,326.04,291.33,291.33],"asap7":[null,410.1,403.03,402.78,402.78]},"MAE-TOP5":{"ng45":[null,44.73,46.91,47.4,47.61],"sky130":[null,116.02,117.87,121.41,121.04],"ihp130":[null,86.57,79.59,80.45,80.05],"asap7":[null,11.67,11.37,11.65,11.61]},"MAPE-TOP5":{"ng45":[null,24.45,23.99,24.18,24.12],"sky130":[null,25.39,24.99,25.04,24.74],"ihp130":[null,19.2,18.51,18.56,18.49],"asap7":[null,18.59,18.19,19.03,18.9]}},"worst_arrival_time":{"MAE":{"ng45":[3.1,0.16,0.13,0.01,0],"sky130":[10.84,0.77,1.21,0.14,0],"ihp130":[8.55,0.41,0.34,0.06,0],"asap7":[0.09,0.06,0.06,0.01,0]},"MAPE":{"ng45":[192.92,16.19,13.81,1.6,0],"sky130":[183.71,21.48,33.3,4.69,0],"ihp130":[331.31,16.98,15.82,2.32,0],"asap7":[15.78,11.17,10.44,2.14,0]}},"worst_slack":{"MAE":{"ng45":[3.18,0.21,0.15,0.01,0],"sky130":[11.28,1.15,1.62,0.09,0],"ihp130":[8.83,0.27,0.31,0.04,0],"asap7":[0.03,0.05,0.05,0.01,0]},"MPE":{"ng45":[0.06,0.09,0.04,0.01,-999],"sky130":[0.3,0.27,0.17,0.03,-999],"ihp130":[0.3,0.27,0.2,0.04,-999],"asap7":[0.04,0.04,0.03,0.0,-999]},"MNE":{"ng45":[3.68,0.24,0.17,0.02,-999],"sky130":[12.15,1.26,1.68,0.12,-999],"ihp130":[9.35,0.26,0.36,0.13,-999],"asap7":[0.02,0.05,0.06,0.01,-999]},"TPR":{"ng45":[95.67,95.67,95.67,100.0,100.0],"sky130":[96.32,96.21,98.53,99.47,100.0],"ihp130":[94.52,64.38,58.9,96.58,100.0],"asap7":[67.94,93.08,99.45,100.0,100.0]},"TNR":{"ng45":[28.7,57.56,56.26,93.24,100.0],"sky130":[15.76,21.39,8.39,60.59,100.0],"ihp130":[28.11,95.54,91.58,99.22,100.0],"asap7":[97.7,63.75,58.79,91.53,100.0]}},"total_negative_slack":{"MAE":{"ng45":[1764.18,57.74,22.45,2.11,0],"sky130":[17768.52,727.04,959.12,70.22,0],"ihp130":[3755.75,0.57,1.05,0.04,0],"asap7":[1.09,5.65,5.75,1.01,0]},"MPE":{"ng45":[1.26,24.6,23.22,4.81,-999],"sky130":[4.74,5.3,2.74,22.51,-999],"ihp130":[2.5,1.82,1.88,0.17,-999],"asap7":[3.92,3.76,4.68,1.56,-999]},"MNE":{"ng45":[2296.57,101.63,37.22,6.34,-999],"sky130":[20176.54,849.9,1031.87,123.39,-999],"ihp130":[5201.66,7.15,9.0,0.76,-999],"asap7":[2.1,11.49,10.54,3.78,-999]}},"timing_path_arrival_time":{"MAE":{"ng45":[0.4756,0.2313,0.2398,0.0022,0],"sky130":[2.9814,0.9552,0.9151,0.0319,0],"ihp130":[1.7195,0.6682,0.6392,0.0041,0],"asap7":[0.1836,0.1509,0.1462,0.0012,0]},"MAPE":{"ng45":[75.89,46.25,45.63,0.27,0],"sky130":[92.31,39.61,37.87,0.8,0],"ihp130":[95.11,43.0,41.34,0.18,0],"asap7":[51.92,42.55,41.05,0.22,0]},"MAE-P95":{"ng45":[1.0541,0.36,0.357,0.0107,0],"sky130":[7.159,1.515,1.532,0.198,0],"ihp130":[4.654,0.8949,0.8899,0.022,0],"asap7":[0.3296,0.2385,0.2387,0.0036,0]},"MAPE-P95":{"ng45":[133.31,69.54,69.32,1.27,0],"sky130":[169.45,64.36,64.39,4.81,0],"ihp130":[241.72,65.89,65.77,0.98,0],"asap7":[74.0,70.09,70.06,0.68,0]},"MAE-TOP5":{"ng45":[2.6279,0.2398,0.1971,0.0107,0],"sky130":[10.1956,0.9467,1.0037,0.111,0],"ihp130":[1.8427,0.7733,0.755,0.0246,0],"asap7":[0.3048,0.1986,0.1975,0.0037,0]},"MAPE-TOP5":{"ng45":[208.58,15.32,12.57,0.7,0],"sky130":[164.89,14.73,15.69,1.68,0],"ihp130":[58.23,24.6,23.97,0.73,0],"asap7":[36.41,23.24,23.01,0.42,0]}},"timing_path_slack":{"MAE":{"ng45":[0.245,0.0532,0.028,0.0023,0],"sky130":[2.6909,0.2179,0.2873,0.0316,0],"ihp130":[1.8879,0.0736,0.0975,0.004,0],"asap7":[0.04,0.0166,0.0203,0.0012,0]},"MPE":{"ng45":[0.0361,0.0282,0.0299,0.0125,-999],"sky130":[1.7111,0.0851,0.121,0.0351,-999],"ihp130":[0.9992,0.0556,0.0741,0.0159,-999],"asap7":[0.0788,0.015,0.0167,0.008,-999]},"MNE":{"ng45":[0.2749,0.0641,0.0273,0.0217,-999],"sky130":[2.8765,0.414,0.5783,0.1342,-999],"ihp130":[2.829,0.1082,0.1349,0.0167,-999],"asap7":[0.0222,0.0203,0.0296,0.0149,-999]},"TPR":{"ng45":[98.01,96.5,94.9,93.04,100.0],"sky130":[96.65,98.01,97.61,95.99,100.0],"ihp130":[74.89,74.19,73.8,84.56,100.0],"asap7":[70.21,83.93,85.13,95.92,100.0]},"TNR":{"ng45":[88.69,96.0,97.65,99.63,100.0],"sky130":[77.61,90.69,89.43,98.34,100.0],"ihp130":[93.99,99.93,99.92,99.99,100.0],"asap7":[99.96,98.69,98.56,99.73,100.0]}},"net_arc_delay":{"MAE":{"ng45":[0.1128,0.02,0.0122,0.0005,0],"sky130":[0.7713,0.0631,0.0466,0.0046,0],"ihp130":[0.4259,0.0306,0.0165,0.0004,0],"asap7":[0.0105,0.0066,0.0039,0.0002,0]},"MAPE":{"ng45":[99999,99999,99999,99999,0],"sky130":[403.06,28.21,19.99,2.36,0],"ihp130":[547.23,31.14,8.91,0.32,0],"asap7":[39.38,20.69,11.16,0.95,0]},"R\u00b2":{"ng45":[-2,-2,-0.024,0.976,1.0],"sky130":[-2,-0.029,0.748,0.981,1.0],"ihp130":[-2,-2,0.876,0.999,1.0],"asap7":[-2,-0.402,0.777,0.979,1.0]}},"cell_arc_delay":{"MAE":{"ng45":[0.0011,0.0008,0.0009,0.0001,0],"sky130":[0.0031,0.0016,0.0013,0.0003,0],"ihp130":[0.0003,0.0002,0.0001,0.0,0],"asap7":[0.0018,0.0003,0.0002,0.0,0]},"MAPE":{"ng45":[99999,99999,99999,99999,0],"sky130":[99999,99999,99999,99999,0],"ihp130":[99999,99999,99999,99999,0],"asap7":[99999,99999,99999,99999,0]},"R\u00b2":{"ng45":[-0.308,0.928,0.875,0.987,1.0],"sky130":[-2,0.873,0.894,0.974,1.0],"ihp130":[-2,0.641,0.657,0.975,1.0],"asap7":[-0.141,0.851,0.925,0.952,1.0]}},"cell_arc_slew":{"MAE":{"ng45":[0.0761,0.0082,0.0028,0.0003,0],"sky130":[0.8919,0.0415,0.0392,0.0054,0],"ihp130":[0.4735,0.0059,0.0011,0.0004,0],"asap7":[0.0152,0.0026,0.0017,0.0003,0]},"MAPE":{"ng45":[183.03,27.44,13.43,1.27,0],"sky130":[462.31,37.69,35.6,4.66,0],"ihp130":[1134.69,11.05,2.05,0.53,0],"asap7":[34.33,7.44,5.89,1.01,0]},"R\u00b2":{"ng45":[-2,0.332,0.786,0.973,1.0],"sky130":[-2,0.414,0.427,0.938,1.0],"ihp130":[-2,0.965,0.987,0.994,1.0],"asap7":[-2,0.878,0.911,0.964,1.0]}}};
+/* ===== procedural layout illustrations =====
+   Renders what each design stage physically produces, in the manner of the
+   binary spatial maps described in EDA-Schema-V2 section 3.2 (cell placement,
+   pin locations, routing by metal layer) and the RUDY scalar maps of 3.6.
+
+   These are ILLUSTRATIVE renderings, not dataset images. Real images ship as
+   NumPy arrays in the dataset; this draws the same structures at low fidelity
+   so the About page can show what a stage means without a 262 GB dependency. */
+
+const PDKINFO={
+  ng45:{label:"NG45",node:"45 nm",metals:10,util:"40%",
+        note:"Academic PDK bridging modern process challenges with accessible flows."},
+  sky130:{label:"SKY130",node:"130 nm",metals:5,util:"30%",
+        note:"Mature node, widely used in academic and open-source EDA. Only five metal layers, so routing is the binding constraint."},
+  ihp130:{label:"IHP130",node:"130 nm",metals:7,util:"30%",
+        note:"SiGe BiCMOS, supporting RF, analog and mixed-signal research."},
+  asap7:{label:"ASAP7",node:"7 nm",metals:9,util:"40%",
+        note:"Predictive node for exploring advanced scaling. Everything is small, so absolute errors look tiny while relative errors do not."}};
+
+const STAGEINFO={
+  floorplan:{
+    title:"Floorplanning",
+    what:"The die outline, core area and I/O pin positions are fixed. Standard-cell rows are defined but nothing is placed in them yet.",
+    known:"Cell counts, net counts, target utilisation, die dimensions.",
+    unknown:"Where anything sits. No wirelength exists because no cell has a location.",
+    why:"This is the cheapest place to change course and the hardest place to predict from — the estimate is built almost entirely from counts."},
+  global_place:{
+    title:"Global placement",
+    what:"Cells are given approximate positions that minimise a wirelength proxy. They overlap and sit off-row.",
+    known:"Approximate coordinates, so half-perimeter wirelength becomes computable for the first time.",
+    unknown:"Legal positions, buffering, clock network, actual routes.",
+    why:"HPWL appears here, which is why wirelength tasks activate at this stage and are void before it."},
+  detailed_place:{
+    title:"Detailed placement",
+    what:"Cells are legalised into rows with no overlaps. Local swaps and shifts improve timing and density.",
+    known:"Exact legal cell coordinates, refined HPWL, updated cell areas.",
+    unknown:"Clock buffers, routing detours, parasitic RC.",
+    why:"Area is nearly settled here. Timing is not — the clock network has not been built."},
+  cts:{
+    title:"Clock tree synthesis",
+    what:"The clock network is built: buffers inserted, sinks balanced, skew controlled. This adds real cells and real area.",
+    known:"Clock buffer count, sink count, clock routing, post-CTS timing.",
+    unknown:"Signal routing detours and extracted parasitics.",
+    why:"The last stage where area and power move meaningfully. After CTS the estimates converge fast."},
+  global_route:{
+    title:"Global routing",
+    what:"Nets are assigned to coarse routing regions and metal layers. Congestion is resolved but exact geometry is not fixed.",
+    known:"Layer assignment, congestion maps, close-to-final wirelength.",
+    unknown:"Exact via placement and detailed geometry.",
+    why:"For ten of the twelve tasks the estimate here already equals the final value. Those cells are saturated and cannot be won."}};
+
+/* deterministic PRNG so illustrations never flicker between renders */
+function lrng(s){let a=0;for(let i=0;i<s.length;i++){a=Math.imul(a^s.charCodeAt(i),16777619);}
+  return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+function drawLayout(cv,stage,pdk,W,H){
+  const ctx=cv.getContext("2d"),r=lrng(stage+pdk);
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  cv.width=W;cv.height=H;
+  ctx.fillStyle=dark?"#1c1c1d":"#ffffff";ctx.fillRect(0,0,W,H);
+  const M=14, cw=W-2*M, chh=H-2*M;
+  const ink=dark?"#8a8781":"#6c757d", cell=dark?"#6da3d8":"#3b6fb0";
+
+  /* die outline + core boundary, present at every stage */
+  ctx.strokeStyle=ink;ctx.lineWidth=1;ctx.strokeRect(M,M,cw,chh);
+  ctx.strokeStyle=dark?"#3a3a3c":"#e0ded9";
+  ctx.strokeRect(M+7,M+7,cw-14,chh-14);
+
+  const nRows=Math.floor(chh/7);
+  const stageIdx=["floorplan","global_place","detailed_place","cts","global_route"].indexOf(stage);
+
+  /* standard cell rows */
+  if(stageIdx>=0){
+    ctx.strokeStyle=dark?"#2b2b2c":"#f2f0ec";ctx.lineWidth=1;
+    for(let i=1;i<nRows;i++){
+      ctx.beginPath();ctx.moveTo(M+7,M+7+i*7);ctx.lineTo(W-M-7,M+7+i*7);ctx.stroke();}
+  }
+
+  /* I/O pins on the boundary */
+  ctx.fillStyle=dark?"#dd9558":"#c06a2e";
+  for(let i=0;i<26;i++){
+    const side=Math.floor(r()*4),t=0.08+r()*0.84;
+    let x,y;
+    if(side===0){x=M+t*cw;y=M;} else if(side===1){x=W-M;y=M+t*chh;}
+    else if(side===2){x=M+t*cw;y=H-M;} else {x=M;y=M+t*chh;}
+    ctx.fillRect(x-1.5,y-1.5,3,3);
+  }
+
+  /* cells */
+  if(stageIdx>=1){
+    const n=520;
+    ctx.fillStyle=cell;
+    for(let i=0;i<n;i++){
+      let x=M+9+r()*(cw-18), y;
+      if(stageIdx===1){                      // global place: off-row, overlapping
+        y=M+9+r()*(chh-18);
+        ctx.globalAlpha=.55;ctx.fillRect(x,y,2.6,3.4);
+      }else{                                  // legalised into rows
+        const row=Math.floor(r()*(nRows-1));
+        y=M+7+row*7+1.2;
+        ctx.globalAlpha=.8;ctx.fillRect(x,y,2.4,4.4);
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* clock tree */
+  if(stageIdx>=3){
+    ctx.strokeStyle=dark?"#8ed69a":"#2a6b34";ctx.lineWidth=1.1;ctx.globalAlpha=.85;
+    const cx=W/2,cy=H/2;
+    const branch=(x,y,len,depth,ang)=>{
+      if(depth===0)return;
+      for(const d of [-1,1]){
+        const nx=x+Math.cos(ang+d*Math.PI/2)*len, ny=y+Math.sin(ang+d*Math.PI/2)*len;
+        ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(nx,y);ctx.lineTo(nx,ny);ctx.stroke();
+        ctx.fillStyle=dark?"#8ed69a":"#2a6b34";ctx.fillRect(nx-1.6,ny-1.6,3.2,3.2);
+        branch(nx,ny,len*0.55,depth-1,ang+Math.PI/2);
+      }
+    };
+    branch(cx,cy,chh*0.26,3,0);
+    ctx.globalAlpha=1;
+  }
+
+  /* routing */
+  if(stageIdx>=4){
+    const layers=PDKINFO[pdk].metals;
+    for(let L=0;L<Math.min(layers,6);L++){
+      const hue=[210,28,150,275,45,190][L];
+      ctx.strokeStyle=`hsla(${hue},55%,${dark?60:42}%,.42)`;
+      ctx.lineWidth=L%2?1.4:1;
+      const vert=L%2===0;
+      for(let i=0;i<34;i++){
+        ctx.beginPath();
+        if(vert){const x=M+9+r()*(cw-18);ctx.moveTo(x,M+9+r()*chh*.3);
+          ctx.lineTo(x,H-M-9-r()*chh*.3);}
+        else{const y=M+9+r()*(chh-18);ctx.moveTo(M+9+r()*cw*.3,y);
+          ctx.lineTo(W-M-9-r()*cw*.3,y);}
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+/* RUDY-style congestion heatmap, per section 3.6 */
+function drawCongestion(cv,stage,pdk,W,H){
+  const ctx=cv.getContext("2d"),r=lrng(stage+pdk+"rudy");
+  cv.width=W;cv.height=H;
+  const G=26,cw=W/G,chh=H/G;
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  /* a couple of hot spots plus background demand */
+  const hot=[[0.32,0.38,0.20],[0.68,0.62,0.16],[0.5,0.2,0.11]];
+  for(let i=0;i<G;i++)for(let j=0;j<G;j++){
+    const u=i/G,v=j/G;
+    let d=0.12+r()*0.16;
+    for(const[hx,hy,hr]of hot){
+      const dist=Math.hypot(u-hx,v-hy);
+      d+=Math.exp(-(dist*dist)/(2*hr*hr))*0.85;
+    }
+    d=Math.min(1,d);
+    const hue=225-d*225;
+    ctx.fillStyle=`hsla(${hue},70%,${dark?(18+d*38):(94-d*46)}%,1)`;
+    ctx.fillRect(i*cw,j*chh,cw+.6,chh+.6);
+  }
+}
+
+/* ===== contextual About page =====
+   Rendered per (task, PDK, stage) rather than as one generic page, so a reader
+   who arrives from a specific cell gets the problem that cell poses.        */
+
+const TASKINFO={
+  total_area:{
+    predicts:"the total silicon area the design occupies after detailed routing",
+    unit:"\u00b5m\u00b2",
+    matters:"Area is the direct cost driver. A 10% area miss at floorplan means the die is sized wrong and the mistake is discovered after routing, when fixing it means restarting.",
+    physics:"Area grows through the flow as the tool inserts buffers, upsizes gates for timing, and adds filler and tap cells. Most of that growth happens at CTS.",
+    hard:"Early estimates only know cell counts, not what optimisation will add."},
+  total_power:{
+    predicts:"total power draw after detailed routing",
+    unit:"\u00b5W",
+    matters:"Power budget determines packaging, cooling and battery life. Getting it wrong late is expensive.",
+    physics:"Switching power depends on capacitance, which depends on wirelength, which does not exist until placement. Clock buffers added at CTS often dominate.",
+    hard:"The largest single contributor \u2014 the clock network \u2014 does not exist until CTS."},
+  total_wirelength:{
+    predicts:"total routed wirelength after detailed routing",
+    unit:"\u00b5m",
+    matters:"Wirelength drives delay, power and congestion simultaneously. It is the single best proxy for whether a floorplan is viable.",
+    physics:"Before placement there is no geometry at all. After placement, HPWL underestimates routed length because real routes detour around blockages.",
+    hard:"Not estimable at floorplan. Even at global place, HPWL is systematically 20\u201330% below the routed value."},
+  interconnect_length:{
+    predicts:"the routed length of each individual net",
+    unit:"\u00b5m",
+    matters:"A handful of very long nets set the critical path. Predicting the mean well while missing the tail is not useful.",
+    physics:"Net length is long-tailed: most nets are short and local, a few span the die.",
+    hard:"This is why the task carries P95 and TOP5 metrics alongside the mean."},
+  worst_arrival_time:{
+    predicts:"the latest signal arrival time in the design",
+    unit:"ns",
+    matters:"Arrival time determines whether the clock period is achievable.",
+    physics:"Arrival accumulates cell delays and wire delays along a path. Wire delay is unknown before routing.",
+    hard:"Early estimates lack parasitic RC entirely."},
+  worst_slack:{
+    predicts:"the worst timing slack across all endpoints",
+    unit:"ns",
+    matters:"Negative worst slack means the design fails timing. This is the go/no-go number.",
+    physics:"Slack is required time minus arrival time \u2014 a difference of two large numbers, so it is numerically delicate and clusters near zero.",
+    hard:"Because slack clusters near zero, percentage error explodes. MAPE is not reported for this task; directional metrics are used instead."},
+  total_negative_slack:{
+    predicts:"the sum of negative slack over all violating endpoints",
+    unit:"ns",
+    matters:"Worst slack tells you the deepest violation; TNS tells you how widespread the problem is.",
+    physics:"TNS is zero for a clean design and grows sharply once violations appear, so its distribution is heavily skewed.",
+    hard:"A single number spans zero to thousands, so absolute error is dominated by the worst designs."},
+  timing_path_arrival_time:{
+    predicts:"arrival time for each individual timing path",
+    unit:"ns",
+    matters:"Path-level prediction lets a designer see which paths are at risk, not just that some path is.",
+    physics:"Paths are matched between stages by startpoint, endpoint and check type. Paths that are added or restructured are excluded.",
+    hard:"Long-tailed: the slowest 5% of paths are what matter, hence the TOP5 metrics."},
+  timing_path_slack:{
+    predicts:"slack for each individual timing path",
+    unit:"ns",
+    matters:"Identifies which specific paths will violate, early enough to fix them cheaply.",
+    physics:"Same difference-of-large-numbers problem as worst slack, now per path.",
+    hard:"Directional error matters: over-estimating slack hides a violation."},
+  net_arc_delay:{
+    predicts:"delay across each net timing arc",
+    unit:"ns",
+    matters:"Net delay is where interconnect parasitics enter the timing picture.",
+    physics:"Determined by the RC of the routed wire, which does not exist before routing.",
+    hard:"Values are near zero at early stages, so R\u00b2 goes sharply negative and MAPE exceeds 10000%."},
+  cell_arc_delay:{
+    predicts:"delay through each cell timing arc",
+    unit:"ns",
+    matters:"Cell delay is the other half of path delay, driven by load and input slew.",
+    physics:"Depends on output load capacitance, which depends on the routed net.",
+    hard:"Values are around 0.001 ns and reported to four decimals, so precision limits how finely models can be ranked."},
+  cell_arc_slew:{
+    predicts:"output transition time for each cell arc",
+    unit:"ns",
+    matters:"Slew propagates: a slow transition degrades the next stage's delay.",
+    physics:"Set by drive strength against load capacitance.",
+    hard:"Like the other arc metrics, near-zero early values destabilise relative error measures."}};
+
+function renderAbout(task,pdk,stage){
+  const T=TASKINFO[task],P=PDKINFO[pdk],S=STAGEINFO[stage];
+  const label=TASKS.find(x=>x[0]===task)[1];
+  const si=STG.indexOf(stage);
+  const ms=metricsOf(task);
+  const el=document.getElementById("pane-about");
+
+  const sat=ms.every(m=>state(task,m,pdk,si)==="sat"||state(task,m,pdk,si)==="undef");
+  const vd =ms.every(m=>bval(task,m,pdk,si)===null);
+
+  el.innerHTML=`
+<div class="ab">
+  <div class="abhead">
+    <div>
+      <div class="abkick">the problem behind this cell</div>
+      <h1 class="abtitle">${label} at ${P.label}, predicted from ${SN[si]}</h1>
+      <p class="ablead">${T.predicts.charAt(0).toUpperCase()+T.predicts.slice(1)},
+      predicted using only what the tool knows after <b>${SN[si]}</b> &mdash; several stages before
+      the answer exists.</p>
+    </div>
+  </div>
+
+  <div class="abgrid">
+    <div class="abstat"><div class="t">what is predicted</div><div class="v">${label}</div>
+      <div class="s">${T.unit}</div></div>
+    <div class="abstat"><div class="t">from</div><div class="v">${SN[si]}</div>
+      <div class="s">to detailed route</div></div>
+    <div class="abstat"><div class="t">technology</div><div class="v">${P.label}</div>
+      <div class="s">${P.node} &middot; ${P.metals} metal layers</div></div>
+    <div class="abstat"><div class="t">baseline to beat</div>
+      <div class="v mono">${vd?"n/a":fmt(bval(task,ms[0],pdk,si),ms[0])}</div>
+      <div class="s">OpenROAD ${ms[0]}</div></div>
+  </div>
+
+  <h2>Why this is hard</h2>
+  <p>${T.matters}</p>
+  <p><b>The physics.</b> ${T.physics}</p>
+  <div class="abcall"><p>${T.hard}</p></div>
+
+  <h2>What the tool knows at ${SN[si]}</h2>
+  <p>${S.what}</p>
+  <div class="abfigs">
+    <figure><canvas id="fig-stage"></canvas>
+      <figcaption><b>${S.title}</b> &mdash; ${P.label} die. Cell rows, I/O pins on the boundary,
+      ${si>=1?"placed standard cells":"no cells placed yet"}${si>=3?", clock tree in green":""}${si>=4?`, routing across ${Math.min(P.metals,6)} metal layers`:""}.</figcaption></figure>
+    <figure><canvas id="fig-cong"></canvas>
+      <figcaption><b>Routing demand</b> &mdash; RUDY-style congestion map. Hot regions are where
+      routing is likely to fail, and where early estimates are least reliable.</figcaption></figure>
+  </div>
+  <p class="abnote">Illustrative renderings of the structures the dataset stores as binary spatial
+  maps and scalar heatmaps (EDA-Schema-V2 &sect;3.2, &sect;3.6). Real per-design images ship with the
+  dataset as NumPy arrays.</p>
+
+  <table class="abtab">
+    <tr><th style="width:22%">Available here</th><td>${S.known}</td></tr>
+    <tr><th>Still unknown</th><td>${S.unknown}</td></tr>
+    <tr><th>Why it matters</th><td>${S.why}</td></tr>
+  </table>
+
+  <h2>Why ${P.label} behaves the way it does</h2>
+  <p>${P.note}</p>
+  <p>With <b>${P.metals} metal layers</b> and a core utilisation target of ${P.util}, routing
+  resources ${P.metals<=5?"are scarce, so congestion appears early and wirelength estimates degrade":
+    P.metals>=9?"are plentiful, so routing rarely dominates and errors come mostly from cell-level effects":
+    "are moderate, sitting between the extremes of SKY130 and NG45"}.
+  Absolute errors across PDKs are not comparable &mdash; ${P.label} designs
+  ${pdk==="asap7"?"are physically tiny, so a small absolute error can still be a large relative one":
+    pdk==="ihp130"?"are physically large, which inflates absolute error even when relative accuracy is good":
+    "sit in the middle of the range"}. Compare within a column, not across.</p>
+
+  <h2>What the model actually sees</h2>
+  <p>A submission does not read the design. It reads a <b>feature vector</b> assembled
+  from the schema attributes that exist at ${SN[si]}. The lab's configuration uses 41 scalars
+  drawn from four entities; the schema defines more, but they do not exist yet at this stage.</p>
+
+  <div class="ivec" id="ivec"></div>
+
+  <table class="abtab">
+    <tr><th style="width:24%">netlist</th><td>9 attributes &mdash; input/output/cell/net/pin counts,
+      utilisation, die width and height, total HPWL. Structural size, known from floorplan.</td></tr>
+    <tr><th>cell &amp; area metrics</th><td>19 attributes &mdash; combinational, sequential, buffer,
+      inverter, filler, tap and diode counts, and the area each occupies.</td></tr>
+    <tr><th>power metrics</th><td>7 attributes &mdash; combinational, sequential, macro, internal,
+      switching and leakage power, and their total.</td></tr>
+    <tr><th>timing metrics</th><td>6 attributes &mdash; total negative slack, worst slack, worst
+      arrival and required time, endpoint counts.</td></tr>
+  </table>
+
+  <div class="abcall"><p>Every one of the 41 is available from floorplan onward, which is why the
+  same configuration runs at all five stages. The cost is that the model gains nothing from
+  reaching a later stage: at CTS the tool knows the clock-buffer count, at global route it knows
+  wirelength and congestion, and this feature set sees none of it.</p></div>
+
+  <h2>The baseline</h2>
+  <p>Every number in the ranking is measured against the OpenROAD estimate at ${SN[si]}, taken from
+  Table 8 of the EDA-Schema-V2 paper rather than re-derived. It is not a model &mdash; it is what
+  the tool already reports for free, and it is the thing a machine-learning method has to be worth
+  replacing.</p>
+  ${sat?`<div class="abcall warn"><p><b>This cell is saturated.</b> At ${SN[si]} the tool estimate
+    already equals the final value, so the error is exactly zero and no model can improve on it.
+    Ten of the twelve tasks are saturated at global route. These cells stay browsable but are never
+    ranked.</p></div>`:""}
+  ${vd?`<div class="abcall warn"><p><b>This cell is not estimable.</b> ${label} has no meaning before
+    cells are placed, so there is no floorplan-stage estimate to compare against.</p></div>`:""}
+
+  <h2>Metrics used here, and why these</h2>
+  <table class="abtab">
+    ${ms.map(m=>`<tr><th style="width:22%">${m}</th><td>${METRICDESC[m]||""}
+      <span class="abdir">${hi(m)?"higher is better":"lower is better"}</span></td></tr>`).join("")}
+  </table>
+  <p>Each metric is ranked independently. There is no aggregate score, because averaging an error in
+  micrometres against a true-positive rate needs weights nobody can defend, and it would let a model
+  with a catastrophic R&sup2; hide behind a good MAE.</p>
+
+  <h2>The models on this leaderboard</h2>
+  <p>Submissions come from five families, each bringing a different assumption about what predicts
+  final quality-of-results.</p>
+  <table class="abtab">
+    <tr><th style="width:22%">MLP</th><td>Fixed multilayer perceptron over the 41 scalar features.
+      The simplest baseline: no topology, no spatial information, just aggregate counts and areas.</td></tr>
+    <tr><th>GNN</th><td>Graph neural networks over the netlist graph, where nodes are gates, pins,
+      nets and ports. Captures connectivity that scalar features flatten away.</td></tr>
+    <tr><th>CNN</th><td>Convolutional networks over the spatial layout maps &mdash; cell placement,
+      pin density, RUDY congestion. Captures where things are, which matters for routing.</td></tr>
+    <tr><th>AutoML</th><td>Automated tree ensembles over the scalar features. Often a strong
+      baseline on tabular problems and a useful check on whether deep learning is earning its keep.</td></tr>
+    <tr><th>Hybrid</th><td>Combined graph and image branches with a fusion head, for tasks where
+      both topology and geometry matter.</td></tr>
+  </table>
+  <p>Every submission declares which of the schema's attributes it reads. Because EDA-Schema-V2
+  records the stage at which each attribute becomes available, a model claiming to predict from
+  ${SN[si]} while reading a post-route attribute is rejected automatically.</p>
+
+  <div class="abcta">
+    <div>
+      <div class="abctat">Think you can do better?</div>
+      <div class="abctas">Build a network, train it here on real design data, and see if you can
+      beat ${vd?"the tool":fmt(bval(task,ms[0],pdk,si),ms[0])}.</div>
+    </div>
+    <a class="btn primary" id="ab-beat">Beat OpenROAD &rarr;</a>
+  </div>
+</div>`;
+
+  drawFeatureVector(si);
+  drawLayout(document.getElementById("fig-stage"),stage,pdk,520,340);
+  drawCongestion(document.getElementById("fig-cong"),stage,pdk,340,340);
+  const b=document.getElementById("ab-beat");
+  if(b)b.href=`playground.html?task=${task}&pdk=${pdk}&stage=${stage}`;
+}
+
+/* the 41-dimensional input, drawn as a strip so its composition is visible */
+const FVEC=[["netlist",9,"#5b7fc4"],["cell &amp; area metrics",19,"#c47f5b"],
+            ["power metrics",7,"#5bc48f"],["timing metrics",6,"#a05bc4"]];
+function drawFeatureVector(si){
+  const el=document.getElementById("ivec");
+  if(!el)return;
+  const tot=FVEC.reduce((a,g)=>a+g[1],0);
+  el.innerHTML=
+    `<div class="ivbar">`+FVEC.map(([n,c,col])=>
+      `<span class="ivseg" style="width:${c/tot*100}%;background:${col}" `+
+      `title="${n} \u2014 ${c} attributes"><b>${c}</b></span>`).join("")+`</div>`+
+    `<div class="ivkey">`+FVEC.map(([n,c,col])=>
+      `<span><i style="background:${col}"></i>${n}</span>`).join("")+`</div>`+
+    `<div class="ivcells">`+Array.from({length:tot},(_,i)=>{
+      let acc=0,col="#999";
+      for(const[n,c,cc]of FVEC){if(i<acc+c){col=cc;break;}acc+=c;}
+      return `<i style="background:${col}"></i>`;}).join("")+`</div>`+
+    `<div class="ivnote"><b>${tot}</b> scalars in, one value out &mdash; `+
+      `the whole design compressed to a ${tot}-dimensional vector before the network sees it.</div>`;
+}
+
+const METRICDESC={
+ "MAE":"Mean absolute error in the metric's own units. The primary ranking number for most tasks.",
+ "MAPE":"Mean absolute percentage error. Unstable when the target approaches zero, which is why several tasks omit it.",
+ "R\u00b2":"Fraction of variance explained. Goes sharply negative when the target has little variance across the evaluation set.",
+ "MAE-P95":"Absolute error at the 95th percentile. Measures the tail rather than the average.",
+ "MAPE-P95":"Percentage error at the 95th percentile.",
+ "MAE-TOP5":"Absolute error on the largest 5% of instances \u2014 the ones that actually constrain the design.",
+ "MAPE-TOP5":"Percentage error on the largest 5%.",
+ "MPE":"Mean over-estimate. For timing, over-estimating delay is the safe direction.",
+ "MNE":"Mean under-estimate. Under-estimating delay hides a violation, so this is the dangerous direction.",
+ "TPR":"True positive rate \u2014 how often a genuinely violating endpoint is correctly flagged.",
+ "TNR":"True negative rate \u2014 how often a clean endpoint is correctly cleared."};
+
+/* ========= registries ========= */
+const PDK=["ng45","sky130","ihp130","asap7"];
+const PL={ng45:"NG45",sky130:"SKY130",ihp130:"IHP130",asap7:"ASAP7"};
+const STG=["floorplan","global_place","detailed_place","cts","global_route"];
+const SN=["floorplan","global place","detailed place","cts","global route"];
+const TASKS=[["total_area","Total area","\u00b5m\u00b2"],["total_power","Total power","\u00b5W"],
+["total_wirelength","Total wirelength","\u00b5m"],["interconnect_length","Interconnect length","\u00b5m"],
+["worst_arrival_time","Worst arrival time","ns"],["worst_slack","Worst slack","ns"],
+["total_negative_slack","Total negative slack","ns"],["timing_path_arrival_time","Path arrival time","ns"],
+["timing_path_slack","Path slack","ns"],["net_arc_delay","Net arc delay","ns"],
+["cell_arc_delay","Cell arc delay","ns"],["cell_arc_slew","Cell arc slew","ns"]];
+const HIGHER=["R\u00b2","TPR","TNR"];
+const NM=["GAT-3L-256","SAGE-4L-128","AutoML-xgb","MLP-fixed-512","CNN-layout-b","GIN-2L-64",
+"MLP-wide-1024","AutoML-lgbm","GAT-2L-128","SAGE-3L-256","CNN-rudy-a","MLP-deep-6L","GCN-3L-128",
+"AutoML-cat","Hybrid-gnn-cnn","MLP-fixed-256","SAGE-2L-64","GAT-4L-512"];
+const CIR=["ac97","aes","des3","eth","i2c","jpeg","mem","pci","sasc","sspi","spi","pcm","scaes",
+"scdes","tv80","usb_f","usb_p","wbdma"];
+const famOf=n=>/^(GAT|SAGE|GIN|GCN)/.test(n)?"GNN":/^AutoML/.test(n)?"AutoML":
+  /^CNN/.test(n)?"CNN":/^Hybrid/.test(n)?"Hybrid":"MLP";
+
+/* ========= the one real submission =========
+   Everything else on this page is placeholder. fixed_mlp is the lab's own
+   sweep: 41-64-32-16-1, trained per circuit, 20 (PDK, stage) configurations,
+   scored against the same Table 8 baseline. Its numbers come from
+   data/real.js, which is generated from the run tree itself. */
+const RM="fixed_mlp";
+const RD=()=>window.EDA_REAL||null;
+const isRealTask=t=>!!RD()&&t===RD().REAL_TASK&&!!RD().runs;
+/* the value the lab actually measured, in the units this page reports */
+function realVal(t,m,p,s){
+  if(!isRealTask(t))return null;
+  const run=RD().run(p,STG[s]);
+  if(!run)return null;
+  const[mae,mape,r2]=run.agg.m;
+  return m==="MAE"?mae:m==="MAPE"?mape*100:m==="R\u00b2"?r2:null;
+}
+/* the real row only exists for the task the lab has actually run */
+const namesFor=t=>isRealTask(t)?[RM,...NM]:NM;
+const isReal=(n,t)=>n===RM&&isRealTask(t);
+
+/* ========= state ========= */
+let sel=new Set(["ng45","sky130"]);           // selected PDKs (multi)
+let selS=new Set([0,1,2,3,4]);                // selected stages (multi)
+let selT=new Set(TASKS.map(t=>t[0]));         // selected tasks (multi)
+let cur={};                               // {t,p,s} current cell context
+let sortM=null, sortAsc=true, mode="raw"; // ranking sort + value mode
+
+/* HF-style filter state for the ranking view */
+let fSearch="", fFam=new Set(), fDiv=new Set(), fVer=new Set();
+let PMAX=200000;                  // recomputed from the data in openCell
+let fParams=[0,PMAX], fBeat=false, fShowFlagged=true;
+let visCols=null;                 // Set of visible metric ids; null = all
+let pinned=new Set(), expanded=null;
+let page=0, perPage=10;
+let cellTab="rankings";           // rankings | about | submit
+
+/* ========= helpers ========= */
+const H=s=>{let x=2166136261;for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619);}
+  return((x>>>0)%1e6)/1e6;};
+const metricsOf=t=>Object.keys(BASE[t]);
+const bval=(t,m,p,s)=>BASE[t][m][p][s];
+const hi=m=>HIGHER.indexOf(m)>=0;
+const better=(a,b,m)=>hi(m)?a>b:a<b;
+
+function fmt(v,m){
+  if(v===null)return"\u2014"; if(v===-999)return"no \u00b1"; if(v===99999)return">10000%";
+  if(v===-2)return"<-1";
+  const pct=m&&(m.indexOf("MAPE")===0||m==="TPR"||m==="TNR");
+  const a=Math.abs(v);let s;
+  if(a>=1000)s=Math.round(v).toLocaleString("en-US");
+  else if(a>=100)s=v.toFixed(1); else if(a>=1)s=v.toFixed(2);
+  else if(a>=.01)s=v.toFixed(3); else s=v.toFixed(4);
+  return pct?s+"%":s;
+}
+function state(t,m,p,s){
+  const v=bval(t,m,p,s);
+  if(v===null)return"void"; if(v===-999)return"undef";
+  if(hi(m)?(m==="R\u00b2"?v>=1:v>=100):v===0)return"sat";
+  /* where a real submission exists, the cell reports what actually happened */
+  const rv=realVal(t,m,p,s);
+  if(rv!==null)return better(rv,v,m)?"win":"lose";
+  const r=H(t+m+p+s);
+  return r<.13?"none":r<.63?"win":"lose";
+}
+function modelVal(t,m,p,s,n){
+  if(isReal(n,t)){const rv=realVal(t,m,p,s);if(rv!==null)return rv;}
+  const b=bval(t,m,p,s),r=H(t+m+p+s+n);
+  if(hi(m)){const gap=(m==="R\u00b2"?1:100)-b;return Math.min(m==="R\u00b2"?1:100,b+gap*(r*1.6-.55));}
+  return b*(.22+r*1.9);
+}
+function models(t,m,p,s){
+  return namesFor(t).map(n=>({n,f:famOf(n),v:modelVal(t,m,p,s,n),real:isReal(n,t),
+    st:isReal(n,t)?"ok":H(n+t+m)<.42?"ok":H(n+t+m)<.8?"pend":"warn"}))
+   .sort((a,b)=>better(a.v,b.v,m)?-1:1);
+}
+/* apply the HF-style filter stack to a row set */
+function applyFilters(rows,t,p,s){
+  const b=m=>bval(t,m,p,s);
+  return rows.filter(r=>{
+    if(fSearch){
+      const q=fSearch.toLowerCase();
+      const hay=(r.n+" "+r.f+" "+r.author+" "+r.div+" "+r.regime).toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    if(fFam.size&&!fFam.has(r.f))return false;
+    if(fDiv.size&&!fDiv.has(r.div))return false;
+    if(fVer.size&&!fVer.has(r.ver))return false;
+    if(r.params<fParams[0]||r.params>fParams[1])return false;
+    if(!fShowFlagged&&r.ver==="flagged")return false;
+    if(fBeat&&!better(r.vals[sortM],b(sortM),sortM))return false;
+    return true;
+  });
+}
+function activeFilterCount(){
+  return (fSearch?1:0)+fFam.size+fDiv.size+fVer.size+(fBeat?1:0)+
+    (!fShowFlagged?1:0)+((fParams[0]>0||fParams[1]<PMAX)?1:0);
+}
+function resetFilters(){
+  fSearch="";fFam.clear();fDiv.clear();fVer.clear();
+  fParams=[0,PMAX];fBeat=false;fShowFlagged=true;page=0;
+  const si=document.getElementById("srch"); if(si)si.value="";
+}
+
+/* rank of every model under every metric of a task, at one (pdk,stage) */
+const PARAMS={GNN:75777,MLP:5313,CNN:19457,AutoML:0,Hybrid:6433};
+function meta(n,t){
+  if(isReal(n,t)){
+    /* straight off the run tree: 41-64-32-16-1 = 5,313 parameters, 25 epochs,
+       50 gradient steps, one model per circuit, evaluated 2026-08-04 */
+    const st=RD().stats||{};
+    return{params:RD().arch?RD().arch.reduce((a,l)=>a+l.fo*l.fi+l.fo,0):5313,
+      div:"closed",ver:"verified",regime:"per-circuit",epochs:st.epochs||25,
+      infer:null,date:"2026-08-04",author:"ICE Lab"};
+  }
+  const r=H(n+t+"meta");
+  return{
+    params:Math.round(PARAMS[famOf(n)]*(.6+r*1.9)),
+    div:r<.55?"open":"closed",
+    ver:H(n+t+"MAE")<.42?"verified":H(n+t+"MAE")<.8?"self-reported":"flagged",
+    regime:r<.72?"per-circuit":"cross-circuit",
+    epochs:[25,50,100,200][Math.floor(r*4)],
+    infer:+(0.6+r*11).toFixed(1),
+    date:"2026-0"+(1+Math.floor(r*8))+"-"+(10+Math.floor(H(n+"d")*18)),
+    author:["ICE Lab","ICE Lab","ICE Lab","P. Shrestha","A. Aversa"][Math.floor(r*5)]
+  };
+}
+function table(t,p,s){
+  const ms=metricsOf(t).filter(m=>bval(t,m,p,s)!==null&&bval(t,m,p,s)!==-999);
+  const rows=namesFor(t).map(n=>Object.assign({n,f:famOf(n),vals:{},ranks:{},real:isReal(n,t)},
+    meta(n,t),
+    {st:isReal(n,t)?"ok":H(n+t+"MAE")<.42?"ok":H(n+t+"MAE")<.8?"pend":"warn"}));
+  ms.forEach(m=>{
+    rows.forEach(r=>r.vals[m]=modelVal(t,m,p,s,r.n));
+    const ord=[...rows].sort((a,b)=>better(a.vals[m],b.vals[m],m)?-1:1);
+    ord.forEach((r,i)=>r.ranks[m]=i+1);
+  });
+  return{metrics:ms,rows};
+}
+
+/* count-up: animates a number into place */
+function countUp(el,to,m,ms){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=fmt(to,m);return;}
+  if(to===null||to===-999||to===99999||to===-2||!isFinite(to)){el.textContent=fmt(to,m);return;}
+  const dur=ms||700,t0=performance.now();
+  (function tick(now){
+    const k=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(to*e,m);
+    if(k<1)requestAnimationFrame(tick);else el.textContent=fmt(to,m);
+  })(t0);
+}
+
+/* FLIP: First, Last, Invert, Play */
+function flip(container,reorder){
+  const rows=[...container.children];
+  const first=rows.map(r=>r.getBoundingClientRect().top);
+  reorder();
+  const last=rows.map(r=>r.getBoundingClientRect().top);
+  rows.forEach((r,i)=>{
+    const dy=first[i]-last[i];
+    if(!dy)return;
+    r.style.transition="none";
+    r.style.transform="translateY("+dy+"px)";
+  });
+  void container.offsetHeight;                       // force reflow
+  requestAnimationFrame(()=>rows.forEach(r=>{
+    r.style.transition="transform .45s cubic-bezier(.22,.61,.36,1)";
+    r.style.transform="";
+  }));
+}
+
+/* tooltip */
+const tip=document.getElementById("tip");
+function showTip(e,html){
+  tip.innerHTML=html;tip.classList.add("on");
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+14,y=e.clientY+14;
+  if(x+r.width>innerWidth-8)x=e.clientX-r.width-14;
+  if(y+r.height>innerHeight-8)y=e.clientY-r.height-14;
+  tip.style.left=x+"px";tip.style.top=y+"px";
+}
+const hideTip=()=>tip.classList.remove("on");
+
+/* animate charts when they scroll into view */
+const io=new IntersectionObserver(es=>es.forEach(x=>{
+  if(x.isIntersecting){x.target.classList.add("anim");io.unobserve(x.target);}
+}),{threshold:.15});
+const observe=()=>document.querySelectorAll("svg[data-anim]:not(.anim)").forEach(s=>io.observe(s));
+
+/* ========= matrix ========= */
+function matrix(){
+  const pdks=PDK.filter(p=>sel.has(p));
+  const stgs=STG.map((_,i)=>i).filter(i=>selS.has(i));
+  const tsks=TASKS.filter(t=>selT.has(t[0]));
+  const th=document.getElementById("mhead"),tb=document.getElementById("mbody");
+  const miss=[];
+  if(!pdks.length)miss.push("a PDK");
+  if(!stgs.length)miss.push("a design stage");
+  if(!tsks.length)miss.push("a task");
+  if(miss.length){
+    th.innerHTML="";
+    tb.innerHTML='<tr><td style="padding:2.5rem;text-align:center;'+
+      'color:var(--global-text-color-light)">Select at least '+miss.join(" and ")+'.</td></tr>';
+    return;
+  }
+  th.innerHTML='<tr class="g1"><th class="sk1" rowspan="2">Task</th>'+
+    '<th class="sk2" rowspan="2">Metric</th>'+
+    stgs.map(i=>'<th class="stg" colspan="'+pdks.length+'">'+SN[i]+'</th>').join("")+'</tr>'+
+    '<tr class="g2">'+stgs.map(()=>pdks.map((p,j)=>
+      '<th class="'+(j===0?"stg":"")+'">'+PL[p]+'</th>').join("")).join("")+'</tr>';
+
+  let html="",delay=0;
+  tsks.forEach(([id,label])=>{
+    metricsOf(id).forEach((m,mi)=>{
+      html+='<tr'+(mi===0?' class="grpstart"':'')+' data-task="'+id+'">'+
+        '<td class="sk1">'+(mi===0?label:"")+'</td><td class="sk2">'+m+'</td>';
+      stgs.forEach(si=>{
+        pdks.forEach((p,pi)=>{
+          const st=state(id,m,p,si),v=bval(id,m,p,si);
+          let cls,w,val,click=true;
+          if(st==="void"){cls="c-void";w="n/a";val="\u2014";click=false;}
+          else if(st==="undef"){cls="c-undef";w="no \u00b1 error";val="\u2014";}
+          else if(st==="sat"){cls="c-sat";w="\u25c6 saturated";val=fmt(v,m);}
+          /* where a real submission exists the cell names that one, so the
+             headline view of the matrix is never a placeholder */
+          else if(st==="win"){cls="c-win";
+            const top=isRealTask(id)?{n:RM,v:realVal(id,m,p,si)}:models(id,m,p,si)[0];
+            w="\u2713 "+top.n;val=fmt(top.v,m);}
+          else if(st==="lose"){cls="c-lose";w="\u2014 OpenROAD";val=fmt(v,m);}
+          else{cls="c-none";w="no entry";val="\u2014";click=false;}
+          delay=(delay+1)%40;
+          html+='<td class="'+(pi===0?"stg ":"")+'" data-col="'+si+"_"+p+'">'+
+            '<div class="c '+cls+'" style="animation-delay:'+(delay*7)+'ms"'+
+            (click?' data-t="'+id+'" data-m="'+m+'" data-p="'+p+'" data-s="'+si+'"':'')+
+            ' data-tip="'+id+"|"+m+"|"+p+"|"+si+'">'+
+            '<div class="w">'+w+'</div><div class="v">'+val+'</div></div></td>';
+        });
+      });
+      html+='</tr>';
+    });
+  });
+  tb.innerHTML=html;
+
+  tb.querySelectorAll(".c[data-t]").forEach(c=>c.onclick=()=>
+    openCell(c.dataset.t,c.dataset.p,+c.dataset.s,c.dataset.m));
+
+  /* hover: cross-highlight row + column, plus tooltip */
+  tb.querySelectorAll(".c").forEach(c=>{
+    const td=c.parentElement,tr=td.parentElement,col=td.dataset.col;
+    c.onmouseenter=e=>{
+      tr.classList.add("hl");
+      tb.querySelectorAll('[data-col="'+col+'"]').forEach(x=>x.classList.add("colhl"));
+      const[t,m,p,s]=c.dataset.tip.split("|");
+      const b=bval(t,m,p,+s),ms=models(t,m,p,+s),beat=ms.filter(x=>better(x.v,b,m)).length;
+      const st=state(t,m,p,+s);
+      let body;
+      if(st==="void")body="Not estimable before placement.";
+      else if(st==="undef")body="No \u00b1 error \u2014 n<sub>p</sub> = n<sub>n</sub> = 0 at this stage.";
+      else if(st==="sat")body="Saturated \u2014 the tool estimate already equals the final value.";
+      else if(st==="none")body="No submission yet.";
+      else body="baseline <b>"+fmt(b,m)+"</b><br>best <b>"+fmt(ms[0].v,m)+"</b> \u00b7 "+ms[0].n+
+        "<br>"+beat+" of "+ms.length+" beat the baseline"+
+        (isRealTask(t)?"<br><i>fixed_mlp here is a measured run</i>":"");
+      showTip(e,"<b>"+TASKS.find(x=>x[0]===t)[1]+"</b> \u00b7 "+m+"<br>"+PL[p]+" \u00b7 "+
+        SN[+s]+" \u2192 detailed route<br><br>"+body);
+    };
+    c.onmousemove=e=>showTip(e,tip.innerHTML);
+    c.onmouseleave=()=>{
+      tr.classList.remove("hl");
+      tb.querySelectorAll(".colhl").forEach(x=>x.classList.remove("colhl"));
+      hideTip();
+    };
+  });
+}
+
+/* ========= cell page: every metric of the task at once ========= */
+function openCell(t,p,s,focusM){
+  cur={t,p,s};
+  sortM=focusM||metricsOf(t)[0];sortAsc=!hi(sortM);mode="raw";
+  visCols=null;pinned.clear();expanded=null;page=0;
+  PMAX=Math.ceil(Math.max(...namesFor(t).map(n=>meta(n,t).params))/1000)*1000;
+  resetFilters();cellTab="rankings";
+  document.querySelectorAll("[data-ctab]").forEach(b=>
+    b.setAttribute("aria-selected",b.dataset.ctab==="rankings"));
+  document.getElementById("pane-rankings").classList.remove("hidden");
+  document.getElementById("pane-matrix").classList.add("hidden");
+  document.getElementById("pane-about").classList.add("hidden");
+  const[,label,unit]=TASKS.find(x=>x[0]===t);
+  document.getElementById("c-crumb").textContent=label+" \u00b7 "+PL[p]+" \u00b7 "+SN[s];
+  document.getElementById("c-title").textContent=label;
+  document.getElementById("c-sub").textContent=
+    PL[p]+" · "+SN[s]+" → detailed route · "+unit+
+    " · "+namesFor(t).length+" models across "+table(t,p,s).metrics.length+" metrics";
+  const bv=document.getElementById("c-bv");
+  bv.textContent="";
+  countUp(bv,bval(t,sortM,p,s),sortM);
+  document.getElementById("c-bt").textContent="OpenROAD "+SN[s]+" estimate · "+sortM;
+  ranking();buildGallery();show("cell");
+  syncLinks();
+  pushState();
+}
+
+/* ========= address bar =========
+   Task, PDK, stage and metric live in the URL, so a cell can be linked to,
+   reloaded, and returned to from the explorer or the playground. */
+let navLock=false;
+function pushState(replace){
+  if(navLock)return;
+  const q=new URLSearchParams({task:cur.t,pdk:cur.p,stage:STG[cur.s],metric:sortM});
+  const url=location.pathname+"?"+q;
+  history[replace?"replaceState":"pushState"]({cell:{...cur,m:sortM}},"",url);
+}
+function clearState(){
+  if(navLock)return;
+  history.pushState({},"",location.pathname);
+}
+/* every outbound link carries the cell you are looking at */
+function ctxQuery(extra){
+  const q=new URLSearchParams(Object.assign(
+    {task:cur.t,pdk:cur.p,stage:STG[cur.s]},extra||{}));
+  return q.toString();
+}
+function syncLinks(){
+  const inCell=!document.getElementById("v-cell").classList.contains("hidden");
+  document.querySelectorAll("[data-ctxlink]").forEach(a=>{
+    const page=a.dataset.ctxlink;
+    a.href=inCell&&cur.t?page+"?"+ctxQuery(page==="explorer.html"?{model:RM}:null):page;
+  });
+  const bb=document.getElementById("beatbtn");
+  if(bb&&cur.t)bb.href="playground.html?"+ctxQuery({model:RM});
+}
+addEventListener("popstate",e=>{
+  navLock=true;
+  const c=e.state&&e.state.cell;
+  if(c)openCell(c.t,c.p,c.s,c.m);else show("matrix");
+  navLock=false;
+});
+
+function ranking(){
+  toolbar();
+  const{t,p,s}=cur,{metrics,rows}=table(t,p,s);
+  const cols=metrics.filter(m=>!visCols||visCols.has(m));
+  const grid="34px 44px minmax(160px,1.4fr) 92px repeat("+cols.length+",minmax(104px,1fr))";
+
+  const head=document.getElementById("rkhead");
+  head.style.gridTemplateColumns=grid;
+  head.innerHTML='<div></div><div>#</div><div>Model</div><div>Family</div>'+
+    cols.map(m=>'<div class="'+(m===sortM?"act "+(sortAsc?"":"up"):"")+
+      '" data-m="'+m+'" style="text-align:right">'+m+'</div>').join("");
+  head.querySelectorAll("[data-m]").forEach(h=>h.onclick=()=>{
+    const m=h.dataset.m;
+    if(m===sortM)sortAsc=!sortAsc;else{sortM=m;sortAsc=!hi(m);}
+    countUp(document.getElementById("c-bv"),bval(t,sortM,p,s),sortM,450);
+    document.getElementById("c-bt").textContent="OpenROAD "+SN[s]+" estimate · "+sortM;
+    page=0;resort();pushState(true);
+  });
+  resort(true);
+}
+
+function toolbar(){
+  const{t,p,s}=cur,{metrics,rows}=table(t,p,s);
+  const tb=document.getElementById("toolbar");
+  const famCount=f=>rows.filter(r=>r.f===f).length;
+  const fams=["GNN","CNN","MLP","AutoML","Hybrid"];
+  tb.innerHTML=
+   '<div class="srchwrap"><span class="srchico">\u2315</span>'+
+   '<input class="srch" id="srch" placeholder="Search models by name, family, author, division\u2026" value="'+fSearch.replace(/"/g,"&quot;")+'">'+
+   '<div class="srchhint">Matches name, family, author, division and training regime</div></div>'+
+
+   '<div class="qfrow">'+
+     fams.map(f=>'<button class="qf" data-fam="'+f+'" aria-pressed="'+fFam.has(f)+'">'+
+       f+'<span class="ct">'+famCount(f)+'</span></button>').join("")+
+     '<span class="sep"></span>'+
+     '<button class="qf" data-quick="beat" aria-pressed="'+fBeat+'">beats baseline</button>'+
+     '<button class="qf" data-quick="verified" aria-pressed="'+fVer.has("verified")+'">verified only</button>'+
+     '<button class="qf" data-quick="closed" aria-pressed="'+fDiv.has("closed")+'">closed division</button>'+
+   '</div>'+
+
+   '<div class="tbrow">'+
+     '<div class="drop"><button class="dropbtn" data-drop="adv">Advanced filters'+
+       (activeFilterCount()?'<span class="badge2">'+activeFilterCount()+'</span>':'')+' \u25be</button>'+
+       '<div class="dropmenu" id="d-adv">'+
+         '<h4>Division</h4>'+
+         ["closed","open"].map(d=>'<label class="opt"><input type="checkbox" data-div="'+d+'"'+
+           (fDiv.has(d)?" checked":"")+'>'+d+'<span class="cnt">'+
+           rows.filter(r=>r.div===d).length+'</span></label>').join("")+
+         '<h4>Verification</h4>'+
+         ["verified","self-reported","flagged"].map(v=>'<label class="opt"><input type="checkbox" data-ver="'+v+'"'+
+           (fVer.has(v)?" checked":"")+'>'+v+'<span class="cnt">'+
+           rows.filter(r=>r.ver===v).length+'</span></label>').join("")+
+         '<h4>Parameters</h4>'+
+         '<div class="rangewrap"><div class="rangelbl"><span>0</span><span id="plbl">'+
+           fParams[1].toLocaleString("en-US")+'</span></div>'+
+           '<input type="range" id="prange" min="0" max="'+PMAX+'" step="1000" value="'+fParams[1]+'"></div>'+
+         '<h4>Display</h4>'+
+         '<label class="opt"><input type="checkbox" data-flag="showflag"'+(fShowFlagged?" checked":"")+
+           '>Show flagged submissions</label>'+
+       '</div></div>'+
+
+     '<div class="drop"><button class="dropbtn" data-drop="col">Columns \u25be</button>'+
+       '<div class="dropmenu" id="d-col"><h4>Metrics</h4>'+
+         metrics.map(m=>'<label class="opt"><input type="checkbox" data-col="'+m+'"'+
+           (!visCols||visCols.has(m)?" checked":"")+'>'+m+'</label>').join("")+
+       '</div></div>'+
+
+     '<div class="tog" style="margin-left:auto">'+
+       '<button data-mode="raw" aria-pressed="'+(mode==="raw")+'">raw</button>'+
+       '<button data-mode="ratio" aria-pressed="'+(mode==="ratio")+'">vs baseline</button>'+
+     '</div>'+
+   '</div>';
+
+  /* wiring */
+  const si=document.getElementById("srch");
+  si.oninput=()=>{fSearch=si.value;page=0;resort();updateResults();};
+  tb.querySelectorAll("[data-fam]").forEach(b=>b.onclick=()=>{
+    const f=b.dataset.fam;fFam.has(f)?fFam.delete(f):fFam.add(f);
+    b.setAttribute("aria-pressed",fFam.has(f));page=0;resort();updateResults();});
+  tb.querySelectorAll("[data-quick]").forEach(b=>b.onclick=()=>{
+    const q=b.dataset.quick;
+    if(q==="beat")fBeat=!fBeat;
+    if(q==="verified")fVer.has("verified")?fVer.delete("verified"):fVer.add("verified");
+    if(q==="closed")fDiv.has("closed")?fDiv.delete("closed"):fDiv.add("closed");
+    page=0;toolbar();resort();updateResults();});
+  tb.querySelectorAll("[data-drop]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const m=document.getElementById("d-"+b.dataset.drop);
+    document.querySelectorAll(".dropmenu").forEach(x=>{if(x!==m)x.classList.remove("on")});
+    m.classList.toggle("on");});
+  tb.querySelectorAll("[data-div]").forEach(c=>c.onchange=()=>{
+    c.checked?fDiv.add(c.dataset.div):fDiv.delete(c.dataset.div);page=0;resort();updateResults();});
+  tb.querySelectorAll("[data-ver]").forEach(c=>c.onchange=()=>{
+    c.checked?fVer.add(c.dataset.ver):fVer.delete(c.dataset.ver);page=0;resort();updateResults();});
+  tb.querySelectorAll("[data-flag]").forEach(c=>c.onchange=()=>{
+    fShowFlagged=c.checked;page=0;resort();updateResults();});
+  const pr=document.getElementById("prange");
+  if(pr)pr.oninput=()=>{fParams=[0,+pr.value];
+    document.getElementById("plbl").textContent=(+pr.value).toLocaleString("en-US");
+    page=0;resort();updateResults();};
+  tb.querySelectorAll("[data-col]").forEach(c=>c.onchange=()=>{
+    if(!visCols)visCols=new Set(metrics);
+    c.checked?visCols.add(c.dataset.col):visCols.delete(c.dataset.col);
+    if(!visCols.has(sortM)){sortM=[...visCols][0]||metrics[0];}
+    ranking();});
+  tb.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
+    mode=b.dataset.mode;
+    tb.querySelectorAll("[data-mode]").forEach(o=>o.setAttribute("aria-pressed",o.dataset.mode===mode));
+    resort();});
+}
+
+function cellVal(r,m){
+  const{t,p,s}=cur,b=bval(t,m,p,s);
+  if(mode==="raw")return fmt(r.vals[m],m);
+  if(hi(m))return(r.vals[m]-b>=0?"+":"")+(r.vals[m]-b).toFixed(3);
+  return(b/r.vals[m]).toFixed(2)+"\u00d7";
+}
+
+function updateResults(){
+  const{t,p,s}=cur,{rows}=table(t,p,s);
+  const shown=applyFilters(rows,t,p,s).length;
+  const el=document.getElementById("results");
+  if(!el)return;
+  el.innerHTML='<span><b>'+shown+'</b> of '+rows.length+' models</span>'+
+    (pinned.size?'<span>\u00b7 '+pinned.size+' pinned</span>':'')+
+    (activeFilterCount()?'<button class="clr" id="clrf">clear '+activeFilterCount()+' filter'+
+      (activeFilterCount()>1?"s":"")+'</button>':'');
+  const c=document.getElementById("clrf");
+  if(c)c.onclick=()=>{resetFilters();toolbar();resort();updateResults();};
+}
+
+function resort(first){
+  const{t,p,s}=cur,{metrics,rows}=table(t,p,s);
+  const cols=metrics.filter(m=>!visCols||visCols.has(m));
+  const grid="34px 44px minmax(160px,1.4fr) 92px repeat("+cols.length+",minmax(104px,1fr))";
+  const body=document.getElementById("rkbody");
+
+  let list=applyFilters(rows,t,p,s).sort((a,b)=>{
+    const d=better(a.vals[sortM],b.vals[sortM],sortM)?-1:1;
+    return sortAsc?d:-d;});
+  /* pinned rows float to the top, HF-style */
+  list=[...list.filter(r=>pinned.has(r.n)),...list.filter(r=>!pinned.has(r.n))];
+
+  const total=list.length,pages=Math.max(1,Math.ceil(total/perPage));
+  if(page>=pages)page=pages-1;
+  const slice=list.slice(page*perPage,(page+1)*perPage);
+
+  /* score-bar normalisation, per visible column */
+  const ext={};
+  cols.forEach(m=>{
+    const vs=rows.map(r=>r.vals[m]).filter(isFinite);
+    ext[m]=[Math.min(...vs),Math.max(...vs)];});
+  const norm=(v,m)=>{
+    const[lo,hi_]=ext[m],r=hi_-lo||1;
+    return hi(m)?(v-lo)/r:(hi_-v)/r;};
+
+  const IC={ok:'<span style="color:var(--lb-win-fg)" title="verified">\u2713</span>',
+    pend:'<span style="color:var(--global-text-color-light)" title="self-reported">\u25cb</span>',
+    warn:'<span style="color:var(--lb-warn)" title="flagged">\u26a0</span>'};
+  const MED=["\ud83e\udd47","\ud83e\udd48","\ud83e\udd49"];
+
+  const baseRow='<div class="rkrow base" style="grid-template-columns:'+grid+'">'+
+    '<div></div><div>\u2014</div><div>OpenROAD baseline</div><div class="fam">EDA tool</div>'+
+    cols.map(m=>'<div class="mcell'+(m===sortM?" colact":"")+'" data-m="'+m+'"><span>'+
+      fmt(bval(t,m,p,s),m)+'</span></div>').join("")+'</div>';
+
+  body.innerHTML=baseRow+slice.map((r,i)=>{
+    const gi=page*perPage+i;
+    const rk=gi<3&&!pinned.has(r.n)?'<span class="medal">'+MED[gi]+'</span>':(gi+1);
+    return '<div class="rkrow'+(pinned.has(r.n)?" pinned":"")+(gi===0?" lead":"")+
+      (r.real?" isreal":"")+
+      '" data-n="'+r.n+'" style="grid-template-columns:'+grid+'">'+
+      '<div><button class="pinbtn'+(pinned.has(r.n)?" on":"")+'" data-pin="'+r.n+
+        '" title="Pin for comparison">\u25c9</button></div>'+
+      '<div class="mono">'+rk+'</div>'+
+      '<div><button class="expbtn" data-exp="'+r.n+'">'+(expanded===r.n?"\u25be":"\u25b8")+
+        '</button>'+r.n+' '+IC[r.st]+
+        (r.real?'<span class="realtag" title="Measured run from the lab tree, not placeholder data">real</span>':"")+
+        '</div>'+
+      '<div class="fam">'+r.f+'</div>'+
+      cols.map(m=>{
+        const w=better(r.vals[m],bval(t,m,p,s),m);
+        return '<div class="mcell'+(r.ranks[m]===1?" r1":"")+(m===sortM?" colact":"")+
+          (w?"":" below")+'" data-m="'+m+'">'+
+          '<div class="sbar" style="width:'+(norm(r.vals[m],m)*100).toFixed(1)+'%"></div>'+
+          '<span class="mv">'+cellVal(r,m)+'</span>'+
+          '<span class="rkb">'+r.ranks[m]+'</span></div>';}).join("")+
+      '</div>'+
+      (expanded===r.n?detailRow(r,t,p,s):"");
+  }).join("");
+
+  body.querySelectorAll("[data-pin]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();const n=b.dataset.pin;
+    pinned.has(n)?pinned.delete(n):pinned.add(n);resort();updateResults();});
+  body.querySelectorAll("[data-exp]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();expanded=expanded===b.dataset.exp?null:b.dataset.exp;resort();});
+  body.querySelectorAll(".rkrow[data-n]").forEach(r=>r.onclick=()=>{
+    const q=new URLSearchParams({task:cur.t,pdk:cur.p,stage:STG[cur.s],
+      metric:sortM,model:r.dataset.n});
+    location.href="explorer.html?"+q;});
+
+  document.querySelectorAll("#rkhead [data-m]").forEach(h=>{
+    h.classList.toggle("act",h.dataset.m===sortM);
+    h.classList.toggle("up",h.dataset.m===sortM&&!sortAsc);});
+
+  pagerRender(total,pages);
+  updateResults();
+}
+
+function detailRow(r,t,p,s){
+  const{metrics,rows}=table(t,p,s);
+  const best=metrics.filter(m=>r.ranks[m]===1).length;
+  const fields=[
+    ["Family",r.f],["Division",r.div],["Verification",r.ver],
+    ["Training regime",r.regime],["Parameters",r.params?r.params.toLocaleString("en-US"):"—"],
+    ["Epochs",r.epochs],["Inference",r.infer===null?"—":r.infer+" ms"],["Submitted",r.date],
+    ["Author",r.author],["Rank-1 metrics",best+" of "+metrics.length]];
+  /* the real row can say where it came from and what it cost to produce */
+  if(r.real){
+    const run=RD().run(p,STG[s]),ri=run&&run.run||{};
+    const arch=RD().arch?[RD().arch[0].fi,...RD().arch.map(l=>l.fo)].join("\u2013"):"";
+    fields.push(["Architecture",arch],["Optimizer","SGD, lr 0.01"],
+      ["Gradient steps",(RD().stats||{}).gradientSteps||50],
+      ["Train wall clock",ri.wall||"—"],["Peak GPU",ri.gpuMemMb?ri.gpuMemMb+" MB":"—"],
+      ["Run",run?run.dir:"—"]);
+  }
+  return '<div class="detail">'+
+    fields.map(x=>'<div><div class="dl">'+x[0]+'</div><div class="dv">'+x[1]+'</div></div>').join("")+
+    (r.real?'<div style="grid-column:1/-1;margin-top:.5rem;font-size:.78rem;'+
+      'color:var(--global-text-color-light)">Measured on the lab cluster and read straight out of '+
+      'the run tree. One model per circuit, 18 per configuration; the leaderboard value is the '+
+      'aggregate the lab\u2019s own eval pass reports. '+
+      '<a href="explorer.html?'+new URLSearchParams({task:t,pdk:p,stage:STG[s],model:RM})+
+      '">open the checkpoints \u2192</a></div>':"")+
+  '</div>';
+}
+
+function pagerRender(total,pages){
+  const el=document.getElementById("pager");
+  if(!el)return;
+  el.innerHTML='<button id="pv"'+(page===0?" disabled":"")+'>\u2039 prev</button>'+
+    '<span>page '+(page+1)+' of '+pages+'</span>'+
+    '<button id="pn"'+(page>=pages-1?" disabled":"")+'>next \u203a</button>'+
+    '<span style="margin-left:.8rem">rows</span>'+
+    '<select id="pp">'+[10,18,25,50].map(n=>'<option'+(n===perPage?" selected":"")+'>'+n+'</option>').join("")+'</select>';
+  const pv=document.getElementById("pv"),pn=document.getElementById("pn"),pp=document.getElementById("pp");
+  if(pv)pv.onclick=()=>{if(page>0){page--;resort();}};
+  if(pn)pn.onclick=()=>{if(page<pages-1){page++;resort();}};
+  if(pp)pp.onchange=()=>{perPage=+pp.value;page=0;resort();};
+}
+
+/* ========= nav & wiring ========= */
+function show(v){
+  ["matrix","cell"].forEach(x=>
+    document.getElementById("v-"+x).classList.toggle("hidden",x!==v));
+  scrollTo(0,0);
+  syncLinks();
+}
+const CTRLS=document.querySelector(".ctrls");
+function toggler(attr,store,cast){
+  CTRLS.querySelectorAll("["+attr+"]").forEach(b=>b.onclick=()=>{
+    const v=cast(b.getAttribute(attr));
+    store.has(v)?store.delete(v):store.add(v);
+    b.setAttribute("aria-pressed",store.has(v));
+    matrix();
+  });
+}
+toggler("data-pdk",sel,String);
+toggler("data-stg",selS,Number);
+toggler("data-task",selT,String);
+
+/* select all / none per group */
+document.querySelectorAll("[data-bulk]").forEach(b=>b.onclick=()=>{
+  const[grp,act]=b.dataset.bulk.split(":");
+  const map={pdk:[sel,"data-pdk",String],stg:[selS,"data-stg",Number],task:[selT,"data-task",String]};
+  const[store,attr,cast]=map[grp];
+  store.clear();
+  CTRLS.querySelectorAll("["+attr+"]").forEach(x=>{
+    const on=act==="all";
+    if(on)store.add(cast(x.getAttribute(attr)));
+    x.setAttribute("aria-pressed",on);
+  });
+  matrix();
+});
+function backToMatrix(){clearState();show("matrix");}
+document.querySelectorAll("#v-cell [data-nav]").forEach(a=>a.onclick=backToMatrix);
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode;
+  document.querySelectorAll("[data-mode]").forEach(o=>
+    o.setAttribute("aria-pressed",o.dataset.mode===mode));
+  resort();
+});
+document.getElementById("themebtn").onclick=function(){
+  const d=document.documentElement.getAttribute("data-theme")==="dark";
+  document.documentElement.setAttribute("data-theme",d?"light":"dark");
+  this.textContent=d?"dark":"light";
+};
+addEventListener("click",()=>document.querySelectorAll(".dropmenu.on")
+  .forEach(m=>m.classList.remove("on")));
+document.querySelectorAll("[data-ctab]").forEach(b=>b.onclick=()=>{
+  cellTab=b.dataset.ctab;
+  document.querySelectorAll("[data-ctab]").forEach(o=>
+    o.setAttribute("aria-selected",o.dataset.ctab===cellTab));
+  ["rankings","matrix","about"].forEach(p=>
+    document.getElementById("pane-"+p).classList.toggle("hidden",cellTab!==p));
+  if(cellTab==="about")renderAbout(cur.t,cur.p,STG[cur.s]);
+  if(cellTab==="matrix")rankMatrix();
+});
+addEventListener("keydown",e=>{if(e.key==="Escape"){hideTip();backToMatrix();}});
+
+/* al-folio: enable_progressbar and back_to_top are both true in _config.yml */
+const prog=document.getElementById("prog"),topBtn=document.getElementById("top");
+addEventListener("scroll",()=>{
+  const h=document.documentElement.scrollHeight-innerHeight;
+  prog.style.width=(h>0?(scrollY/h)*100:0)+"%";
+  topBtn.classList.toggle("on",scrollY>320);
+},{passive:true});
+topBtn.onclick=()=>scrollTo({top:0,behavior:"smooth"});
+
+matrix();
+
+
+/* ===================================================================
+   Rank matrix — Arena's overview view, adapted. Models are rows, the
+   task's metrics are columns, and cells carry rank rather than score.
+   Medals mark the top three per column, exactly as Arena does.
+   =================================================================== */
+let mxView="rank", mxCompact=false, mxSort=null, mxAsc=true;
+
+/* Confidence interval from the spread across the 18 circuits. Arena reports
+   one on every score; ours is a real standard error, not a placeholder. */
+function ciFor(t,m,p,s,n){
+  if(isReal(n,t)&&RD().circuits){
+    /* real standard error over the 18 per-circuit results in eval.log */
+    const vs=RD().circuits.map((_,ci)=>perCircuit(t,m,p,s,n,ci)).filter(isFinite);
+    if(vs.length>1){
+      const mu=vs.reduce((a,b)=>a+b,0)/vs.length;
+      const va=vs.reduce((a,b)=>a+(b-mu)*(b-mu),0)/(vs.length-1);
+      return Math.sqrt(va/vs.length);
+    }
+  }
+  const r=H(t+m+p+s+n+"ci");
+  const base=modelVal(t,m,p,s,n);
+  /* per-circuit spread, scaled to the value */
+  const rel=0.04+r*0.10;
+  return Math.abs(base)*rel/Math.sqrt(18);
+}
+
+function rankMatrix(){
+  const{t,p,s}=cur;
+  const{metrics,rows}=table(t,p,s);
+  const b=m=>bval(t,m,p,s);
+
+  /* rank every model under every metric, independently */
+  const ranks={},best={};
+  metrics.forEach(m=>{
+    const ord=[...rows].sort((x,y)=>better(x.vals[m],y.vals[m],m)?-1:1);
+    ranks[m]=new Map(ord.map((r,i)=>[r.n,i+1]));
+    best[m]=ord.slice(0,3).map(r=>r.n);
+  });
+
+  /* order rows by mean rank unless a column is chosen */
+  let list=[...rows];
+  if(mxSort&&metrics.includes(mxSort)){
+    list.sort((x,y)=>(ranks[mxSort].get(x.n)-ranks[mxSort].get(y.n))*(mxAsc?1:-1));
+  }else{
+    list.sort((x,y)=>{
+      const mx=metrics.reduce((a,m)=>a+ranks[m].get(x.n),0)/metrics.length;
+      const my=metrics.reduce((a,m)=>a+ranks[m].get(y.n),0)/metrics.length;
+      return mx-my;});
+  }
+
+  const MED=["\u{1F947}","\u{1F948}","\u{1F949}"];
+  let html=`<thead><tr><th class="mxm">Model</th>`+
+    metrics.map(m=>`<th class="mxc${m===mxSort?" act":""}" data-mxs="${m}">${m}`+
+      `<span class="mxdir">${hi(m)?"higher":"lower"}</span></th>`).join("")+
+    `<th class="mxa">mean rank</th></tr></thead><tbody>`;
+
+  list.forEach((r,i)=>{
+    const mean=metrics.reduce((a,m)=>a+ranks[m].get(r.n),0)/metrics.length;
+    html+=`<tr class="mxrow" data-n="${r.n}">`+
+      `<td class="mxm"><span class="mxrk mono">${i+1}</span>`+
+      `<span class="mxnm">${r.n}</span>`+
+      `<span class="mxfam">${r.f}</span></td>`+
+      metrics.map(m=>{
+        const rk=ranks[m].get(r.n);
+        const v=r.vals[m], bb=b(m);
+        const win=better(v,bb,m);
+        const medal=best[m].indexOf(r.n);
+        let cell;
+        if(mxView==="rank")
+          cell=(medal>=0?`<span class="mdl">${MED[medal]}</span>`:"")+
+               `<span class="mono">${rk}</span>`;
+        else if(mxView==="score")
+          cell=`<span class="mono">${fmt(v,m)}</span>`+
+               `<span class="ci">\u00b1${fmt(ciFor(t,m,p,s,r.n),m).replace("%","")}</span>`;
+        else
+          cell=`<span class="mono">${win?(hi(m)?"+":"")+
+                 (hi(m)?(v-bb).toFixed(3):(bb/v).toFixed(2)+"\u00d7"):"\u2014"}</span>`;
+        return `<td class="mxv ${win?"win":"lose"}${m===mxSort?" act":""}">`+
+               `<div class="mxin">${cell}</div></td>`;
+      }).join("")+
+      `<td class="mxa mono">${mean.toFixed(1)}</td></tr>`;
+  });
+
+  /* the tool itself, pinned at the bottom as the line to cross */
+  html+=`<tr class="mxrow mxbase"><td class="mxm">`+
+    `<span class="mxrk">\u2014</span><span class="mxnm">OpenROAD estimate</span>`+
+    `<span class="mxfam">EDA tool</span></td>`+
+    metrics.map(m=>`<td class="mxv"><div class="mxin"><span class="mono">`+
+      `${fmt(b(m),m)}</span></div></td>`).join("")+
+    `<td class="mxa">\u2014</td></tr></tbody>`;
+
+  const tbl=document.getElementById("mxtable");
+  tbl.className="mx"+(mxCompact?" compact":"");
+  tbl.innerHTML=html;
+  document.getElementById("mxcount").textContent=
+    `${rows.length}/${rows.length} models \u00b7 ${metrics.length} metrics`;
+
+  tbl.querySelectorAll("[data-mxs]").forEach(th=>th.onclick=()=>{
+    const m=th.dataset.mxs;
+    if(m===mxSort)mxAsc=!mxAsc; else{mxSort=m;mxAsc=true;}
+    rankMatrix();});
+  tbl.querySelectorAll(".mxrow[data-n]").forEach(tr=>tr.onclick=()=>{
+    const q=new URLSearchParams({task:cur.t,pdk:cur.p,stage:STG[cur.s],
+      metric:mxSort||metrics[0],model:tr.dataset.n});
+    location.href="explorer.html?"+q;});
+}
+document.querySelectorAll("[data-mxv]").forEach(b=>b.onclick=()=>{
+  mxView=b.dataset.mxv;
+  document.querySelectorAll("[data-mxv]").forEach(o=>o.setAttribute("aria-pressed",o===b));
+  rankMatrix();});
+document.getElementById("mxcompact").onchange=function(){
+  mxCompact=this.checked;rankMatrix();};
+
+/* ===================================================================
+   Cell-page chart gallery. Every view plots all 18 models, not just
+   the leader — several of these only mean anything with the full set.
+   =================================================================== */
+let chartView="scatter", chartBig=false, chartHi=null;
+const C3={yaw:-0.6,pitch:-0.30,zoom:1,drag:false,lx:0,ly:0};
+
+/* per-circuit value for one model. For the lab's own submission these are the
+   numbers in its eval.log, circuit by circuit; for the placeholders they are
+   a deterministic spread around the model's aggregate. */
+function perCircuit(t,m,p,s,n,ci){
+  if(isReal(n,t)){
+    const rec=RD().circuitEval(p,STG[s],RD().circuits[ci]);
+    if(rec){const[mae,mape,r2]=rec.m;
+      const v=m==="MAE"?mae:m==="MAPE"?mape*100:m==="R²"?r2:null;
+      if(v!==null)return v;}
+  }
+  const base=modelVal(t,m,p,s,n);
+  const r=H(t+m+p+s+n+"c"+ci);
+  return base*(0.55+r*0.95);
+}
+const CIRC=["ac97","aes","des3","eth","i2c","jpeg","mem","pci","sasc","sspi",
+            "spi","pcm","scaes","scdes","tv80","usb_f","usb_p","wbdma"];
+
+const FAMCOL={GNN:"var(--fam-gnn)",CNN:"var(--fam-cnn)",MLP:"var(--fam-mlp)",AutoML:"var(--fam-automl)",Hybrid:"var(--fam-hybrid)"};
+
+/* normalise a metric to [0,1] where 1 is always better */
+function norm01(v,m,lo,hi){
+  const t=(v-lo)/((hi-lo)||1);
+  return hi_(m)?t:1-t;
+}
+const hi_=m=>HIGHER.indexOf(m)>=0;
+
+function chartData(){
+  const{t,p,s}=cur,{metrics,rows}=table(t,p,s);
+  const ext={};
+  metrics.forEach(m=>{
+    const vs=rows.map(r=>r.vals[m]).filter(isFinite);
+    ext[m]=[Math.min(...vs),Math.max(...vs)];});
+  return{t,p,s,metrics,rows,ext};
+}
+
+/* ---------- 1. predicted vs actual, ALL models ---------- */
+function chScatter(W,Hh){
+  const{t,p,s,rows}=chartData();
+  const m=sortM;
+  const b=bval(t,m,p,s);
+  const X0=58,Y0=Hh-42,X1=W-16,Y1=18;
+  const all=rows.flatMap(r=>CIRC.map((c,ci)=>perCircuit(t,m,p,s,r.n,ci)));
+  const lo=Math.min(...all,b)*0.9,hiV=Math.max(...all,b)*1.05;
+  const lg=lo>0&&hiV/lo>30;
+  const T=v=>lg?(Math.log(Math.max(lo,v))-Math.log(lo))/(Math.log(hiV)-Math.log(lo))
+               :(v-lo)/((hiV-lo)||1);
+  let g=`<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`+
+        `<line x1="${X0}" y1="${Y1}" x2="${X0}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`+
+        `<line x1="${X0}" y1="${Y0}" x2="${X1}" y2="${Y1}" stroke="var(--global-text-color-light)" `+
+        `stroke-dasharray="5 4" opacity=".5"/>`;
+  /* one series per model */
+  rows.forEach(r=>{
+    const dim=chartHi&&chartHi!==r.n;
+    CIRC.forEach((c,ci)=>{
+      const truth=perCircuit(t,m,p,s,"__truth",ci)*b/0.9;
+      const pred=perCircuit(t,m,p,s,r.n,ci);
+      const x=X0+T(truth)*(X1-X0), y=Y0-T(pred)*(Y0-Y1);
+      g+=`<circle class="cpt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" `+
+         `r="${dim?1.8:3}" fill="${FAMCOL[r.f]}" opacity="${dim?.10:.62}" `+
+         `data-mn="${r.n}"/>`;
+    });
+  });
+  g+=`<text class="cl" x="${(X0+X1)/2}" y="${Hh-8}" text-anchor="middle">true ${TASKS.find(x=>x[0]===t)[1].toLowerCase()}</text>`+
+     `<text class="cl" x="14" y="${(Y0+Y1)/2}" text-anchor="middle" `+
+     `transform="rotate(-90 14 ${(Y0+Y1)/2})">predicted</text>`;
+  return g;
+}
+
+/* ---------- 2. parallel coordinates: every model across every metric ---------- */
+function chParallel(W,Hh){
+  const{t,p,s,metrics,rows,ext}=chartData();
+  const X0=54,X1=W-20,Y0=Hh-46,Y1=24;
+  const ax=i=>X0+(i/(metrics.length-1||1))*(X1-X0);
+  let g="";
+  metrics.forEach((m,i)=>{
+    g+=`<line x1="${ax(i)}" y1="${Y1}" x2="${ax(i)}" y2="${Y0}" `+
+       `stroke="var(--global-divider-color)" stroke-width="1.4"/>`+
+       `<text class="cl" x="${ax(i)}" y="${Y1-8}" text-anchor="middle" `+
+       `font-weight="500">${m}</text>`+
+       `<text class="cl" x="${ax(i)}" y="${Y0+14}" text-anchor="middle" opacity=".7">`+
+       `${hi_(m)?"higher":"lower"} better</text>`;
+  });
+  /* the tool, drawn first so models sit over it */
+  const bpath=metrics.map((m,i)=>{
+    const[lo,hv]=ext[m];
+    const y=Y0-norm01(bval(t,m,p,s),m,lo,hv)*(Y0-Y1);
+    return(i?"L":"M")+ax(i)+" "+y.toFixed(1);}).join(" ");
+  g+=`<path d="${bpath}" fill="none" stroke="var(--neg)" stroke-width="2.6" `+
+     `stroke-dasharray="7 4" opacity=".9"/>`;
+  rows.forEach(r=>{
+    const dim=chartHi&&chartHi!==r.n;
+    const d=metrics.map((m,i)=>{
+      const[lo,hv]=ext[m];
+      const y=Y0-norm01(r.vals[m],m,lo,hv)*(Y0-Y1);
+      return(i?"L":"M")+ax(i)+" "+y.toFixed(1);}).join(" ");
+    g+=`<path class="cln" d="${d}" fill="none" stroke="${FAMCOL[r.f]}" `+
+       `stroke-width="${dim?1:chartHi===r.n?3.4:1.8}" `+
+       `opacity="${dim?.12:chartHi===r.n?1:.55}" data-mn="${r.n}"/>`;
+  });
+  return g;
+}
+
+/* ---------- 3. 3D metric space: three metrics as axes, orbitable ---------- */
+function proj3(x,y,z,W,Hh){
+  const cy=Math.cos(C3.yaw),sy=Math.sin(C3.yaw);
+  const cp=Math.cos(C3.pitch),sp=Math.sin(C3.pitch);
+  let X=x*cy-z*sy, Z=x*sy+z*cy;
+  let Y=y*cp-Z*sp; Z=y*sp+Z*cp;
+  const f=520,sc=f/(f+Z+300);
+  return{x:W/2+X*sc*C3.zoom,y:Hh/2+Y*sc*C3.zoom,z:Z,s:sc};
+}
+function ch3d(W,Hh){
+  const{t,p,s,metrics,rows,ext}=chartData();
+  const M3=metrics.slice(0,3);
+  if(M3.length<3)
+    return`<text class="cl" x="${W/2}" y="${Hh/2}" text-anchor="middle" opacity=".6">`+
+          `needs three metrics \u2014 this task has ${metrics.length}</text>`;
+  const R=150;
+  const pos=v=>(v-0.5)*2*R;
+  /* axis cage */
+  const corners=[[-R,-R,-R],[R,-R,-R],[R,R,-R],[-R,R,-R],
+                 [-R,-R,R],[R,-R,R],[R,R,R],[-R,R,R]].map(c=>proj3(c[0],c[1],c[2],W,Hh));
+  const edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  let g=edges.map(([a,b])=>
+    `<line x1="${corners[a].x.toFixed(1)}" y1="${corners[a].y.toFixed(1)}" `+
+    `x2="${corners[b].x.toFixed(1)}" y2="${corners[b].y.toFixed(1)}" `+
+    `stroke="var(--global-divider-color)" stroke-width="1"/>`).join("");
+  /* axis labels at the far corners */
+  const lab=[[R*1.15,-R,-R,M3[0]],[-R,R*1.15,-R,M3[1]],[-R,-R,R*1.15,M3[2]]];
+  lab.forEach(([x,y,z,n])=>{const q=proj3(x,y,z,W,Hh);
+    g+=`<text class="cl" x="${q.x.toFixed(1)}" y="${q.y.toFixed(1)}" `+
+       `text-anchor="middle" font-weight="500">${n}</text>`;});
+  /* the tool */
+  const bp=proj3(pos(norm01(bval(t,M3[0],p,s),M3[0],...ext[M3[0]])),
+                 pos(norm01(bval(t,M3[1],p,s),M3[1],...ext[M3[1]])),
+                 pos(norm01(bval(t,M3[2],p,s),M3[2],...ext[M3[2]])),W,Hh);
+  const pts=rows.map(r=>{
+    const q=proj3(pos(norm01(r.vals[M3[0]],M3[0],...ext[M3[0]])),
+                  pos(norm01(r.vals[M3[1]],M3[1],...ext[M3[1]])),
+                  pos(norm01(r.vals[M3[2]],M3[2],...ext[M3[2]])),W,Hh);
+    return{...q,r};}).sort((a,b)=>b.z-a.z);
+  pts.forEach(q=>{
+    const dim=chartHi&&chartHi!==q.r.n;
+    g+=`<circle class="cpt" cx="${q.x.toFixed(1)}" cy="${q.y.toFixed(1)}" `+
+       `r="${(dim?3:chartHi===q.r.n?9:6)*q.s}" fill="${FAMCOL[q.r.f]}" `+
+       `opacity="${dim?.18:.85}" stroke="rgba(0,0,0,.3)" stroke-width=".7" `+
+       `data-mn="${q.r.n}"/>`;
+    if(chartHi===q.r.n)
+      g+=`<text class="cl" x="${q.x.toFixed(1)}" y="${(q.y-14).toFixed(1)}" `+
+         `text-anchor="middle" font-weight="600">${q.r.n}</text>`;
+  });
+  g+=`<circle cx="${bp.x.toFixed(1)}" cy="${bp.y.toFixed(1)}" r="${8*bp.s}" `+
+     `fill="none" stroke="var(--neg)" stroke-width="2.6"/>`+
+     `<text class="cl" x="${bp.x.toFixed(1)}" y="${(bp.y+22*bp.s).toFixed(1)}" `+
+     `text-anchor="middle" fill="var(--neg)">OpenROAD</text>`;
+  return g;
+}
+
+/* ---------- 4. model x circuit heatmap ---------- */
+function chCircuits(W,Hh){
+  const{t,p,s,rows}=chartData();
+  const m=sortM,b=bval(t,m,p,s);
+  const X0=110,Y0=34,cw=(W-X0-16)/CIRC.length,chh=(Hh-Y0-30)/rows.length;
+  let g="";
+  CIRC.forEach((c,i)=>{
+    g+=`<text class="cl2" x="${(X0+i*cw+cw/2).toFixed(1)}" y="${Y0-6}" `+
+       `text-anchor="end" transform="rotate(-52 ${(X0+i*cw+cw/2).toFixed(1)} ${Y0-6})">${c}</text>`;});
+  rows.forEach((r,ri)=>{
+    const dim=chartHi&&chartHi!==r.n;
+    g+=`<text class="cl2" x="${X0-8}" y="${(Y0+ri*chh+chh/2+3).toFixed(1)}" `+
+       `text-anchor="end" opacity="${dim?.35:1}">${r.n}</text>`;
+    CIRC.forEach((c,ci)=>{
+      const v=perCircuit(t,m,p,s,r.n,ci);
+      const win=better(v,b,m);
+      const mag=Math.min(1,Math.abs(Math.log(v/b))/1.2);
+      g+=`<rect class="cpt" x="${(X0+ci*cw).toFixed(1)}" y="${(Y0+ri*chh).toFixed(1)}" `+
+         `width="${(cw-1).toFixed(1)}" height="${(chh-1).toFixed(1)}" `+
+         `fill="${win?"#3f8a45":"#b8453a"}" opacity="${(dim?.12:0.14+0.7*mag).toFixed(2)}" `+
+         `data-mn="${r.n}"/>`;});
+  });
+  return g;
+}
+
+/* ---------- 5. rank flow across metrics ---------- */
+function chBump(W,Hh){
+  const{t,p,s,metrics,rows}=chartData();
+  const X0=60,X1=W-130,Y0=Hh-30,Y1=26;
+  const ax=i=>X0+(i/(metrics.length-1||1))*(X1-X0);
+  const ay=r=>Y1+((r-1)/(rows.length-1))*(Y0-Y1);
+  const rk={};
+  metrics.forEach(m=>{
+    const ord=[...rows].sort((a,b)=>better(a.vals[m],b.vals[m],m)?-1:1);
+    rk[m]=new Map(ord.map((r,i)=>[r.n,i+1]));});
+  let g=metrics.map((m,i)=>
+    `<line x1="${ax(i)}" y1="${Y1}" x2="${ax(i)}" y2="${Y0}" `+
+    `stroke="var(--global-divider-color)"/>`+
+    `<text class="cl" x="${ax(i)}" y="${Y1-9}" text-anchor="middle" font-weight="500">${m}</text>`
+  ).join("");
+  rows.forEach(r=>{
+    const dim=chartHi&&chartHi!==r.n;
+    const d=metrics.map((m,i)=>(i?"L":"M")+ax(i)+" "+ay(rk[m].get(r.n)).toFixed(1)).join(" ");
+    g+=`<path class="cln" d="${d}" fill="none" stroke="${FAMCOL[r.f]}" `+
+       `stroke-width="${dim?1:chartHi===r.n?3.4:1.8}" `+
+       `opacity="${dim?.12:chartHi===r.n?1:.5}" data-mn="${r.n}"/>`;
+    metrics.forEach((m,i)=>{
+      g+=`<circle class="cpt" cx="${ax(i)}" cy="${ay(rk[m].get(r.n)).toFixed(1)}" `+
+         `r="${dim?1.6:3.2}" fill="${FAMCOL[r.f]}" opacity="${dim?.12:.9}" data-mn="${r.n}"/>`;});
+    const last=metrics[metrics.length-1];
+    g+=`<text class="cl2" x="${X1+8}" y="${(ay(rk[last].get(r.n))+3).toFixed(1)}" `+
+       `opacity="${dim?.2:1}" data-mn="${r.n}">${r.n}</text>`;
+  });
+  g+=`<text class="cl" x="${X0-10}" y="${Y1+4}" text-anchor="end">1st</text>`+
+     `<text class="cl" x="${X0-10}" y="${Y0+4}" text-anchor="end">${rows.length}th</text>`;
+  return g;
+}
+
+const CHARTS=[
+  ["scatter","predicted vs actual","every model, every circuit \u2014 18 series of 18 points"],
+  ["parallel","parallel coordinates","one line per model across every metric of this task"],
+  ["space3d","3D metric space","three metrics as axes \u2014 drag to orbit"],
+  ["circuits","model \u00d7 circuit","where each model wins, design by design"],
+  ["bump","rank flow","how each model's rank moves between metrics"]
+];
+
+function renderChart(){
+  const host=document.getElementById("chartsvg");
+  if(!host)return;
+  const W=chartBig?1180:760, Hh=chartBig?720:400;
+  host.setAttribute("viewBox",`0 0 ${W} ${Hh}`);
+  const fn={scatter:chScatter,parallel:chParallel,space3d:ch3d,
+            circuits:chCircuits,bump:chBump}[chartView];
+  host.innerHTML=fn(W,Hh);
+  host.querySelectorAll("[data-mn]").forEach(el=>{
+    el.onmouseenter=()=>{chartHi=el.dataset.mn;renderChart();updateChartInfo();};
+    el.onmouseleave=()=>{chartHi=null;renderChart();updateChartInfo();};
+    el.onclick=()=>{
+      const q=new URLSearchParams({task:cur.t,pdk:cur.p,stage:STG[cur.s],
+        metric:sortM,model:el.dataset.mn});
+      location.href="explorer.html?"+q;};
+  });
+  const c=CHARTS.find(c=>c[0]===chartView);
+  document.getElementById("chartcap").textContent=c?c[2]:"";
+}
+function updateChartInfo(){
+  const el=document.getElementById("chartinfo");
+  if(!el)return;
+  if(!chartHi){el.innerHTML=`<span class="dim">hover a model to isolate it &middot; click to open it</span>`;return;}
+  const{t,p,s,metrics,rows}=chartData();
+  const r=rows.find(x=>x.n===chartHi);
+  if(!r)return;
+  el.innerHTML=`<b>${r.n}</b> <span class="fam">${r.f}</span> `+
+    metrics.map(m=>`<span class="mi">${m} <b>${fmt(r.vals[m],m)}</b> `+
+      `<span class="dim">#${r.ranks[m]}</span></span>`).join("");
+}
+
+/* gallery wiring */
+function buildGallery(){
+  document.getElementById("galtabs").innerHTML=CHARTS.map(([id,label])=>
+    `<button class="galtab${id===chartView?" on":""}" data-cv="${id}">${label}</button>`).join("");
+  document.getElementById("galtabs").querySelectorAll("[data-cv]").forEach(b=>
+    b.onclick=()=>{chartView=b.dataset.cv;chartHi=null;buildGallery();renderChart();updateChartInfo();});
+  const{rows,metrics}=chartData();
+  document.getElementById("galcount").textContent=
+    `${rows.length} models \u00b7 ${metrics.length} metrics`;
+  document.getElementById("galkey").innerHTML=
+    Object.entries(FAMCOL).map(([f,c])=>
+      `<span><i style="background:${c}"></i>${f}</span>`).join("")+
+    `<span><i class="dashed"></i>OpenROAD estimate</span>`;
+  renderChart();updateChartInfo();
+}
+document.getElementById("chartexp").onclick=()=>{
+  chartBig=!chartBig;
+  document.body.classList.toggle("chartbig",chartBig);
+  document.getElementById("chartexp").innerHTML=chartBig?"&#10005; close":"&#8599; expand";
+  renderChart();};
+addEventListener("keydown",e=>{if(e.key==="Escape"&&chartBig){
+  chartBig=false;document.body.classList.remove("chartbig");
+  document.getElementById("chartexp").innerHTML="&#8599; expand";renderChart();}});
+/* orbit the 3D view */
+(function(){
+  const st=document.getElementById("galstage");
+  if(!st)return;
+  st.addEventListener("mousedown",e=>{if(chartView!=="space3d")return;
+    C3.drag=true;C3.lx=e.clientX;C3.ly=e.clientY;st.style.cursor="grabbing";});
+  addEventListener("mouseup",()=>{C3.drag=false;st.style.cursor="";});
+  st.addEventListener("mousemove",e=>{
+    if(!C3.drag||chartView!=="space3d")return;
+    C3.yaw+=(e.clientX-C3.lx)*0.008;
+    C3.pitch=Math.max(-1.2,Math.min(1.2,C3.pitch+(e.clientY-C3.ly)*0.007));
+    C3.lx=e.clientX;C3.ly=e.clientY;renderChart();});
+  st.addEventListener("wheel",e=>{
+    if(chartView!=="space3d")return;
+    e.preventDefault();
+    C3.zoom=Math.max(.5,Math.min(2.6,C3.zoom*(e.deltaY<0?1.08:0.926)));
+    renderChart();},{passive:false});
+})();
+/* open the cell named in the address, so links from the explorer, the
+   playground and the browser's own history land where they promised */
+(function(){
+  const q=new URLSearchParams(location.search);
+  const t=q.get("task"),p=q.get("pdk"),st=q.get("stage");
+  if(!t||!TASKS.some(x=>x[0]===t)||!PDK.includes(p))return;
+  let s=STG.indexOf(st);
+  if(s<0&&/^[0-4]$/.test(st||""))s=+st;
+  if(s<0)return;
+  const m=q.get("metric");
+  /* make sure the row is visible in the matrix behind the cell view */
+  sel.add(p);selS.add(s);selT.add(t);
+  CTRLS.querySelectorAll("[data-pdk],[data-stg],[data-task]").forEach(b=>{
+    const v=b.dataset.pdk||b.dataset.stg||b.dataset.task;
+    const on=b.dataset.pdk?sel.has(v):b.dataset.stg?selS.has(+v):selT.has(v);
+    b.setAttribute("aria-pressed",on);});
+  matrix();
+  navLock=true;
+  openCell(t,p,s,m&&metricsOf(t).includes(m)?m:null);
+  navLock=false;
+  pushState(true);
+})();
+syncLinks();
+
+</script>
+</body>
+</html>
