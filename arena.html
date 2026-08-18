@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2307294D'/><text x='16' y='23' font-family='Roboto,Arial' font-size='18' fill='%23fec500' text-anchor='middle'>E</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Mono:400,500|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
 <link rel="stylesheet" href="theme.css">
 <script src="theme.js"></script>
 <script src="https://cdn.plot.ly/plotly-cartesian-2.35.2.min.js" charset="utf-8"></script>
@@ -27,6 +27,10 @@
        body-xxs  10/12    body-xs  12/16    body-sm  14/20    body-base 16/24
    =========================================================================== */
 
+/* Arena runs a 16px/400 base, not 15px/300; at 15px/300 the page reads thinner
+   and smaller than the thing we are copying. Scoped here so the other pages
+   keep the ICE site's own body setting until this is merged. */
+body { font-size: 16px; font-weight: 400; }
 .body-xxs { font-size: .625rem; line-height: .75rem; }
 .body-xs  { font-size: .75rem;  line-height: 1rem; }
 .body-sm  { font-size: .875rem; line-height: 1.25rem; }
@@ -48,7 +52,23 @@
 
 .railsec { margin-bottom: 1.5rem; }
 .railhd { display: flex; align-items: center; gap: .4rem; margin-bottom: .6rem;
-  font-size: .8rem; font-weight: 500; color: var(--global-text-color); }
+  font-size: .8rem; font-weight: 500; color: var(--global-text-color);
+  width: 100%; background: none; border: 0; cursor: pointer; font-family: inherit;
+  padding: 0; text-align: left; }
+.railhd .chev { margin-left: auto; opacity: .5; font-size: .7rem; transition: transform .15s; }
+.railsec.closed .chev { transform: rotate(-90deg); }
+.railsec.closed .railbody { display: none; }
+/* nested task families, the way arena nests Technology > HTML */
+.grp { margin-bottom: .1rem; }
+.grphd { display: flex; align-items: center; gap: .4rem; width: 100%; font: inherit;
+  font-size: .78rem; padding: .28rem .5rem; border: 0; background: none; cursor: pointer;
+  color: var(--global-text-color-light); border-radius: 6px; text-align: left; }
+.grphd:hover { background: var(--global-card-bg-color); color: var(--global-text-color); }
+.grphd .ct { font-size: .66rem; opacity: .55; font-variant-numeric: tabular-nums; }
+.grphd .gchev { margin-left: auto; opacity: .5; font-size: .65rem; transition: transform .15s; }
+.grp.open .gchev { transform: rotate(90deg); }
+.grp .cats { display: none; padding-left: .55rem; }
+.grp.open .cats { display: flex; }
 .railhd .ico { opacity: .55; font-size: .85rem; }
 .railhd .ct { color: var(--global-text-color-light); font-weight: 400; }
 
@@ -126,17 +146,22 @@ h1.title { font-size: 1.9rem; font-weight: 300; color: var(--md-heading-color); 
   background: var(--global-bg-color); overflow: hidden; }
 .tscroll { overflow-x: auto; }
 table.lb { width: 100%; border-collapse: collapse; table-layout: auto; }
-table.lb thead th { background: var(--global-bg-color); font-size: .75rem; font-weight: 500;
-  color: var(--global-text-color-light); text-align: left; white-space: nowrap;
-  padding: .85rem 1rem; border-bottom: 1px solid var(--global-divider-color); }
+/* arena does not grey its headers out: th and td are the same colour and the
+   same weight, so the header row reads as content rather than as a form label */
+table.lb thead th { background: var(--global-bg-color); font-size: .75rem; font-weight: 400;
+  color: var(--global-text-color); text-align: left; white-space: nowrap;
+  padding: .875rem 1.5rem; border-bottom: 1px solid var(--global-divider-color); }
 table.lb th.sortable { cursor: pointer; user-select: none; }
 table.lb th.sortable:hover { color: var(--global-text-color); }
-table.lb th .caret { opacity: .35; margin-left: .25rem; }
+table.lb th .caret { display: inline-flex; flex-direction: column; line-height: .5;
+  margin-left: .3rem; vertical-align: middle; font-size: .5rem; opacity: .45; }
+table.lb th .caret i { font-style: normal; }
+table.lb th .caret .on { opacity: 1; color: var(--global-theme-color); }
 table.lb th.act { color: var(--global-theme-color); }
 table.lb th.act .caret { opacity: 1; }
 table.lb th.rt, table.lb td.rt { text-align: right; }
 table.lb th.ct, table.lb td.ct { text-align: center; }
-table.lb tbody td { font-size: .875rem; padding: .5rem 1rem; vertical-align: middle;
+table.lb tbody td { font-size: .875rem; padding: .5rem 1.5rem; vertical-align: middle;
   border-bottom: 1px solid var(--global-divider-color); }
 table.lb tbody tr { transition: background .12s; }
 table.lb tbody tr:hover { background: var(--global-card-bg-color); }
@@ -151,9 +176,9 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
 .spread { display: flex; align-items: center; justify-content: center; gap: .3rem;
   font-size: .78rem; color: var(--global-text-color-light); font-variant-numeric: tabular-nums; }
 .spread svg { opacity: .55; }
-.mcell { display: flex; align-items: center; gap: .55rem; min-width: 0; }
-.mname { font-family: var(--global-font-mono); font-size: .84rem; color: var(--global-text-color);
-  white-space: nowrap; }
+.mcell { display: flex; align-items: center; gap: .55rem; min-width: 0; min-height: 36px; }
+.mname { font-family: "Roboto Mono", var(--global-font-mono); font-size: .875rem;
+  color: var(--global-text-color); white-space: nowrap; }
 .msub { font-size: .7rem; color: var(--global-text-color-light); }
 .fam { width: 20px; height: 20px; border-radius: 4px; flex: none; display: grid;
   place-items: center; font-size: .6rem; font-weight: 600; color: #fff; }
@@ -224,33 +249,34 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
 
   <!-- ============ filter rail ============ -->
   <aside class="rail" id="rail">
-    <div class="railsec">
-      <div class="railhd"><span class="ico">◱</span> View as</div>
-      <div class="seg" id="viewseg">
-        <button data-view="ranking" aria-selected="true">Ranking</button>
-        <button data-view="pareto" aria-selected="false">Pareto</button>
+    <div class="railsec" data-sec="view">
+      <button class="railhd"><span class="ico">◱</span> View as<span class="chev">▾</span></button>
+      <div class="railbody">
+        <div class="seg" id="viewseg">
+          <button data-view="ranking" aria-selected="true">Ranking</button>
+          <button data-view="pareto" aria-selected="false">Pareto</button>
+        </div>
       </div>
     </div>
 
-    <div class="railsec">
-      <div class="railhd"><span class="ico">▦</span> Categories <span class="ct" id="catct"></span></div>
-      <div class="cats" id="cats"></div>
-      <button class="more" id="catmore">+ View more</button>
+    <div class="railsec" data-sec="cats">
+      <button class="railhd"><span class="ico">▦</span> Categories <span class="ct" id="catct"></span><span class="chev">▾</span></button>
+      <div class="railbody"><div id="cats"></div></div>
     </div>
 
-    <div class="railsec">
-      <div class="railhd"><span class="ico">⚙</span> Predict from</div>
-      <div id="stageopts"></div>
+    <div class="railsec" data-sec="stage">
+      <button class="railhd"><span class="ico">⚙</span> Predict from<span class="chev">▾</span></button>
+      <div class="railbody"><div id="stageopts"></div></div>
     </div>
 
-    <div class="railsec">
-      <div class="railhd"><span class="ico">▤</span> PDK</div>
-      <div id="pdkopts"></div>
+    <div class="railsec" data-sec="pdk">
+      <button class="railhd"><span class="ico">▤</span> PDK<span class="chev">▾</span></button>
+      <div class="railbody"><div id="pdkopts"></div></div>
     </div>
 
-    <div class="railsec">
-      <div class="railhd"><span class="ico">◎</span> Score by</div>
-      <div id="metricopts"></div>
+    <div class="railsec" data-sec="metric">
+      <button class="railhd"><span class="ico">◎</span> Score by<span class="chev">▾</span></button>
+      <div class="railbody"><div id="metricopts"></div></div>
     </div>
   </aside>
 
@@ -351,6 +377,14 @@ const TASKS = [
   ["net_arc_delay","Net arc delay","ns","➰"],
   ["cell_arc_delay","Cell arc delay","ns","🔲"],
   ["cell_arc_slew","Cell arc slew","ns","🌊"]];
+
+/* the paper's own taxonomy, which gives the rail the nesting arena has */
+const GROUPS = [
+  ["Circuit-level", ["total_area","total_power","total_wirelength"]],
+  ["Net-level",     ["interconnect_length"]],
+  ["Timing",        ["worst_arrival_time","worst_slack","total_negative_slack"]],
+  ["Path-level",    ["timing_path_arrival_time","timing_path_slack"]],
+  ["Arc-level",     ["net_arc_delay","cell_arc_delay","cell_arc_slew"]]];
 
 const HIGHER = new Set(["R²","TPR","TNR"]);
 const FAMCOL = {GNN:"#2f6bb5", MLP:"#2f8f6b", CNN:"#c25f22", AutoML:"#7a4bb8",
@@ -480,11 +514,52 @@ function meta(n, t) {
    cannot be separated statistically share a rank.
    =================================================================== */
 const Z = 1.96;
+
+/* Bootstrap over circuits, which is what FastChat does over battles: resample
+   the 18 circuits with replacement, recompute the score, read the 2.5th and
+   97.5th percentiles off the distribution. The interval comes out asymmetric,
+   because the per-circuit ratios are skewed — one bad circuit costs more than
+   one good circuit gains — and arena reports it that way, +9/-9 rather than
+   ±9. Seeded per entry, so no figure moves between renders. */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0;
+  let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash32(str) { let x = 2166136261;
+  for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); }
+  return x >>> 0; }
+const R_BOOT = 600;
+function bootstrapCI(t, m, p, s, n, agg) {
+  const raw = perCircuit(t, m, p, s, n);
+  let unit = raw.filter(isFinite), scale = 1;
+  if (ABSOLUTE(m)) {                        // normalise away circuit size first
+    const ref = perCircuit(t, m, p, s, "__baseline__");
+    const rat = raw.map((x, i) => isFinite(x) && isFinite(ref[i]) && ref[i] !== 0 ? x / ref[i] : null)
+                   .filter(x => x !== null);
+    if (rat.length > 2) {
+      const mu = rat.reduce((a, b) => a + b, 0) / rat.length;
+      if (mu) { unit = rat; scale = agg / mu; }
+    }
+  }
+  if (unit.length < 3) return { lo: agg, hi: agg };
+  const rnd = mulberry32(hash32(t + m + p + s + n));
+  const means = new Array(R_BOOT);
+  for (let b = 0; b < R_BOOT; b++) {
+    let acc = 0;
+    for (let k = 0; k < unit.length; k++) acc += unit[(rnd() * unit.length) | 0];
+    means[b] = acc / unit.length * scale;
+  }
+  means.sort((a, b) => a - b);
+  const q = f => means[Math.min(R_BOOT - 1, Math.max(0, Math.round(f * (R_BOOT - 1))))];
+  return { lo: q(0.025), hi: q(0.975) };
+}
+
 function buildRows(t, p, s, metric) {
   const names = (isRealTask(t) ? [RM] : []).concat(SYNTH);
   const rows = names.map(n => {
     const v = modelVal(t, metric, p, s, n), se = seOf(t, metric, p, s, n);
-    return Object.assign({ n, fam: famOf(n), v, se, lo: v - Z * se, hi: v + Z * se,
+    const ci = bootstrapCI(t, metric, p, s, n, v);
+    return Object.assign({ n, fam: famOf(n), v, se, lo: ci.lo, hi: ci.hi,
+      up: ci.hi - v, dn: v - ci.lo,
       vals: {}, series: perCircuit(t, metric, p, s, n) }, meta(n, t));
   });
   metricsOf(t).forEach(m => rows.forEach(r => { r.vals[m] = modelVal(t, m, p, s, r.n); }));
@@ -524,7 +599,7 @@ function winFraction(rows, metric) {
    =================================================================== */
 const state = { task: "total_area", pdk: "ng45", stage: 0, metric: "MAE",
   view: "ranking", group: "models", search: "", sort: null, asc: null,
-  catsOpen: false };
+  openGroups: new Set() };
 
 const $ = id => document.getElementById(id);
 const taskDef = () => TASKS.find(x => x[0] === state.task);
@@ -551,22 +626,34 @@ const taskLive = (t, p, s) => metricsOf(t).some(m => cellState(t, m, p, s) === "
    Rail
    =================================================================== */
 function drawRail() {
-  const shown = state.catsOpen ? TASKS : TASKS.slice(0, 8);
+  /* categories nest by the paper's taxonomy, the way arena nests its own */
   $("catct").textContent = "(" + TASKS.length + ")";
-  $("cats").innerHTML = shown.map(([id, label, , emo]) => {
-    const dead = !taskLive(id, state.pdk, state.stage);
-    return `<button class="cat${dead ? " void" : ""}" data-task="${id}"
-      aria-selected="${state.task === id}"${dead ? " disabled" : ""}
-      title="${dead ? "Nothing scoreable here at this stage" : label}">
-      <span class="emo">${emo}</span><span>${label}</span><span class="tick">✓</span></button>`;
+  $("cats").innerHTML = GROUPS.map(([g, ids]) => {
+    const open = state.openGroups.has(g) || ids.includes(state.task);
+    const live = ids.filter(id => taskLive(id, state.pdk, state.stage)).length;
+    const items = ids.map(id => {
+      const [, label, , emo] = TASKS.find(x => x[0] === id);
+      const dead = !taskLive(id, state.pdk, state.stage);
+      return `<button class="cat${dead ? " void" : ""}" data-task="${id}"
+        aria-selected="${state.task === id}"${dead ? " disabled" : ""}
+        title="${dead ? "Nothing scoreable here at this stage" : label}">
+        <span class="emo">${emo}</span><span>${label}</span><span class="tick">✓</span></button>`;
+    }).join("");
+    return `<div class="grp${open ? " open" : ""}" data-grp="${g}">
+      <button class="grphd"><span>${g}</span>
+        <span class="ct">${live}/${ids.length}</span><span class="gchev">▸</span></button>
+      <div class="cats">${items}</div></div>`;
   }).join("");
   $("cats").querySelectorAll("[data-task]").forEach(b => b.onclick = () => {
     state.task = b.dataset.task;
     if (!metricsOf(state.task).includes(state.metric)) state.metric = metricsOf(state.task)[0];
     state.sort = null; render();
   });
-  $("catmore").textContent = state.catsOpen ? "– View less" : "+ View more";
-  $("catmore").onclick = () => { state.catsOpen = !state.catsOpen; drawRail(); };
+  $("cats").querySelectorAll("[data-grp] .grphd").forEach(b => b.onclick = () => {
+    const g = b.parentElement.dataset.grp;
+    state.openGroups.has(g) ? state.openGroups.delete(g) : state.openGroups.add(g);
+    drawRail();
+  });
 
   $("stageopts").innerHTML = SL.map((s, i) =>
     `<label class="opt"><input type="radio" name="stg" value="${i}"
@@ -677,7 +764,7 @@ function drawTable(rows) {
     const act = state.sort === c.k;
     return `<th class="${c.cls}${c.sortable ? " sortable" : ""}${act ? " act" : ""}"
       ${c.sortable ? `data-sort="${c.k}"` : ""} ${c.tip ? `title="${c.tip}"` : ""}>${c.t}${
-      c.sortable ? `<span class="caret">${act ? (state.asc ? "↑" : "↓") : "↕"}</span>` : ""}</th>`;
+      c.sortable ? `<span class="caret"><i class="${act && state.asc ? "on" : ""}">▲</i><i class="${act && !state.asc ? "on" : ""}">▼</i></span>` : ""}</th>`;
   }).join("") + "</tr>";
   $("lbhead").querySelectorAll("[data-sort]").forEach(th => th.onclick = () => {
     const k = th.dataset.sort;
@@ -708,7 +795,7 @@ function drawTable(rows) {
         <span class="fam" style="background:${FAMCOL[r.fam]}">${r.fam.slice(0, 2).toUpperCase()}</span>
         <div><div class="mname">${r.n}</div>
         <div class="msub">${r.sub || (r.org + " · " + r.fam)}</div></div></div></td>
-      <td class="rt"><span class="val ${w ? "win" : "lose"}">${fmt(r.v, state.metric)}</span><span class="pm">±${nf(Z * r.se)}</span></td>` +
+      <td class="rt"><span class="val ${w ? "win" : "lose"}">${fmt(r.v, state.metric)}</span><span class="pm">+${nf(r.up)}/-${nf(r.dn)}</span></td>` +
       cols.filter(c => c.k.startsWith("m:")).map(c => {
         const m = c.k.slice(2);
         return `<td class="rt val">${fmt(r.vals[m], m)}</td>`; }).join("") +
@@ -789,16 +876,20 @@ function drawPlots(rows) {
 
   /* 1 — score with its confidence interval, the arena signature plot */
   $("p1t").textContent = `Confidence intervals on ${m}`;
-  $("p1c").textContent = `${m} for each entry with a 95% interval over the ${CIRCUITS().length} `
-    + `circuits. Overlapping intervals mean the order between two entries is not resolved.`;
+  $("p1c").textContent = `${m} for each entry, with a 95% bootstrap interval over the `
+    + `${CIRCUITS().length} circuits — resampled with replacement, the way the arena does it over `
+    + `battles. The interval is asymmetric because one bad circuit costs more than one good one `
+    + `gains. Overlapping intervals mean the order between two entries is not resolved.`;
   Plotly.react($("p1"), [{
     type: "scatter", mode: "markers", x: top.map(r => r.n), y: top.map(r => r.v),
-    error_y: { type: "data", array: top.map(r => Z * r.se), visible: true,
+    error_y: { type: "data", array: top.map(r => r.up), arrayminus: top.map(r => r.dn),
+      visible: true, symmetric: false,
       color: t.accent, thickness: 1.4, width: 4, opacity: .6 },
     marker: { size: 7, color: top.map(r => r.real ? t.gold : t.accent),
       line: { color: t.dark ? "#001d36" : "#fff", width: 1 }, symbol: "circle" },
     text: top.map(r => `${r.n}<br>${m}: ${fmt(r.v, m)}<br>` +
-      `Upper: ${fmt(r.hi, m)}<br>Lower: ${fmt(r.lo, m)}<br>Rank ${r.rankBest}–${r.rankWorst}`),
+      `Upper bound: ${fmt(r.hi, m)}<br>Lower bound: ${fmt(r.lo, m)}<br>` +
+      `Rank ${r.rankBest}–${r.rankWorst}`),
     hoverinfo: "text"
   }], Object.assign(BASE_LAYOUT(t), {
     yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } } }),
@@ -949,6 +1040,8 @@ $("groupseg").querySelectorAll("[data-group]").forEach(b => b.onclick = () => {
   drawTable(ROWS);
 });
 $("srch").oninput = e => { state.search = e.target.value; drawTable(ROWS); };
+document.querySelectorAll(".railsec > .railhd").forEach(h => h.onclick = () =>
+  h.parentElement.classList.toggle("closed"));
 $("togglerail").onclick = () => {
   const r = $("rail"); r.classList.toggle("hidden");
   $("togglerail").textContent = r.classList.contains("hidden") ? "☰ Show filters" : "☰ Hide filters";
