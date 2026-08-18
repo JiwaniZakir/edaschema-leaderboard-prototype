@@ -602,8 +602,10 @@ function drawHead(rows) {
   $("title").textContent = label;
   $("chiptxt").textContent = state.metric;
   $("crumb").textContent = `${label} · ${pdkLabel} · ${SL[state.stage]}`;
+  /* only the metrics in the target's own units carry one */
+  const withUnit = ABSOLUTE(state.metric) && unit ? " in " + unit : "";
   $("lead").innerHTML = `Predicting the <b>detailed-route</b> value from <b>${SL[state.stage]}</b>
-    on <b>${pdkLabel}</b>, scored by <b>${state.metric}</b>${unit ? " in " + unit : ""}.
+    on <b>${pdkLabel}</b>, scored by <b>${state.metric}</b>${withUnit}.
     ${hi(state.metric) ? "Higher wins." : "Lower wins."} The OpenROAD estimate at the same stage
     is in the table as a competitor, not as a footnote.`;
 
@@ -799,7 +801,7 @@ function drawPlots(rows) {
       `Upper: ${fmt(r.hi, m)}<br>Lower: ${fmt(r.lo, m)}<br>Rank ${r.rankBest}–${r.rankWorst}`),
     hoverinfo: "text"
   }], Object.assign(BASE_LAYOUT(t), {
-    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { title: { text: m + (unit ? ` (${unit})` : ""), font: { size: 11 } } }),
+    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } } }),
     xaxis: Object.assign(BASE_LAYOUT(t).xaxis, { title: { text: "" }, tickangle: -55 }),
     shapes: isFinite(bv) ? [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: bv, y1: bv,
       line: { color: t.gold, width: 2, dash: "dash" } }] : [],
@@ -903,7 +905,7 @@ function drawPareto(rows) {
       title: { text: "parameters (log)", font: { size: 11 } },
       tickfont: { size: 10, color: t.font.color } }),
     yaxis: Object.assign(BASE_LAYOUT(t).yaxis, {
-      title: { text: m + (unit ? ` (${unit})` : ""), font: { size: 11 } },
+      title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } },
       tickfont: { size: 10, color: t.font.color } }),
     shapes: isFinite(bv) ? [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: bv, y1: bv,
       line: { color: t.gold, width: 2, dash: "dash" } }] : [],
