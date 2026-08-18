@@ -1,0 +1,311 @@
+/* ===========================================================================
+   Drexel ICE Lab theme.
+
+   Values are taken from the lab site's own source, JiwaniZakir/icelab-website:
+     _sass/_variables.scss   Drexel Material Design palette
+     _sass/_themes.scss      light and dark token maps
+     _sass/_navbar.scss      the navy header
+     _sass/_typography.scss  headings, body copy, links
+     assets/img/icelab_logo.png
+
+   Token names follow al-folio's --global-* convention, so the three pages can
+   read this file or the lab's compiled stylesheet interchangeably. This is the
+   single source of truth for branding; the pages carry only their own
+   component styles.
+   =========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* --- Type ------------------------------------------------------------
+     The lab loads Roboto + Roboto Slab + Material Icons from Google Fonts.
+     Headings are set in Roboto Light, not the slab face. */
+  --global-font-sans: "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                      Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  /* The lab loads Roboto Slab but sets every heading in Roboto Light, so the
+     slab token is an alias here: it keeps the pages' rules unchanged while
+     rendering the same face the lab site uses. */
+  --global-font-slab: var(--global-font-sans);
+  --global-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* --- Drexel Material palette, verbatim from _variables.scss ----------- */
+  --md-primary-50:  #eef6fd;  --md-primary-100: #d8eafa;
+  --md-primary-200: #b6d7f2;  --md-primary-300: #85bbe7;
+  --md-primary-400: #559dda;  --md-primary-500: #1d7dce;
+  --md-primary-600: #1768ae;  --md-primary-700: #11528e;
+  --md-primary-800: #0b3d6e;  --md-primary-900: #07294d;
+
+  --md-secondary-50:  #fffbea; --md-secondary-100: #fff3bf;
+  --md-secondary-200: #ffe680; --md-secondary-300: #ffd83d;
+  --md-secondary-400: #ffce12; --md-secondary-500: #fec500;
+  --md-secondary-600: #d9a800; --md-secondary-700: #ad8500;
+  --md-secondary-800: #806300; --md-secondary-900: #4d3b00;
+
+  --md-primary: #07294d;              /* Drexel navy */
+  --md-on-primary: #ffffff;
+  --md-primary-container: #d8eafa;
+  --md-on-primary-container: #001d36;
+
+  --md-secondary: #fec500;            /* Drexel gold */
+  --md-on-secondary: #1f1800;
+  --md-secondary-container: #fff0b3;
+  --md-on-secondary-container: #241a00;
+
+  --md-background: #f2f2f2;
+  --md-on-background: #263238;
+  --md-surface: #ffffff;
+  --md-on-surface: #263238;
+  --md-surface-variant: #f8f8f8;
+  --md-on-surface-variant: #7f858c;
+
+  --md-outline: #dadada;
+  --md-outline-variant: #e8e8e8;
+
+  --md-text-primary: #263238;
+  --md-text-secondary: #7f858c;
+  --md-text-disabled: #a9a9a9;
+
+  --md-navbar-bg: var(--md-primary);
+  --md-navbar-text: var(--md-on-primary);
+  --md-navbar-text-muted: rgba(255, 255, 255, 0.75);
+  --md-navbar-hover: var(--md-secondary);
+  --md-navbar-active: var(--md-secondary);
+  --md-heading-color: var(--md-primary);
+  --md-accent: var(--md-secondary);
+
+  /* --- al-folio globals, mapped to Material roles as _themes.scss does --- */
+  --global-bg-color:          var(--md-surface);
+  --global-page-bg-color:     var(--md-background);
+  --global-card-bg-color:     var(--md-surface-variant);
+  --global-code-bg-color:     var(--md-primary-container);
+  --global-text-color:        var(--md-text-primary);
+  --global-text-color-light:  var(--md-text-secondary);
+  --global-divider-color:     var(--md-outline-variant);
+  --global-divider-strong:    var(--md-outline);
+  --global-theme-color:       var(--md-primary);
+  --global-accent-color:      var(--md-secondary);
+  --global-highlight-color:   var(--md-secondary);
+  --global-link-color:        var(--md-primary-600);
+  --global-hover-color:       var(--md-primary-800);
+  --global-hover-text-color:  var(--md-on-primary);
+
+  --global-footer-bg-color:   var(--md-primary);
+  --global-footer-text-color: rgba(255, 255, 255, 0.88);
+  --global-footer-link-color: var(--md-secondary);
+
+  --global-radius: 6px;
+  --global-shadow: 0 1px 3px rgba(7, 41, 77, 0.12);
+
+  /* the lab's content card: white, 4px, barely-there shadow, no border */
+  --global-surface-bg:     var(--md-surface);
+  --global-surface-shadow: 0 1px 4px rgba(7, 41, 77, .04);
+  --global-surface-radius: 4px;
+
+  /* --- Prototype-only palettes -----------------------------------------
+     Deliberately NOT brand colors: navy on navy kills a heatmap and gold on
+     white fails contrast. Every pair clears 4.5:1 on its own ground. */
+  --r-xs: 3px; --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-pill: 999px;
+
+  --pos: #3b6fb0; --neg: #c06a2e; --dead: #b8b5ae;
+
+  --fam-gnn: #2f6bb5; --fam-cnn: #c25f22; --fam-mlp: #2f8f6b;
+  --fam-automl: #7a4bb8; --fam-hybrid: #a8762c;
+
+  --ent-netlist: #7d97cc; --ent-cell: #cf9b7e; --ent-power: #7cc9a8;
+  --ent-timing: #b58ad1; --ent-net: #6fb3b3; --ent-clock: #c4a463;
+  --ent-routing: #b07f96;
+
+  --lb-win-bg:   #dcecd4;  --lb-win-fg:   #24632e;  --lb-win-solid:  #3f8a45;
+  --lb-lose-bg:  #f8ded9;  --lb-lose-fg:  #9d2f26;  --lb-lose-solid: #b8453a;
+  --lb-none-bg:  transparent; --lb-none-fg: #9a9a9a;
+  --lb-sat-bg:   #e9e8f0;  --lb-sat-fg:   #4f4e5e;
+  --lb-undef-bg: #f2f0ec;  --lb-undef-fg: #6b6558;
+  --lb-warn:     #a8701f;
+
+  --lb-layer-in-bg:   #edebe6;  --lb-layer-in-br:   #cfcbc2;
+  --lb-layer-op-bg:   #e4e2f7;  --lb-layer-op-br:   #b0a9e6;
+  --lb-layer-pool-bg: #d8eae1;  --lb-layer-pool-br: #85c3a7;
+  --lb-layer-out-bg:  #fadfd8;  --lb-layer-out-br:  #e09b8c;
+}
+
+/* --- Dark ------------------------------------------------------------------
+   The lab's dark theme is navy, not black: the background is the Material
+   on-primary-container (#001d36) and surfaces step up through the primary
+   ramp. Straight from _themes.scss. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --md-background: #001d36;
+  --md-on-background: var(--md-primary-50);
+  --md-surface: #0b3d6e;
+  --md-on-surface: var(--md-primary-50);
+  --md-surface-variant: #07294d;
+  --md-on-surface-variant: var(--md-primary-200);
+  --md-outline: #11528e;
+  --md-outline-variant: #0b3d6e;
+  --md-text-primary: var(--md-primary-50);
+  --md-text-secondary: var(--md-primary-200);
+  --md-text-disabled: var(--md-primary-400);
+  --md-primary-container: #0b3d6e;
+  --md-on-primary-container: var(--md-primary-100);
+  --md-secondary-container: #4d3b00;
+  --md-on-secondary-container: var(--md-secondary-100);
+
+  --md-navbar-bg: #07294d;
+  --md-heading-color: var(--md-primary-100);
+
+  /* In dark the lab does not raise surfaces above the ground: cards, tables
+     and the page all sit on #001d36 and are told apart by their outline. */
+  --global-bg-color:         var(--md-background);
+  --global-card-bg-color:    var(--md-surface-variant);
+  --global-code-bg-color:    var(--md-surface-variant);
+
+  --global-divider-color:    var(--md-outline-variant);
+  --global-divider-strong:   var(--md-outline);
+  --global-theme-color:      var(--md-primary-300);
+  --global-link-color:       var(--md-primary-300);
+  --global-hover-color:      var(--md-secondary);
+  --global-hover-text-color: var(--md-on-secondary);
+  --global-footer-bg-color:  #07294d;
+  --global-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+
+  /* in dark the lab drops the card entirely and lets content sit on the navy */
+  --global-surface-bg:     transparent;
+  --global-surface-shadow: none;
+
+  /* Data palettes re-seated on navy rather than on near-black. */
+  --pos: #7fb6e8; --neg: #e39a5f; --dead: #4a6076;
+
+  --fam-gnn: #6ba3de; --fam-cnn: #e08a4e; --fam-mlp: #5cbd94;
+  --fam-automl: #a882dd; --fam-hybrid: #d0a45c;
+
+  --ent-netlist: #93a9d6; --ent-cell: #d9ab92; --ent-power: #93d4ba;
+  --ent-timing: #c4a1dc; --ent-net: #87c4c4; --ent-clock: #d1b57e;
+  --ent-routing: #c295a8;
+
+  --lb-win-bg:   #14432c;  --lb-win-fg:   #8ed69a;  --lb-win-solid:  #3f8a45;
+  --lb-lose-bg:  #4a201c;  --lb-lose-fg:  #f0a49a;  --lb-lose-solid: #b8453a;
+  --lb-none-bg:  transparent; --lb-none-fg: #6f8aa3;
+  --lb-sat-bg:   #10375c;  --lb-sat-fg:   #b6d7f2;
+  --lb-undef-bg: #0e3050;  --lb-undef-fg: #9dc0dd;
+  --lb-warn:     #ffce12;
+
+  --lb-layer-in-bg:   #123354;  --lb-layer-in-br:   #1f5a8f;
+  --lb-layer-op-bg:   #2a2b5e;  --lb-layer-op-br:   #5b57b0;
+  --lb-layer-pool-bg: #12402f;  --lb-layer-pool-br: #3f8a68;
+  --lb-layer-out-bg:  #4a2620;  --lb-layer-out-br:  #9a5545;
+}
+
+/* --- Base ------------------------------------------------------------------ */
+
+body {
+  margin: 0;
+  background: var(--global-page-bg-color);
+  color: var(--global-text-color);
+  font-family: var(--global-font-sans);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding-top: 72px;                 /* the header is fixed, as on the lab site */
+}
+
+/* Roboto Light in Drexel navy, matching article headings on the lab site. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--global-font-sans);
+  font-weight: 300;
+  color: var(--md-heading-color);
+  letter-spacing: normal;
+  margin: 0 0 .5rem;
+}
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+strong, b { font-weight: 500; }
+
+a {
+  color: var(--global-link-color);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { color: var(--global-hover-color); text-decoration: underline; }
+
+/* Page content sits on a white surface over the grey ground, as it does on
+   the lab site. The prototype's own containers opt in with .surface. */
+.surface {
+  background: var(--global-surface-bg);
+  border-radius: var(--global-surface-radius);
+  box-shadow: var(--global-surface-shadow);
+}
+
+/* --- Header ----------------------------------------------------------------
+   Drexel navy, fixed, logo left and lowercase links right. Measurements match
+   the rendered lab site: 72px tall, 8px/16px padding, 2.85rem logo, links at
+   16px Roboto Light in white-75%, gold on hover and when current. */
+
+.icelab-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  background: var(--md-navbar-bg);
+  box-shadow: 0 1px 3px rgba(7, 41, 77, .12);
+  padding: 8px 16px;
+}
+.icelab-navbar .navbar-inner {
+  max-width: 1600px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.icelab-navbar .navbar-brand {
+  display: block; padding: .35rem 0; line-height: 1;
+}
+.icelab-navbar .navbar-brand:hover { opacity: .92; }
+.icelab-navbar .icelab-logo-img {
+  display: block; height: 2.85rem; width: auto;
+  max-width: min(calc(100vw - 8rem), 18rem);
+}
+.icelab-navbar nav {
+  display: flex; align-items: center; gap: 1.15rem; flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.icelab-navbar nav a {
+  font-size: 1rem; font-weight: 300; line-height: 1.5;
+  color: var(--md-navbar-text-muted);
+  text-transform: lowercase; padding: 8px 0;
+  border-bottom: 2px solid transparent;
+}
+.icelab-navbar nav a:hover {
+  color: var(--md-navbar-hover); text-decoration: none;
+}
+.icelab-navbar nav a[aria-current="page"] {
+  color: var(--md-navbar-active); font-weight: 500;
+  border-bottom-color: var(--md-secondary);
+}
+/* the lab's own pages, held slightly back from this prototype's three */
+.icelab-navbar nav .navsep {
+  width: 1px; height: 20px; background: rgba(255, 255, 255, .22);
+}
+.icelab-navbar nav a.offsite { color: rgba(255, 255, 255, .58); }
+.icelab-navbar nav a.offsite:hover { color: var(--md-navbar-hover); }
+
+/* Theme toggle, styled after the lab's #light-toggle. */
+.icelab-navbar .themebtn {
+  background: none; border: 0; cursor: pointer; padding: 4px;
+  color: #fff; line-height: 0; border-radius: var(--r-sm);
+}
+.icelab-navbar .themebtn:hover { color: var(--md-navbar-hover); }
+.icelab-navbar .themebtn svg { width: 17px; height: 17px; display: block; }
+.icelab-navbar .themebtn .i-dark { display: none; }
+html[data-theme="dark"] .icelab-navbar .themebtn .i-light { display: none; }
+html[data-theme="dark"] .icelab-navbar .themebtn .i-dark { display: block; }
+
+@media (max-width: 720px) {
+  body { padding-top: 116px; }
+  .icelab-navbar .navbar-inner { flex-direction: column; align-items: flex-start; gap: .35rem; }
+  .icelab-navbar nav { gap: .85rem; }
+  .icelab-navbar nav a { font-size: .9rem; padding: 2px 0; }
+}
+
+/* --- Footer ---------------------------------------------------------------- */
+.footer, .foot {
+  background: var(--global-footer-bg-color);
+  color: var(--global-footer-text-color);
+}
+.footer a, .foot a { color: var(--global-footer-link-color); }

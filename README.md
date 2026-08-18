@@ -88,6 +88,21 @@ opened straight off the filesystem.
 Every page carries a banner saying which of these it is showing, and the one
 real row is tagged `REAL` wherever it appears.
 
+## Branding
+
+Theme, header and typography come from the lab's own site,
+[JiwaniZakir/icelab-website](https://github.com/JiwaniZakir/icelab-website) —
+`_sass/_variables.scss`, `_themes.scss`, `_navbar.scss` and `assets/img/icelab_logo.png`.
+`theme.css` is the single source of truth for all three pages: the Drexel
+Material palette, the navy fixed header with the ICE logo, Roboto Light
+headings in `#07294d`, and gold `#fec500` for the active nav item and accents.
+
+Dark mode is the lab's, which is navy rather than black: the ground is
+`#001d36`, surfaces sit on the same ground and are told apart by a `#11528e`
+outline, and the header stays `#07294d`. `theme.js` applies the saved choice
+before first paint and remembers it, so hopping between the three pages never
+resets or flashes.
+
 ## Running locally
 
 ```bash
