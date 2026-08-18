@@ -160,9 +160,6 @@ body{margin:0;background:var(--global-page-bg-color);color:var(--global-text-col
   font-family:var(--global-font-sans);font-size:15px;line-height:1.5}
 .mono{font-family:var(--global-font-mono);font-variant-numeric:tabular-nums}
 
-.bar{padding:.55rem 1.5rem;font-size:.82rem;background:#FFF4CC;
-  border-bottom:1px solid #E8CE72;color:#5c4708}
-html[data-theme="dark"] .bar{background:#3a2f0d;border-bottom-color:#6b5a1e;color:#e8d79a}
 
 /* toolbar */
 .toolbar{background:var(--global-bg-color);border-bottom:1px solid var(--global-divider-color);
@@ -395,11 +392,7 @@ body.plotbig .plotwrap--loss #loss{max-height:82vh;width:auto;margin:0 auto}
   </div>
 </header>
 
-<div class="bar"><b>Prototype.</b> The design space, circuit characteristics, parameter sweep,
-QoR ranges, parameter&ndash;metric correlations and OpenROAD baselines are all taken from the
-EDA-Schema-V2 paper, and the <b>lab&rsquo;s fixed_mlp line</b> is what its own run actually scored.
-The 41 per-instance feature <i>values</i> live in the dataset Parquet and are modelled here until
-the lab cluster is reachable.</div>
+
 
 <div class="toolbar">
   <div class="runbtns">

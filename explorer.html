@@ -319,12 +319,6 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 .hint{font-size:.76rem;color:var(--global-text-color-light);line-height:1.5}
 
 /* banners */
-.bar{padding:.55rem 1.5rem;font-size:.83rem;display:flex;gap:.5rem;align-items:center;
-  flex-wrap:wrap}
-.bar--note{background:#FFF4CC;border-bottom:1px solid #E8CE72;color:#5c4708}
-.bar--warn{background:#fdecea;border-bottom:1px solid #e8a49c;color:#8c2f22}
-html[data-theme="dark"] .bar--note{background:#3a2f0d;border-bottom-color:#6b5a1e;color:#e8d79a}
-html[data-theme="dark"] .bar--warn{background:#3d211e;border-bottom-color:#7a3a30;color:#e8938a}
 
 .crumbbar{font-size:.83rem;color:var(--global-text-color-light);margin:0 0 .5rem}
 .crumbbar a{color:var(--global-theme-color);text-decoration:none}
@@ -523,11 +517,7 @@ html[data-theme="dark"] @keyframes gflash{0%{background:rgba(255,255,255,.08)}10
   </div>
 </header>
 
-<div class="bar bar--note" id="bar-src"><b>Prototype.</b> Weights are regenerated in-browser to
-reproduce the audited statistics. When real checkpoints land, only the fetch changes.</div>
-<div class="bar bar--warn" id="bar-init"><b>These weights are at initialization.</b> 50 gradient
-steps, median training R&sup2; 0.0203. Anything read from these matrices is initialization noise
-&mdash; the evidence cards show why.</div>
+
 
 <div class="wrap">
 <div class="crumbbar" id="crumb"></div>
@@ -1248,9 +1238,6 @@ function buildModel(){
 }
 function setLoading(on){
   document.body.classList.toggle("loading",!!on);
-  const b=$("bar-src");
-  if(on&&b)b.innerHTML="<b>Loading checkpoints\u2026</b> reading the run bundle for "+
-    PDKL[CUR.pdk]+" \u00b7 "+SL[STAGES.indexOf(CUR.stage)]+".";
 }
 function W(li,o,i){const k=li+"_"+o+"_"+i;
   return edits.has(k)?edits.get(k):M[li].W[o*M[li].fi+i];}
@@ -1292,25 +1279,19 @@ function drawHeader(){
     a.href=a.dataset.ctxlink+"?"+new URLSearchParams(
       {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit});});
 
-  /* the two banners say what you are actually looking at */
-  const src=$("bar-src"),init=$("bar-init"),st=(window.EDA_REAL||{}).stats||{};
-  if(src)src.innerHTML=real
-    ? `<b>Real checkpoint.</b> Every tensor, curve and score on this page was read out of `+
-      `<code>${EDA_REAL.run(CUR.pdk,CUR.stage).dir}/${CUR.circuit}</code>. `+
-      `Input feature values are the one thing still yours to set \u2014 the dataset itself is not published here.`
-    : `<b>Prototype.</b> This address has no published checkpoint, so weights are regenerated `+
-      `in-browser to reproduce the audited statistics. `+
-      `<a href="explorer.html?${new URLSearchParams({task:"total_area",pdk:CUR.pdk,
-        stage:CUR.stage,model:"fixed_mlp",circuit:CUR.circuit})}">open the real one \u2192</a>`;
-  if(init)init.innerHTML=real
-    ? `<b>These weights are at initialization.</b> ${st.gradientSteps||50} gradient steps across `+
-      `${st.epochs||25} epochs; median final training R\u00b2 ${fmt(st.medianFinalTrainR2,4)} over `+
-      `${st.checkpoints||360} checkpoints, and observed weight spread `+
-      `${fmt(st.medianStdRatio,3)}\u00d7 the untrained null. Anything read from these matrices is `+
-      `initialization noise \u2014 the evidence cards below show why.`
-    : `<b>These weights are at initialization.</b> 50 gradient steps, median training `+
-      `R\u00b2 ${fmt(st.medianFinalTrainR2||0.0203,4)}. Anything read from these matrices is `+
-      `initialization noise \u2014 the evidence cards show why.`;
+  /* what the banners used to say, as chips on the identity card */
+  const st=(window.EDA_REAL||{}).stats||{};
+  const chips=$("chips");
+  if(chips)chips.innerHTML=real
+    ? `<span class="chip chip--ok">real checkpoint</span>`+
+      `<span class="chip chip--warn">at initialization</span>`+
+      `<span class="chip">${st.epochs||25} epochs &middot; ${st.gradientSteps||50} steps</span>`+
+      `<span class="chip">median train R&sup2; ${fmt(st.medianFinalTrainR2,4)}</span>`+
+      `<span class="chip">spread ${fmt(st.medianStdRatio,3)}\u00d7 the untrained null</span>`
+    : `<span class="chip chip--warn">generated stand-in</span>`+
+      `<span class="chip">no published checkpoint at this address</span>`+
+      `<a class="chip chip--key" href="explorer.html?${new URLSearchParams({task:"total_area",
+        pdk:CUR.pdk,stage:CUR.stage,model:"fixed_mlp",circuit:CUR.circuit})}">open the real one &rarr;</a>`;
 }
 
 /* ---------- input node grouping, only for scalar-input architectures ---------- */

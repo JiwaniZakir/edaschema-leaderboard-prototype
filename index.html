@@ -165,28 +165,30 @@ pre   { background: var(--global-code-bg-color); padding: 1rem;
   .navbar nav { gap: .9rem; font-size: .9rem; }
 }
 
-/* ===== mockup banner ===== */
-
-
-html[data-theme="dark"] 
-
 /* ===== controls ===== */
-.ctrls{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.9rem}
-.ctrlrow .mini{font:inherit;font-size:.78rem;padding:.22rem .6rem;border:none;background:none;
-  color:var(--global-theme-color);cursor:pointer;text-decoration:underline;opacity:.75}
+/* Filter rows. Every row is the same two-column grid so the pills line up
+   down the left edge, and the pill set carries its own row and column gaps
+   so wrapped rows keep clear of each other. */
+.ctrls{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;
+  padding:.7rem .85rem;background:var(--global-card-bg-color);
+  border:1px solid var(--global-divider-color);border-radius:var(--global-radius)}
+.ctrlrow{display:grid;grid-template-columns:58px minmax(0,1fr);gap:.5rem;align-items:start}
+.ctrlrow .lbl{font-size:.74rem;line-height:1.7;color:var(--global-text-color-light);
+  font-weight:500;letter-spacing:.02em}
+.chks{display:flex;align-items:center;flex-wrap:wrap;gap:.4rem .45rem}
+.ctrlrow .mini{font:inherit;font-size:.72rem;padding:.1rem .3rem;border:none;background:none;
+  color:var(--global-link-color);cursor:pointer;text-decoration:underline;opacity:.75}
 .ctrlrow .mini:hover{opacity:1}
-.ctrlrow .sep{width:1px;height:18px;background:var(--global-divider-color);margin:0 .3rem}
-.ctrlrow{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
-.ctrlrow .lbl{font-size:.82rem;color:var(--global-text-color-light);min-width:60px;
-  font-weight:500}
-.chk.sm{font-size:.8rem;padding:.24rem .65rem}
-.chk{font:inherit;font-size:.86rem;padding:.3rem .8rem;border:1px solid var(--global-divider-strong);
+.ctrlrow .sep{width:1px;height:14px;background:var(--global-divider-strong);margin:0 .25rem}
+.chk,.chk.sm{font:inherit;font-size:.74rem;line-height:1.5;padding:.16rem .6rem;
+  border:1px solid var(--global-divider-strong);
   border-radius:var(--r-pill);background:var(--global-bg-color);color:var(--global-text-color);cursor:pointer;
-  display:inline-flex;align-items:center;gap:.35rem;transition:background .15s,border-color .15s,color .15s}
+  display:inline-flex;align-items:center;white-space:nowrap;
+  transition:background .15s,border-color .15s,color .15s}
 .chk:hover{border-color:var(--global-theme-color)}
 .chk[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;border-color:var(--global-theme-color)}
-.chk .tick{opacity:0;transition:opacity .15s}
-.chk[aria-pressed="true"] .tick{opacity:1}
+/* the filled state is the affordance; a tick would only pad the pill out */
+.chk .tick{display:none}
 .meta{font-size:.85rem;color:var(--global-text-color-light);margin:0 0 1rem}
 
 /* ===== matrix ===== */
@@ -351,28 +353,33 @@ html[data-theme="dark"] #top{background:rgba(255,255,255,.25)}
 .tab[aria-selected="true"]{color:var(--global-theme-color);border-bottom-color:var(--global-theme-color);
   font-weight:500}
 
-.toolbar{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1rem}
+/* The ranking filters use the same panel and the same pill scale as the
+   matrix filters, so the two filter surfaces read as one system. */
+.toolbar{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1rem;
+  padding:.7rem .85rem;background:var(--global-card-bg-color);
+  border:1px solid var(--global-divider-color);border-radius:var(--global-radius)}
 .srchwrap{position:relative;flex:1;min-width:220px}
-.srch{width:100%;font:inherit;font-size:.9rem;padding:.5rem .8rem .5rem 2rem;
+.srch{width:100%;font:inherit;font-size:.82rem;padding:.38rem .7rem .38rem 1.85rem;
   border:1px solid var(--global-divider-strong);border-radius:var(--global-radius);
   background:var(--global-bg-color);color:var(--global-text-color)}
 .srch:focus{outline:none;border-color:var(--global-theme-color)}
-.srchico{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);
-  color:var(--global-text-color-light);font-size:.85rem;pointer-events:none}
-.srchhint{font-size:.72rem;color:var(--global-text-color-light);margin-top:.25rem}
+.srchico{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);
+  color:var(--global-text-color-light);font-size:.8rem;pointer-events:none}
+.srchhint{font-size:.7rem;color:var(--global-text-color-light);margin:-.3rem 0 0 .1rem}
 
-.qfrow{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
-.qf{font:inherit;font-size:.8rem;padding:.3rem .7rem;border:1px solid var(--global-divider-strong);
+.qfrow{display:flex;gap:.4rem .45rem;flex-wrap:wrap;align-items:center}
+.qf{font:inherit;font-size:.74rem;line-height:1.5;padding:.16rem .6rem;
+  border:1px solid var(--global-divider-strong);
   border-radius:var(--r-pill);background:var(--global-bg-color);color:var(--global-text-color-light);
-  cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;transition:.15s}
+  cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap;transition:.15s}
 .qf:hover{border-color:var(--global-theme-color);color:var(--global-text-color)}
 .qf[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;
   border-color:var(--global-theme-color)}
-.qf .ct{font-size:.7rem;opacity:.75}
+.qf .ct{font-size:.67rem;opacity:.75}
 
-.tbrow{display:flex;gap:.6rem;align-items:flex-start;flex-wrap:wrap}
+.tbrow{display:flex;gap:.45rem;align-items:flex-start;flex-wrap:wrap}
 .drop{position:relative}
-.dropbtn{font:inherit;font-size:.82rem;padding:.45rem .8rem;border:1px solid var(--global-divider-strong);
+.dropbtn{font:inherit;font-size:.76rem;padding:.26rem .65rem;border:1px solid var(--global-divider-strong);
   border-radius:var(--global-radius);background:var(--global-bg-color);color:var(--global-text-color);
   cursor:pointer;display:flex;align-items:center;gap:.4rem;white-space:nowrap}
 .dropbtn:hover{border-color:var(--global-theme-color)}
@@ -665,6 +672,7 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
   <div class="ctrls">
     <div class="ctrlrow">
       <span class="lbl">PDKs</span>
+      <div class="chks">
       <button class="chk sm" data-pdk="ng45" aria-pressed="true"><span class="tick">&#10003;</span>NG45</button>
       <button class="chk sm" data-pdk="sky130" aria-pressed="true"><span class="tick">&#10003;</span>SKY130</button>
       <button class="chk sm" data-pdk="ihp130" aria-pressed="false"><span class="tick">&#10003;</span>IHP130</button>
@@ -672,10 +680,12 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
       <span class="sep"></span>
       <button class="mini" data-bulk="pdk:all">all</button>
       <button class="mini" data-bulk="pdk:none">none</button>
+      </div>
     </div>
 
     <div class="ctrlrow">
       <span class="lbl">Stages</span>
+      <div class="chks">
       <button class="chk sm" data-stg="0" aria-pressed="true"><span class="tick">&#10003;</span>floorplan</button>
       <button class="chk sm" data-stg="1" aria-pressed="true"><span class="tick">&#10003;</span>global place</button>
       <button class="chk sm" data-stg="2" aria-pressed="true"><span class="tick">&#10003;</span>detailed place</button>
@@ -684,11 +694,12 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
       <span class="sep"></span>
       <button class="mini" data-bulk="stg:all">all</button>
       <button class="mini" data-bulk="stg:none">none</button>
+      </div>
     </div>
 
-    <div class="ctrlrow" style="align-items:flex-start">
-      <span class="lbl" style="padding-top:.28rem">Tasks</span>
-      <div style="display:flex;gap:.4rem;flex-wrap:wrap;flex:1">
+    <div class="ctrlrow">
+      <span class="lbl">Tasks</span>
+      <div class="chks">
         <button class="chk sm" data-task="total_area" aria-pressed="true"><span class="tick">&#10003;</span>Total area</button>
         <button class="chk sm" data-task="total_power" aria-pressed="true"><span class="tick">&#10003;</span>Total power</button>
         <button class="chk sm" data-task="total_wirelength" aria-pressed="true"><span class="tick">&#10003;</span>Total wirelength</button>
@@ -1789,8 +1800,8 @@ function toolbar(){
   const fams=["GNN","CNN","MLP","AutoML","Hybrid"];
   tb.innerHTML=
    '<div class="srchwrap"><span class="srchico">\u2315</span>'+
-   '<input class="srch" id="srch" placeholder="Search models by name, family, author, division\u2026" value="'+fSearch.replace(/"/g,"&quot;")+'">'+
-   '<div class="srchhint">Matches name, family, author, division and training regime</div></div>'+
+   '<input class="srch" id="srch" placeholder="Search models by name, family, author, division\u2026" value="'+fSearch.replace(/"/g,"&quot;")+'"></div>'+
+   '<div class="srchhint">Matches name, family, author, division and training regime</div>'+
 
    '<div class="qfrow">'+
      fams.map(f=>'<button class="qf" data-fam="'+f+'" aria-pressed="'+fFam.has(f)+'">'+
