@@ -324,8 +324,9 @@ html[data-theme="dark"] .mcell.colact{background:rgba(255,255,255,.06)}
 .btns{display:flex;gap:.5rem;flex-wrap:wrap}
 .btn{font:inherit;font-size:.88rem;padding:.4rem .85rem;border:1px solid var(--global-divider-strong);
   border-radius:var(--global-radius);background:var(--global-bg-color);cursor:pointer;
-  color:var(--global-text-color);transition:border-color .15s,color .15s}
-.btn:hover{border-color:var(--global-theme-color);color:var(--global-theme-color)}
+  color:var(--global-text-color);transition:border-color .15s,color .15s;
+  text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{border-color:var(--global-theme-color);color:var(--global-theme-color);text-decoration:none}
 .hidden{display:none}
 .themebtn{font:inherit;font-size:.82rem;padding:.2rem .65rem;border:1px solid var(--global-divider-strong);
   border-radius:var(--r-pill);background:none;cursor:pointer;color:var(--global-text-color)}
@@ -643,7 +644,8 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
       <a class="offsite" href="https://drexel-ice.github.io/research/">research</a>
       <a class="offsite" href="https://drexel-ice.github.io/publications/">publications</a>
       <span class="navsep"></span>
-      <a href="index.html" aria-current="page">leaderboard</a>
+      <a href="index.html">leaderboard</a>
+      <a href="arena.html" data-ctxlink="arena.html">arena</a>
       <a href="explorer.html" data-ctxlink="explorer.html">model explorer</a>
       <a href="playground.html" data-ctxlink="playground.html">playground</a>
       <button class="themebtn" id="themebtn" title="Change theme" aria-label="Change theme"><svg class="i-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg><svg class="i-dark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 13.3A9 9 0 1 1 10.7 3a7.2 7.2 0 0 0 10.3 10.3z"/></svg></button>
@@ -765,7 +767,10 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
       <div class="bt"><b>Think you can beat this?</b></div>
       <div class="bs">Build a network, train it in your browser on real design data, and find out.</div>
     </div>
-    <a class="btn primary" id="beatbtn" href="playground.html">&#9889; Beat OpenROAD &rarr;</a>
+    <div class="btns">
+      <a class="btn primary" id="beatbtn" href="playground.html">Beat OpenROAD &rarr;</a>
+      <a class="btn" id="arenabtn" href="arena.html">Open in arena &rarr;</a>
+    </div>
   </div>
 
   <div class="gallery">
@@ -1753,17 +1758,21 @@ function clearState(){
 /* every outbound link carries the cell you are looking at */
 function ctxQuery(extra){
   const q=new URLSearchParams(Object.assign(
-    {task:cur.t,pdk:cur.p,stage:STG[cur.s]},extra||{}));
+    {task:cur.t,pdk:cur.p,stage:STG[cur.s],metric:sortM||metricsOf(cur.t)[0]},extra||{}));
   return q.toString();
 }
 function syncLinks(){
   const inCell=!document.getElementById("v-cell").classList.contains("hidden");
   document.querySelectorAll("[data-ctxlink]").forEach(a=>{
     const page=a.dataset.ctxlink;
-    a.href=inCell&&cur.t?page+"?"+ctxQuery(page==="explorer.html"?{model:RM}:null):page;
+    a.href=inCell&&cur.t?page+"?"+ctxQuery(
+      page==="explorer.html"?{model:RM}:
+      page==="arena.html"?{view:"stage"}:null):page;
   });
   const bb=document.getElementById("beatbtn");
   if(bb&&cur.t)bb.href="playground.html?"+ctxQuery({model:RM});
+  const ab=document.getElementById("arenabtn");
+  if(ab&&cur.t)ab.href="arena.html?"+ctxQuery({view:"stage"});
 }
 addEventListener("popstate",e=>{
   navLock=true;
@@ -1788,7 +1797,7 @@ function ranking(){
     if(m===sortM)sortAsc=!sortAsc;else{sortM=m;sortAsc=!hi(m);}
     countUp(document.getElementById("c-bv"),bval(t,sortM,p,s),sortM,450);
     document.getElementById("c-bt").textContent="OpenROAD "+SN[s]+" estimate · "+sortM;
-    page=0;resort();pushState(true);
+    page=0;resort();pushState(true);syncLinks();
   });
   resort(true);
 }

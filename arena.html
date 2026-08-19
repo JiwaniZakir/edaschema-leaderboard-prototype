@@ -93,7 +93,6 @@ body { font-size: 16px; font-weight: 400; }
 .cat:hover { background: var(--global-card-bg-color); }
 .cat[aria-selected="true"] { background: var(--global-card-bg-color);
   color: var(--global-theme-color); font-weight: 500; }
-.cat .emo { font-size: .9rem; line-height: 1; width: 1.1rem; text-align: center; }
 .cat .tick { margin-left: auto; color: var(--global-theme-color); opacity: 0; }
 .cat[aria-selected="true"] .tick { opacity: 1; }
 .cat.void { opacity: .38; cursor: not-allowed; }
@@ -170,8 +169,19 @@ table.lb tbody tr.base { background: color-mix(in srgb, var(--md-secondary) 9%, 
 table.lb tbody tr.base:hover { background: color-mix(in srgb, var(--md-secondary) 14%, transparent); }
 table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-secondary); }
 
-.rk { font-variant-numeric: tabular-nums; font-size: .9rem; }
-.medal { font-size: .95rem; }
+.rk { font-variant-numeric: tabular-nums; font-size: .9rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+.medal { display: inline-grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; font-size: .72rem; line-height: 1; flex: none; }
+.medal--1 { background: #fec500; box-shadow: 0 0 0 1px #d9a800; }
+.medal--2 { background: #d8d8d8; box-shadow: 0 0 0 1px #b0b0b0; }
+.medal--3 { background: #c4843a; box-shadow: 0 0 0 1px #8a5a22; }
+table.lb tbody tr.pod1 { background: color-mix(in srgb, #fec500 10%, transparent); }
+table.lb tbody tr.pod2 { background: color-mix(in srgb, #c5c5c5 12%, transparent); }
+table.lb tbody tr.pod3 { background: color-mix(in srgb, #c4843a 10%, transparent); }
+table.lb tbody tr.pod1:hover { background: color-mix(in srgb, #fec500 16%, transparent); }
+table.lb tbody tr.pod2:hover { background: color-mix(in srgb, #c5c5c5 18%, transparent); }
+table.lb tbody tr.pod3:hover { background: color-mix(in srgb, #c4843a 16%, transparent); }
 /* rank interval — Arena's "1 —o— 4" glyph */
 .spread { display: flex; align-items: center; justify-content: center; gap: .3rem;
   font-size: .78rem; color: var(--global-text-color-light); font-variant-numeric: tabular-nums; }
@@ -216,7 +226,36 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
 .pareto { border: 1px solid var(--global-divider-color); border-radius: 6px;
   background: var(--global-bg-color); padding: 1rem 1.1rem 1.1rem; }
 .pareto h3 { font-size: .85rem; font-weight: 500; margin: 0 0 .15rem; }
-#paretobox { width: 100%; height: 560px; }
+#stagebox { width: 100%; height: 480px; }
+
+/* overview hub — Arena's category snapshot cards, before the dense table */
+.hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  gap: .55rem; margin: 0 0 1.25rem; }
+.hubcard { font: inherit; text-align: left; cursor: pointer;
+  border: 1px solid var(--global-divider-color); border-radius: 8px;
+  background: var(--global-bg-color); padding: .65rem .8rem; color: inherit; }
+.hubcard:hover { border-color: var(--global-theme-color); }
+.hubcard[aria-current="true"] { border-color: var(--global-theme-color);
+  background: var(--global-card-bg-color); }
+.hubcard.dead { opacity: .4; cursor: not-allowed; }
+.hubcard .hgrp { font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--global-text-color-light); }
+.hubcard .hname { font-size: .92rem; font-weight: 500; margin: .12rem 0 .35rem; }
+.hubcard .htop { display: flex; align-items: center; gap: .4rem;
+  font-family: "Roboto Mono", var(--global-font-mono); font-size: .78rem; }
+.hubcard .hscore { font-size: .7rem; color: var(--global-text-color-light);
+  margin-top: .2rem; font-variant-numeric: tabular-nums; }
+
+/* models × stage/PDK rank matrix */
+.slicetool { display: flex; align-items: baseline; justify-content: space-between;
+  gap: .8rem; flex-wrap: wrap; margin: 0 0 .7rem; }
+.slicetool h2 { font-size: 1rem; font-weight: 500; margin: 0; }
+.mxcell { display: flex; align-items: center; justify-content: flex-end; gap: .28rem; }
+.mxcell .mdl { font-size: .85rem; }
+.mxact { background: var(--global-card-bg-color); }
+table.lb td[data-go] { cursor: pointer; }
+table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
+.stageview { display: flex; flex-direction: column; gap: 1.25rem; }
 
 .foot { text-align: center; padding: 1.3rem; font-size: .8rem;
   background: var(--global-footer-bg-color); color: var(--global-footer-text-color); margin-top: 2.5rem; }
@@ -254,7 +293,7 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
       <div class="railbody">
         <div class="seg" id="viewseg">
           <button data-view="ranking" aria-selected="true">Ranking</button>
-          <button data-view="pareto" aria-selected="false">Pareto</button>
+          <button data-view="stage" aria-selected="false">By stage</button>
         </div>
       </div>
     </div>
@@ -292,10 +331,16 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
 
     <div class="meta" id="meta"></div>
 
+    <div class="hub" id="hub"></div>
+
     <div class="tbar">
       <button class="tbtn" id="togglerail">☰ Hide filters</button>
       <input class="srch" id="srch" placeholder="Search models, families, authors…">
       <div class="right">
+        <div class="seg seg--sm" id="sliceseg" hidden>
+          <button data-slice="stage" aria-selected="true">Stages</button>
+          <button data-slice="pdk" aria-selected="false">PDKs</button>
+        </div>
         <div class="seg seg--sm" id="groupseg">
           <button data-group="models" aria-selected="true">Models</button>
           <button data-group="families" aria-selected="false">Families</button>
@@ -329,20 +374,28 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
             <div class="plotbox" id="p3"></div>
           </div>
           <div class="plotcard">
-            <h3>Average win rate against each opponent</h3>
-            <p class="cap">Mean of the row above, over every other entry. The tool sits in the field like
-              any other competitor.</p>
+            <h3 id="p4t">Model × circuit</h3>
+            <p class="cap" id="p4c">Green beats OpenROAD on that design, red loses. Intensity is how far
+              the ratio sits from a tie.</p>
             <div class="plotbox" id="p4"></div>
           </div>
         </div>
       </section>
     </div>
 
-    <div id="paretoview" style="display:none">
+    <div id="stageview" class="stageview" style="display:none">
+      <div class="slicetool">
+        <h2 id="slicetitle">Rank across stages</h2>
+        <p class="cap" id="slicecap" style="margin:0;font-size:.78rem;color:var(--global-text-color-light)"></p>
+      </div>
+      <div class="tablecard">
+        <div class="tscroll"><table class="lb" id="slicetbl"><thead id="slicehead"></thead><tbody id="slicebody"></tbody></table></div>
+        <div class="foot-note" id="slicefoot"></div>
+      </div>
       <div class="pareto">
-        <h3 id="pt">Accuracy against cost</h3>
+        <h3 id="pt">Metric across stages</h3>
         <p class="cap" id="pc"></p>
-        <div id="paretobox"></div>
+        <div id="stagebox"></div>
       </div>
     </div>
   </main>
@@ -496,12 +549,13 @@ function meta(n, t) {
   if (isReal(n, t)) {
     const st = RD().stats || {}, run = RD().run(state.pdk, STAGES[state.stage]) || {};
     return { params: 5313, org: "ICE Lab", kind: "measured run", epochs: st.epochs || 25,
-      regime: "per-circuit", wall: (run.run || {}).wall || "—", real: true };
+      regime: "per-circuit", wall: (run.run || {}).wall || "—",
+      gpu: (run.run || {}).gpuMemMb || null, real: true };
   }
   const r = H(n + t + "meta");
   return { params: Math.round(PARAMS[famOf(n)] * (.6 + r * 1.9)), org: "placeholder",
     kind: "synthetic", epochs: [25,50,100,200][Math.floor(r * 4)],
-    regime: r < .72 ? "per-circuit" : "cross-circuit", wall: "—", real: false };
+    regime: r < .72 ? "per-circuit" : "cross-circuit", wall: "—", gpu: null, real: false };
 }
 
 /* ===================================================================
@@ -598,8 +652,8 @@ function winFraction(rows, metric) {
    State
    =================================================================== */
 const state = { task: "total_area", pdk: "ng45", stage: 0, metric: "MAE",
-  view: "ranking", group: "models", search: "", sort: null, asc: null,
-  openGroups: new Set() };
+  view: "ranking", group: "models", slice: "stage", sliceSort: null,
+  search: "", sort: null, asc: null, openGroups: new Set() };
 
 const $ = id => document.getElementById(id);
 const taskDef = () => TASKS.find(x => x[0] === state.task);
@@ -632,12 +686,12 @@ function drawRail() {
     const open = state.openGroups.has(g) || ids.includes(state.task);
     const live = ids.filter(id => taskLive(id, state.pdk, state.stage)).length;
     const items = ids.map(id => {
-      const [, label, , emo] = TASKS.find(x => x[0] === id);
+      const [, label] = TASKS.find(x => x[0] === id);
       const dead = !taskLive(id, state.pdk, state.stage);
       return `<button class="cat${dead ? " void" : ""}" data-task="${id}"
         aria-selected="${state.task === id}"${dead ? " disabled" : ""}
         title="${dead ? "Nothing scoreable here at this stage" : label}">
-        <span class="emo">${emo}</span><span>${label}</span><span class="tick">✓</span></button>`;
+        <span>${label}</span><span class="tick">✓</span></button>`;
     }).join("");
     return `<div class="grp${open ? " open" : ""}" data-grp="${g}">
       <button class="grphd"><span>${g}</span>
@@ -699,24 +753,67 @@ function drawHead(rows) {
   const st = RD() && RD().stats || {};
   const run = RD() && RD().run(state.pdk, STAGES[state.stage]);
   $("meta").innerHTML = [
-    ["🗓", (run && (run.run || {}).evaluated || "2026-08-04").slice(0, 10)],
-    ["🧩", `<b>${rows.length}</b> entries`],
-    ["🔬", `<b>${CIRCUITS().length}</b> circuits`],
-    ["🧮", `<b>1,944</b> design instances`],
-    ["💾", `<b>${st.checkpoints || 360}</b> real checkpoints`],
-    ["📄", `Table 8 baseline`]
-  ].map(([i, t]) => `<span>${i} ${t}</span>`).join("");
+    ["Updated", (run && (run.run || {}).evaluated || "2026-08-04").slice(0, 10)],
+    ["Entries", `<b>${rows.length}</b>`],
+    ["Circuits", `<b>${CIRCUITS().length}</b>`],
+    ["Instances", `<b>1,944</b>`],
+    ["Checkpoints", `<b>${st.checkpoints || 360}</b> real`],
+    ["Baseline", `Table 8`]
+  ].map(([k, v]) => `<span>${k} ${v}</span>`).join("");
+  drawHub();
+}
+
+function hubMetric(t) {
+  const ms = metricsOf(t);
+  if (ms.includes(state.metric) && cellState(t, state.metric, state.pdk, state.stage) === "live")
+    return state.metric;
+  return ms.find(m => cellState(t, m, state.pdk, state.stage) === "live") || ms[0];
+}
+function drawHub() {
+  const grpOf = id => (GROUPS.find(([, ids]) => ids.includes(id)) || ["", []])[0];
+  $("hub").innerHTML = TASKS.map(([id, label]) => {
+    const m = hubMetric(id);
+    const live = cellState(id, m, state.pdk, state.stage) === "live";
+    const names = (isRealTask(id) ? [RM] : []).concat(SYNTH);
+    /* ranking-only, no bootstrap — the hub is a snapshot, not a claim */
+    const ranked = live
+      ? names.map(n => ({ n, v: modelVal(id, m, state.pdk, state.stage, n) }))
+          .sort((a, b) => better(a.v, b.v, m) ? -1 : 1)
+      : [];
+    const top = ranked[0];
+    return `<button class="hubcard${live ? "" : " dead"}" data-hub="${id}"
+      aria-current="${id === state.task}" ${live ? "" : "disabled"}>
+      <div class="hgrp">${grpOf(id)}</div>
+      <div class="hname">${label}</div>
+      <div class="htop">${top ? `<span class="medal medal--1" title="1st">🥇</span>
+        <span>${top.n}</span>` : "—"}</div>
+      <div class="hscore">${top && live ? `${m} ${fmt(top.v, m)} · ${SL[state.stage]}` : "not scoreable here"}</div>
+    </button>`;
+  }).join("");
+  $("hub").querySelectorAll("[data-hub]").forEach(b => b.onclick = () => {
+    state.task = b.dataset.hub;
+    if (!metricsOf(state.task).includes(state.metric)) state.metric = hubMetric(state.task);
+    state.sort = null; render();
+  });
 }
 
 const spreadSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
   stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
   <circle cx="12" cy="12" r="3"/><path d="M9 12H3"/><path d="M15 12h6"/></svg>`;
 const MED = ["🥇","🥈","🥉"];
+function medalMark(rank) {
+  if (rank < 1 || rank > 3) return "";
+  return `<span class="medal medal--${rank}" title="${["1st","2nd","3rd"][rank - 1]}">${MED[rank - 1]}</span>`;
+}
+function fmtGpu(mb) {
+  if (!mb) return "—";
+  return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : mb + " MB";
+}
 
 const COLS = () => [
   { k: "rank",   t: "Rank",        cls: "ct",  sortable: false },
   { k: "spread", t: "Rank spread", cls: "ct",  sortable: false,
-    tip: "Best and worst rank this entry could hold once the ±95% interval on its score is taken into account" },
+    tip: "Best and worst rank this entry could hold once the 95% interval on its score is taken into account" },
   { k: "model",  t: "Model",       cls: "",    sortable: true },
   { k: "score",  t: state.metric,  cls: "rt",  sortable: true },
 ].concat(metricsOf(state.task).filter(m => m !== state.metric &&
@@ -724,6 +821,10 @@ const COLS = () => [
   .map(m => ({ k: "m:" + m, t: m, cls: "rt", sortable: true })))
  .concat([
   { k: "params", t: "Params",   cls: "rt", sortable: true },
+  { k: "wall",   t: "Wall",     cls: "rt", sortable: true,
+    tip: "Train wall clock from run.log, the cost analog of Arena's price column" },
+  { k: "gpu",    t: "Peak GPU", cls: "rt", sortable: true,
+    tip: "Peak GPU memory from run.log" },
   { k: "regime", t: "Regime",   cls: "",   sortable: false },
   { k: "kind",   t: "Source",   cls: "",   sortable: false }]);
 
@@ -752,6 +853,7 @@ function drawTable(rows) {
   if (state.sort) {
     const c = state.sort;
     const key = r => c === "model" ? r.n : c === "score" ? r.v : c === "params" ? r.params
+      : c === "wall" ? r.wall : c === "gpu" ? (r.gpu || 0)
       : c.startsWith("m:") ? r.vals[c.slice(2)] : r.v;
     list = [...list].sort((a, b) => {
       const x = key(a), y = key(b);
@@ -774,21 +876,22 @@ function drawTable(rows) {
   });
 
   const bv = baseVal(state.task, state.metric, state.pdk, state.stage);
+  const extra = cols.filter(c => c.k.startsWith("m:")).map(c =>
+      `<td class="rt val">${fmt(baseVal(state.task, c.k.slice(2), state.pdk, state.stage), c.k.slice(2))}</td>`).join("");
   const baseRow = `<tr class="base"><td class="ct rk">—</td><td class="ct"></td>
     <td><div class="mcell"><span class="fam" style="background:${FAMCOL.Tool}">OR</span>
       <div><div class="mname">OpenROAD</div>
       <div class="msub">EDA tool · estimate at ${SL[state.stage]}</div></div></div></td>
-    <td class="rt val">${fmt(bv, state.metric)}</td>` +
-    cols.filter(c => c.k.startsWith("m:")).map(c =>
-      `<td class="rt val">${fmt(baseVal(state.task, c.k.slice(2), state.pdk, state.stage), c.k.slice(2))}</td>`).join("") +
-    `<td class="rt dim">—</td><td class="dim">—</td>
-     <td><span class="tag tag--synth">published</span></td></tr>`;
+    <td class="rt val">${fmt(bv, state.metric)}</td>${extra}
+    <td class="rt dim">—</td><td class="rt dim">—</td><td class="rt dim">—</td>
+    <td class="dim">—</td>
+    <td><span class="tag tag--synth">published</span></td></tr>`;
 
   $("lbbody").innerHTML = baseRow + list.map(r => {
     const w = better(r.v, bv, state.metric);
-    const medal = r.rank <= 3 ? MED[r.rank - 1] : "";
-    return `<tr class="${r.real ? "isreal" : ""}">
-      <td class="ct rk">${medal || r.rank}</td>
+    const pod = r.rank <= 3 ? ` pod${r.rank}` : "";
+    return `<tr class="${r.real ? "isreal" : ""}${pod}">
+      <td class="ct"><span class="rk">${medalMark(r.rank)}<span>${r.rank}</span></span></td>
       <td class="ct">${state.group === "families" ? '<span class="dim">—</span>'
         : `<div class="spread"><span>${r.rankBest}</span>${spreadSVG}<span>${r.rankWorst}</span></div>`}</td>
       <td><div class="mcell">
@@ -800,6 +903,8 @@ function drawTable(rows) {
         const m = c.k.slice(2);
         return `<td class="rt val">${fmt(r.vals[m], m)}</td>`; }).join("") +
       `<td class="rt val dim">${r.params ? r.params.toLocaleString("en-US") : "—"}</td>
+       <td class="rt val dim">${r.wall || "—"}</td>
+       <td class="rt val dim">${fmtGpu(r.gpu)}</td>
        <td class="dim body-xs">${r.regime}</td>
        <td>${r.real ? '<span class="tag tag--real">real</span>'
                     : '<span class="tag tag--synth">synthetic</span>'}</td></tr>`;
@@ -852,6 +957,10 @@ const SEQ = t => t.dark
 const DIV = t => t.dark
   ? [[0,"#8c3a30"],[.5,"#0b3d6e"],[1,"#ffce12"]]
   : [[0,"#b8453a"],[.5,"#f2f0ec"],[1,"#07294d"]];
+/* leaderboard model×circuit: lose red → tie cream → win green */
+const WINLOSE = t => t.dark
+  ? [[0,"#8c3a30"],[.5,"#0b3d6e"],[1,"#3f8a45"]]
+  : [[0,"#b8453a"],[.5,"#f2f0ec"],[1,"#3f8a45"]];
 
 const BASE_LAYOUT = t => ({
   paper_bgcolor: t.paper, plot_bgcolor: t.plotbg, font: t.font,
@@ -945,64 +1054,204 @@ function drawPlots(rows) {
     yaxis: { autorange: "reversed", tickfont: { size: 8, color: t.font.color } }
   }), CONFIG);
 
-  /* 4 — average win rate against the field */
-  const avg = top.map((r, i) => {
-    const row = W[i].filter(v => v !== null);
-    return { n: r.n, real: r.real, v: row.reduce((a, b) => a + b, 0) / (row.length || 1) };
-  }).sort((a, b) => b.v - a.v);
+  /* 4 — model × circuit: who beats OpenROAD, design by design.
+     Port of index.html chCircuits. Colour is win/lose against that circuit's
+     own OpenROAD error; intensity is |log(model/tool)| clipped at 1.2 nats. */
+  const tool = perCircuit(state.task, m, state.pdk, state.stage, "__baseline__");
+  const z = top.map(r => cs.map((c, ci) => {
+    const v = r.series[ci], b = tool[ci];
+    if (!isFinite(v) || !isFinite(b) || b === 0) return null;
+    const mag = Math.min(1, Math.abs(Math.log(Math.abs(v / b))) / 1.2);
+    return better(v, b, m) ? mag : -mag;
+  }));
+  const hover = top.map(r => cs.map((c, ci) => {
+    const v = r.series[ci], b = tool[ci];
+    if (!isFinite(v) || !isFinite(b)) return r.n + "<br>" + c;
+    const verdict = !b ? "no OpenROAD error to beat"
+      : better(v, b, m) ? "beats OpenROAD" : "loses to OpenROAD";
+    return r.n + "<br>" + c + "<br>" + m + " " + fmt(v, m)
+      + "<br>OpenROAD " + fmt(b, m) + "<br>" + verdict;
+  }));
+  $("p4t").textContent = `Model × circuit — ${m} vs OpenROAD`;
+  $("p4c").textContent = `Each cell is one of the ${cs.length} IWLS’05 designs. `
+    + `Green beats the tool on that circuit, red loses. Intensity is how far `
+    + `the ratio sits from a tie, the same encoding as the leaderboard.`;
   Plotly.react($("p4"), [{
-    type: "bar", x: avg.map(a => a.n), y: avg.map(a => a.v),
-    marker: { color: avg.map(a => a.real ? t.gold : t.accent),
-      line: { width: 0 } },
-    text: avg.map(a => (a.v * 100).toFixed(1)), textposition: "outside",
-    textfont: { size: 9, color: t.font.color },
-    hovertemplate: "%{x}<br>wins %{y:.1%} of pairings<extra></extra>"
+    type: "heatmap", z: z, x: cs, y: top.map(r => r.n),
+    colorscale: WINLOSE(t), zmin: -1, zmax: 1, xgap: 1, ygap: 1,
+    customdata: hover,
+    hovertemplate: "%{customdata}<extra></extra>",
+    colorbar: { thickness: 8, len: .6, tickvals: [-1, 0, 1],
+      ticktext: ["loses", "tie", "beats"],
+      tickfont: { size: 9, color: t.font.color }, outlinewidth: 0 }
   }], Object.assign(BASE_LAYOUT(t), {
-    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { tickformat: ".0%",
-      title: { text: "Average win rate", font: { size: 11 } } }),
-    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, { tickangle: -55 })
+    margin: { l: 132, r: 14, t: 10, b: 96 },
+    xaxis: { tickangle: -55, tickfont: { size: 8, color: t.font.color } },
+    yaxis: { autorange: "reversed", tickfont: { size: 8, color: t.font.color } }
   }), CONFIG);
 }
 
-/* Pareto: accuracy against what the entry costs to build */
-function drawPareto(rows) {
-  if (typeof Plotly === "undefined") return;
-  const t = plotTheme(), m = state.metric, unit = taskDef()[2];
-  const pts = rows.filter(r => r.params > 0);
-  const bv = baseVal(state.task, m, state.pdk, state.stage);
-  /* frontier: nothing smaller is also better */
-  const front = pts.filter(r => !pts.some(o =>
-    o !== r && o.params <= r.params && better(o.v, r.v, m)))
-    .sort((a, b) => a.params - b.params);
-  $("pt").textContent = `${m} against parameter count`;
-  $("pc").innerHTML = `Down and to the left is better. The line is the frontier: entries with `
-    + `nothing both smaller and more accurate. The lab's own <b>fixed_mlp</b> is the gold point, `
-    + `at 5,313 parameters.`;
-  Plotly.react($("paretobox"), [
-    { type: "scatter", mode: "lines", x: front.map(r => r.params), y: front.map(r => r.v),
-      line: { color: t.muted, width: 1.4, dash: "dot" }, hoverinfo: "skip" },
-    { type: "scatter", mode: "markers+text", x: pts.map(r => r.params), y: pts.map(r => r.v),
-      marker: { size: pts.map(r => r.real ? 13 : 9),
-        color: pts.map(r => r.real ? t.gold : t.accent),
-        line: { color: t.dark ? "#001d36" : "#fff", width: 1.5 } },
-      text: pts.map(r => r.n), textposition: "top center",
-      textfont: { size: 8, color: t.font.color },
-      customdata: pts.map(r => [fmt(r.v, m), r.rankBest + "–" + r.rankWorst, r.kind]),
-      hovertemplate: "%{text}<br>" + m + ": %{customdata[0]}<br>params: %{x:,}<br>"
-        + "rank %{customdata[1]}<br>%{customdata[2]}<extra></extra>" }
-  ], Object.assign(BASE_LAYOUT(t), {
-    margin: { l: 74, r: 24, t: 24, b: 56 },
-    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, { type: "log",
-      title: { text: "parameters (log)", font: { size: 11 } },
-      tickfont: { size: 10, color: t.font.color } }),
+/* ===================================================================
+   By stage / by PDK — rank matrix + the selected metric plotted across
+   the slice. Metric follows Score by (and the leaderboard URL).
+   =================================================================== */
+function sliceKeys() {
+  return state.slice === "pdk"
+    ? PDKS.map(([id, label]) => ({ id, label, pdk: id, stage: state.stage }))
+    : STAGES.map((id, i) => ({ id, label: SL[i], pdk: state.pdk, stage: i }));
+}
+function rankBoard(t, p, s, metric) {
+  const names = (isRealTask(t) ? [RM] : []).concat(SYNTH);
+  const rows = names.map(n => ({
+    n, fam: famOf(n), v: modelVal(t, metric, p, s, n), real: isReal(n, t)
+  })).sort((a, b) => better(a.v, b.v, metric) ? -1 : 1);
+  rows.forEach((r, i) => r.rank = i + 1);
+  return rows;
+}
+function drawStageView() {
+  const m = state.metric, unit = taskDef()[2], keys = sliceKeys();
+  const boards = keys.map(k => {
+    const live = cellState(state.task, m, k.pdk, k.stage) === "live";
+    const rows = live ? rankBoard(state.task, k.pdk, k.stage, m) : [];
+    return {
+      k, live,
+      rank: new Map(rows.map(r => [r.n, r.rank])),
+      val: new Map(rows.map(r => [r.n, r.v])),
+      open: live ? baseVal(state.task, m, k.pdk, k.stage) : null,
+      rows
+    };
+  });
+  const names = (isRealTask(state.task) ? [RM] : []).concat(SYNTH);
+  const q = state.search.trim().toLowerCase();
+  let models = names.filter(n => !q || n.toLowerCase().includes(q) || famOf(n).toLowerCase().includes(q));
+  if (state.group === "families") {
+    const best = new Map();
+    models.forEach(n => {
+      const live = boards.find(b => b.live);
+      const rk = live ? live.rank.get(n) : 99;
+      const cur = best.get(famOf(n));
+      if (!cur || rk < cur.rk) best.set(famOf(n), { n, rk });
+    });
+    models = [...best.values()].map(x => x.n);
+  }
+  const mean = n => {
+    const rs = boards.filter(b => b.live && b.rank.has(n)).map(b => b.rank.get(n));
+    return rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 99;
+  };
+  const sortKey = state.sliceSort;
+  models.sort((a, b) => {
+    if (sortKey) {
+      const A = boards.find(x => x.k.id === sortKey);
+      if (A && A.live) return (A.rank.get(a) || 99) - (A.rank.get(b) || 99);
+    }
+    return mean(a) - mean(b);
+  });
+
+  const here = state.slice === "pdk" ? state.pdk : STAGES[state.stage];
+  $("slicetitle").textContent = state.slice === "pdk"
+    ? `Rank across PDKs · ${m}` : `Rank across stages · ${m}`;
+  $("slicecap").textContent = `Cells are rank under ${m}. `
+    + `Gold / silver / bronze mark 1st–3rd in that column. Click a column to sort, `
+    + `a cell to open that ranking.`;
+
+  $("slicehead").innerHTML = "<tr><th>Model</th>" + keys.map(k =>
+    `<th class="rt sortable${k.id === here ? " act" : ""}${k.id === sortKey ? " act" : ""}"
+      data-sk="${k.id}">${k.label}<span class="caret"><i>▲</i><i>▼</i></span></th>`
+  ).join("") + '<th class="rt">mean rank</th></tr>';
+  $("slicehead").querySelectorAll("[data-sk]").forEach(th => th.onclick = () => {
+    state.sliceSort = th.dataset.sk === state.sliceSort ? null : th.dataset.sk;
+    drawStageView();
+  });
+
+  $("slicebody").innerHTML = models.map((n, i) => {
+    const fam = famOf(n);
+    return `<tr class="${n === RM && isRealTask(state.task) ? "isreal" : ""}${i === 0 ? " pod1" : i === 1 ? " pod2" : i === 2 ? " pod3" : ""}" data-n="${n}">
+      <td><div class="mcell">
+        <span class="fam" style="background:${FAMCOL[fam]}">${fam.slice(0, 2).toUpperCase()}</span>
+        <div><div class="mname">${n}</div>
+        <div class="msub">${n === RM ? "ICE Lab · measured" : "placeholder · " + fam}</div></div>
+      </div></td>` +
+      boards.map(b => {
+        if (!b.live) return `<td class="rt dim">—</td>`;
+        const rk = b.rank.get(n), v = b.val.get(n);
+        const win = better(v, b.open, m);
+        const on = b.k.id === here ? " mxact" : "";
+        return `<td class="rt${on}${win ? " win" : ""}" data-go="${b.k.id}">
+          <div class="mxcell">${medalMark(rk)}<span class="mono">${rk}</span></div></td>`;
+      }).join("") +
+      `<td class="rt mono dim">${mean(n).toFixed(1)}</td></tr>`;
+  }).join("") +
+  `<tr class="base"><td><div class="mcell"><span class="fam" style="background:${FAMCOL.Tool}">OR</span>
+    <div><div class="mname">OpenROAD</div><div class="msub">EDA tool · Table 8</div></div></div></td>` +
+    boards.map(b => `<td class="rt val">${b.live ? fmt(b.open, m) : "—"}</td>`).join("") +
+    `<td class="rt dim">—</td></tr>`;
+
+  $("slicebody").querySelectorAll("[data-go]").forEach(td => td.onclick = e => {
+    e.stopPropagation();
+    const id = td.dataset.go;
+    if (state.slice === "pdk") state.pdk = id;
+    else state.stage = STAGES.indexOf(id);
+    state.view = "ranking";
+    $("viewseg").querySelectorAll("[data-view]").forEach(o =>
+      o.setAttribute("aria-selected", o.dataset.view === "ranking"));
+    render();
+  });
+
+  const liveN = boards.filter(b => b.live).length;
+  $("slicefoot").innerHTML = `<b>${models.length}</b> models · <b>${liveN}</b> of ${keys.length} `
+    + `${state.slice === "pdk" ? "PDKs" : "stages"} are scoreable under ${m} · `
+    + `mean rank is over the live columns only.`;
+
+  drawStagePlot(boards, models, m, unit);
+}
+
+function drawStagePlot(boards, models, m, unit) {
+  if (typeof Plotly === "undefined") {
+    $("stagebox").innerHTML = '<p class="plotwarn">Plotly could not be loaded, so the plot is unavailable offline.</p>';
+    return;
+  }
+  const t = plotTheme();
+  const xs = boards.map(b => b.k.label);
+  const top = models.slice(0, 8);
+  const traces = top.map((n, i) => ({
+    type: "scatter", mode: "lines+markers", name: n,
+    x: xs,
+    y: boards.map(b => b.live ? b.val.get(n) : null),
+    line: { width: n === RM ? 2.6 : 1.5, color: n === RM ? t.gold : t.accent,
+      dash: i > 4 ? "dot" : "solid" },
+    marker: { size: n === RM ? 9 : 7, color: n === RM ? t.gold : t.accent,
+      line: { color: t.dark ? "#001d36" : "#fff", width: 1 } },
+    hovertemplate: n + "<br>%{x}<br>" + m + ": %{y}<extra></extra>",
+    connectgaps: false
+  }));
+  traces.push({
+    type: "scatter", mode: "lines+markers", name: "OpenROAD",
+    x: xs, y: boards.map(b => b.live ? b.open : null),
+    line: { width: 2, color: t.gold, dash: "dash" },
+    marker: { size: 7, color: t.gold, symbol: "diamond" },
+    hovertemplate: "OpenROAD<br>%{x}<br>" + m + ": %{y}<extra></extra>",
+    connectgaps: false
+  });
+  const here = state.slice === "pdk" ? PDKS.find(p => p[0] === state.pdk)[1] : SL[state.stage];
+  const xi = xs.indexOf(here);
+  $("pt").textContent = `${m} across ${state.slice === "pdk" ? "PDKs" : "stages"}`;
+  $("pc").innerHTML = `Follows the metric selected under <b>Score by</b> — `
+    + `MAE, MAPE, R², or whichever error this task ranks on. `
+    + `Gold is the lab’s <b>fixed_mlp</b>; the dashed gold line is OpenROAD. `
+    + `${hi(m) ? "Higher is better." : "Lower is better."}`;
+  Plotly.react($("stagebox"), traces, Object.assign(BASE_LAYOUT(t), {
+    showlegend: true,
+    legend: { orientation: "h", y: 1.08, font: { size: 10, color: t.font.color },
+      bgcolor: "rgba(0,0,0,0)" },
+    margin: { l: 64, r: 18, t: 36, b: 48 },
+    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, {
+      title: { text: state.slice === "pdk" ? "PDK" : "Predict from", font: { size: 11 } } }),
     yaxis: Object.assign(BASE_LAYOUT(t).yaxis, {
-      title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } },
-      tickfont: { size: 10, color: t.font.color } }),
-    shapes: isFinite(bv) ? [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: bv, y1: bv,
-      line: { color: t.gold, width: 2, dash: "dash" } }] : [],
-    annotations: isFinite(bv) ? [{ xref: "paper", x: 0, y: bv, xanchor: "left", yanchor: "bottom",
-      text: "OpenROAD " + fmt(bv, m), showarrow: false,
-      font: { size: 10, color: t.dark ? "#ffce12" : "#8a6a00" } }] : []
+      title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } } }),
+    shapes: xi >= 0 ? [{ type: "rect", xref: "x", x0: xi - 0.4, x1: xi + 0.4,
+      yref: "paper", y0: 0, y1: 1,
+      fillcolor: t.dark ? "rgba(254,197,0,.08)" : "rgba(254,197,0,.12)",
+      line: { width: 0 } }] : []
   }), CONFIG);
 }
 
@@ -1022,8 +1271,9 @@ function render() {
   drawHead(ROWS);
   const ranking = state.view === "ranking";
   $("rankview").style.display = ranking ? "" : "none";
-  $("paretoview").style.display = ranking ? "none" : "";
-  if (ranking) { drawTable(ROWS); drawPlots(ROWS); } else { drawPareto(ROWS); }
+  $("stageview").style.display = ranking ? "none" : "";
+  $("sliceseg").hidden = ranking;
+  if (ranking) { drawTable(ROWS); drawPlots(ROWS); } else { drawStageView(); }
   pushURL();
 }
 
@@ -1037,26 +1287,38 @@ $("groupseg").querySelectorAll("[data-group]").forEach(b => b.onclick = () => {
   state.group = b.dataset.group;
   $("groupseg").querySelectorAll("[data-group]").forEach(o =>
     o.setAttribute("aria-selected", o === b));
-  drawTable(ROWS);
+  if (state.view === "ranking") drawTable(ROWS); else drawStageView();
 });
-$("srch").oninput = e => { state.search = e.target.value; drawTable(ROWS); };
+$("sliceseg").querySelectorAll("[data-slice]").forEach(b => b.onclick = () => {
+  state.slice = b.dataset.slice;
+  state.sliceSort = null;
+  $("sliceseg").querySelectorAll("[data-slice]").forEach(o =>
+    o.setAttribute("aria-selected", o === b));
+  if (state.view === "stage") drawStageView();
+  pushURL();
+});
+$("srch").oninput = e => {
+  state.search = e.target.value;
+  if (state.view === "ranking") drawTable(ROWS); else drawStageView();
+};
 document.querySelectorAll(".railsec > .railhd").forEach(h => h.onclick = () =>
   h.parentElement.classList.toggle("closed"));
 $("togglerail").onclick = () => {
   const r = $("rail"); r.classList.toggle("hidden");
   $("togglerail").textContent = r.classList.contains("hidden") ? "☰ Show filters" : "☰ Hide filters";
   if (typeof Plotly !== "undefined") setTimeout(() => {
-    ["p1","p2","p3","p4","paretobox"].forEach(id => { const e = $(id); if (e && e.data) Plotly.Plots.resize(e); });
+    ["p1","p2","p3","p4","stagebox"].forEach(id => { const e = $(id); if (e && e.data) Plotly.Plots.resize(e); });
   }, 60);
 };
 addEventListener("themechange", () => {
-  if (state.view === "ranking") drawPlots(ROWS); else drawPareto(ROWS);
+  if (state.view === "ranking") drawPlots(ROWS); else drawStageView();
 });
 
 /* the address carries the whole view, as it does on the other pages */
 function pushURL() {
   const q = new URLSearchParams({ task: state.task, pdk: state.pdk,
     stage: STAGES[state.stage], metric: state.metric, view: state.view });
+  if (state.slice === "pdk") q.set("slice", "pdk");
   history.replaceState(null, "", location.pathname + "?" + q);
 }
 (function boot() {
@@ -1065,10 +1327,16 @@ function pushURL() {
   const p = q.get("pdk"); if (p && PDKS.some(x => x[0] === p)) state.pdk = p;
   const s = STAGES.indexOf(q.get("stage") || ""); if (s >= 0) state.stage = s;
   const m = q.get("metric"); if (m && metricsOf(state.task).includes(m)) state.metric = m;
-  const v = q.get("view"); if (v === "pareto") {
-    state.view = "pareto";
+  const sl = q.get("slice"); if (sl === "pdk" || sl === "stage") {
+    state.slice = sl;
+    $("sliceseg").querySelectorAll("[data-slice]").forEach(o =>
+      o.setAttribute("aria-selected", o.dataset.slice === sl));
+  }
+  const v = q.get("view");
+  if (v === "stage" || v === "pareto") {
+    state.view = "stage";
     $("viewseg").querySelectorAll("[data-view]").forEach(o =>
-      o.setAttribute("aria-selected", o.dataset.view === "pareto"));
+      o.setAttribute("aria-selected", o.dataset.view === "stage"));
   }
   render();
 })();
