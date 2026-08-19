@@ -19,8 +19,8 @@
 
    Structure is LMArena's, measured off arena.ai/leaderboard/text/overall:
    filter rail + content column, a rank table carrying a rank interval and a
-   confidence interval on every score, and a 2x2 grid of default plots under
-   it. The skin is the lab's: Drexel navy and gold, Roboto, the tokens in
+   confidence interval on every score, a 2x2 of default plots, and the
+   leaderboard model×circuit heatmap under them. The skin is the lab's: Drexel navy and gold, Roboto, the tokens in
    theme.css. Arena's own type scale is kept, because a dense rank table is
    what it was designed for.
 
@@ -58,17 +58,6 @@ body { font-size: 16px; font-weight: 400; }
 .railhd .chev { margin-left: auto; opacity: .5; font-size: .7rem; transition: transform .15s; }
 .railsec.closed .chev { transform: rotate(-90deg); }
 .railsec.closed .railbody { display: none; }
-/* nested task families, the way arena nests Technology > HTML */
-.grp { margin-bottom: .1rem; }
-.grphd { display: flex; align-items: center; gap: .4rem; width: 100%; font: inherit;
-  font-size: .78rem; padding: .28rem .5rem; border: 0; background: none; cursor: pointer;
-  color: var(--global-text-color-light); border-radius: 6px; text-align: left; }
-.grphd:hover { background: var(--global-card-bg-color); color: var(--global-text-color); }
-.grphd .ct { font-size: .66rem; opacity: .55; font-variant-numeric: tabular-nums; }
-.grphd .gchev { margin-left: auto; opacity: .5; font-size: .65rem; transition: transform .15s; }
-.grp.open .gchev { transform: rotate(90deg); }
-.grp .cats { display: none; padding-left: .55rem; }
-.grp.open .cats { display: flex; }
 .railhd .ico { opacity: .55; font-size: .85rem; }
 .railhd .ct { color: var(--global-text-color-light); font-weight: 400; }
 
@@ -84,20 +73,6 @@ body { font-size: 16px; font-weight: 400; }
 .seg button[aria-selected="true"] { background: var(--global-bg-color);
   color: var(--global-theme-color); font-weight: 500;
   box-shadow: 0 1px 2px rgba(7,41,77,.08); }
-
-/* category list — Arena's emoji-led rows */
-.cats { display: flex; flex-direction: column; gap: 1px; }
-.cat { display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left;
-  font: inherit; font-size: .82rem; padding: .34rem .5rem; border: 0; cursor: pointer;
-  background: none; color: var(--global-text-color); border-radius: 6px; }
-.cat:hover { background: var(--global-card-bg-color); }
-.cat[aria-selected="true"] { background: var(--global-card-bg-color);
-  color: var(--global-theme-color); font-weight: 500; }
-.cat .tick { margin-left: auto; color: var(--global-theme-color); opacity: 0; }
-.cat[aria-selected="true"] .tick { opacity: 1; }
-.cat.void { opacity: .38; cursor: not-allowed; }
-.more { font: inherit; font-size: .78rem; background: none; border: 0; cursor: pointer;
-  color: var(--global-link-color); padding: .3rem .5rem; text-align: left; }
 
 .opt { display: flex; align-items: center; gap: .5rem; font-size: .82rem;
   padding: .22rem .5rem; border-radius: 6px; cursor: pointer; }
@@ -215,36 +190,35 @@ table.lb tbody tr.pod3:hover { background: color-mix(in srgb, #c4843a 16%, trans
 @media (max-width: 1180px) { .plotgrid { grid-template-columns: 1fr; } }
 .plotcard { border: 1px solid var(--global-divider-color); border-radius: 6px;
   background: var(--global-bg-color); padding: 1rem 1.1rem 1.1rem; }
+.plotcard--wide { grid-column: 1 / -1; }
 .plotcard h3 { font-size: .85rem; font-weight: 500; color: var(--global-text-color);
   margin: 0 0 .15rem; }
 .plotcard p.cap { font-size: .72rem; color: var(--global-text-color-light);
   margin: 0 0 .6rem; line-height: 1.45; }
 .plotbox { width: 100%; height: 430px; }
+.plotbox--svg { height: auto; min-height: 380px; }
+#mxcirc { width: 100%; display: block; }
+text.cl2 { font-size: 9px; fill: var(--global-text-color-light);
+  font-family: "Roboto Mono", var(--global-font-mono, monospace); }
+.cpt { cursor: pointer; }
+.mxkey { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .76rem;
+  color: var(--global-text-color-light); margin-top: .45rem; }
+.mxkey span { display: inline-flex; align-items: center; gap: .32rem; }
+.mxkey i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
 .plotwarn { font-size: .78rem; color: var(--global-text-color-light); padding: 2rem 0;
   text-align: center; }
+#tip { position: fixed; z-index: 200; pointer-events: none;
+  background: var(--global-text-color); color: var(--global-bg-color);
+  font-size: .76rem; line-height: 1.5; padding: .45rem .65rem; border-radius: 4px;
+  opacity: 0; transition: opacity .12s; max-width: 280px;
+  box-shadow: 0 3px 12px rgba(0,0,0,.2); }
+#tip.on { opacity: 1; }
+#tip b { font-weight: 600; }
 
 .pareto { border: 1px solid var(--global-divider-color); border-radius: 6px;
   background: var(--global-bg-color); padding: 1rem 1.1rem 1.1rem; }
 .pareto h3 { font-size: .85rem; font-weight: 500; margin: 0 0 .15rem; }
 #stagebox { width: 100%; height: 480px; }
-
-/* overview hub — Arena's category snapshot cards, before the dense table */
-.hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
-  gap: .55rem; margin: 0 0 1.25rem; }
-.hubcard { font: inherit; text-align: left; cursor: pointer;
-  border: 1px solid var(--global-divider-color); border-radius: 8px;
-  background: var(--global-bg-color); padding: .65rem .8rem; color: inherit; }
-.hubcard:hover { border-color: var(--global-theme-color); }
-.hubcard[aria-current="true"] { border-color: var(--global-theme-color);
-  background: var(--global-card-bg-color); }
-.hubcard.dead { opacity: .4; cursor: not-allowed; }
-.hubcard .hgrp { font-size: .62rem; letter-spacing: .04em; text-transform: uppercase;
-  color: var(--global-text-color-light); }
-.hubcard .hname { font-size: .92rem; font-weight: 500; margin: .12rem 0 .35rem; }
-.hubcard .htop { display: flex; align-items: center; gap: .4rem;
-  font-family: "Roboto Mono", var(--global-font-mono); font-size: .78rem; }
-.hubcard .hscore { font-size: .7rem; color: var(--global-text-color-light);
-  margin-top: .2rem; font-variant-numeric: tabular-nums; }
 
 /* models × stage/PDK rank matrix */
 .slicetool { display: flex; align-items: baseline; justify-content: space-between;
@@ -298,11 +272,6 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
       </div>
     </div>
 
-    <div class="railsec" data-sec="cats">
-      <button class="railhd"><span class="ico">▦</span> Categories <span class="ct" id="catct"></span><span class="chev">▾</span></button>
-      <div class="railbody"><div id="cats"></div></div>
-    </div>
-
     <div class="railsec" data-sec="stage">
       <button class="railhd"><span class="ico">⚙</span> Predict from<span class="chev">▾</span></button>
       <div class="railbody"><div id="stageopts"></div></div>
@@ -330,8 +299,6 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
     <p class="lead" id="lead"></p>
 
     <div class="meta" id="meta"></div>
-
-    <div class="hub" id="hub"></div>
 
     <div class="tbar">
       <button class="tbtn" id="togglerail">☰ Hide filters</button>
@@ -374,10 +341,25 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
             <div class="plotbox" id="p3"></div>
           </div>
           <div class="plotcard">
-            <h3 id="p4t">Model × circuit</h3>
-            <p class="cap" id="p4c">Green beats OpenROAD on that design, red loses. Intensity is how far
-              the ratio sits from a tie.</p>
+            <h3>Average win rate against each opponent</h3>
+            <p class="cap">Mean of the row above, over every other entry. The tool sits in the field like
+              any other competitor.</p>
             <div class="plotbox" id="p4"></div>
+          </div>
+          <div class="plotcard plotcard--wide">
+            <h3 id="p5t">Model × circuit vs OpenROAD</h3>
+            <p class="cap" id="p5c">The leaderboard heatmap for this cell: one row per model, one column
+              per IWLS’05 circuit. Compared to the aggregate OpenROAD number for the cell (not a
+              per-circuit OpenROAD). Green beats that number, red loses; opacity scales with
+              |log(v / OpenROAD)|.</p>
+            <div class="plotbox plotbox--svg">
+              <svg id="mxcirc" viewBox="0 0 1100 420" preserveAspectRatio="xMinYMin meet"></svg>
+            </div>
+            <div class="mxkey">
+              <span><i style="background:#3f8a45"></i>better than OpenROAD</span>
+              <span><i style="background:#b8453a"></i>worse</span>
+              <span>hover a row to isolate it</span>
+            </div>
           </div>
         </div>
       </section>
@@ -401,6 +383,7 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
   </main>
 </div>
 
+<div id="tip" role="tooltip"></div>
 <div class="foot">&copy; ICE Lab, Drexel University. All rights reserved. &middot; prototype &middot;
   <a href="https://drexel-ice.github.io/eda-schema/">EDA-Schema-V2</a></div>
 
@@ -430,14 +413,6 @@ const TASKS = [
   ["net_arc_delay","Net arc delay","ns","➰"],
   ["cell_arc_delay","Cell arc delay","ns","🔲"],
   ["cell_arc_slew","Cell arc slew","ns","🌊"]];
-
-/* the paper's own taxonomy, which gives the rail the nesting arena has */
-const GROUPS = [
-  ["Circuit-level", ["total_area","total_power","total_wirelength"]],
-  ["Net-level",     ["interconnect_length"]],
-  ["Timing",        ["worst_arrival_time","worst_slack","total_negative_slack"]],
-  ["Path-level",    ["timing_path_arrival_time","timing_path_slack"]],
-  ["Arc-level",     ["net_arc_delay","cell_arc_delay","cell_arc_slew"]]];
 
 const HIGHER = new Set(["R²","TPR","TNR"]);
 const FAMCOL = {GNN:"#2f6bb5", MLP:"#2f8f6b", CNN:"#c25f22", AutoML:"#7a4bb8",
@@ -653,7 +628,7 @@ function winFraction(rows, metric) {
    =================================================================== */
 const state = { task: "total_area", pdk: "ng45", stage: 0, metric: "MAE",
   view: "ranking", group: "models", slice: "stage", sliceSort: null,
-  search: "", sort: null, asc: null, openGroups: new Set() };
+  search: "", sort: null, asc: null };
 
 const $ = id => document.getElementById(id);
 const taskDef = () => TASKS.find(x => x[0] === state.task);
@@ -674,41 +649,11 @@ const cellState = (t, m, p, s) => {
   if (hi(m) ? (m === "R²" ? v >= 1 : v >= 100) : v === 0) return "sat";
   return "live";
 };
-const taskLive = (t, p, s) => metricsOf(t).some(m => cellState(t, m, p, s) === "live");
 
 /* ===================================================================
    Rail
    =================================================================== */
 function drawRail() {
-  /* categories nest by the paper's taxonomy, the way arena nests its own */
-  $("catct").textContent = "(" + TASKS.length + ")";
-  $("cats").innerHTML = GROUPS.map(([g, ids]) => {
-    const open = state.openGroups.has(g) || ids.includes(state.task);
-    const live = ids.filter(id => taskLive(id, state.pdk, state.stage)).length;
-    const items = ids.map(id => {
-      const [, label] = TASKS.find(x => x[0] === id);
-      const dead = !taskLive(id, state.pdk, state.stage);
-      return `<button class="cat${dead ? " void" : ""}" data-task="${id}"
-        aria-selected="${state.task === id}"${dead ? " disabled" : ""}
-        title="${dead ? "Nothing scoreable here at this stage" : label}">
-        <span>${label}</span><span class="tick">✓</span></button>`;
-    }).join("");
-    return `<div class="grp${open ? " open" : ""}" data-grp="${g}">
-      <button class="grphd"><span>${g}</span>
-        <span class="ct">${live}/${ids.length}</span><span class="gchev">▸</span></button>
-      <div class="cats">${items}</div></div>`;
-  }).join("");
-  $("cats").querySelectorAll("[data-task]").forEach(b => b.onclick = () => {
-    state.task = b.dataset.task;
-    if (!metricsOf(state.task).includes(state.metric)) state.metric = metricsOf(state.task)[0];
-    state.sort = null; render();
-  });
-  $("cats").querySelectorAll("[data-grp] .grphd").forEach(b => b.onclick = () => {
-    const g = b.parentElement.dataset.grp;
-    state.openGroups.has(g) ? state.openGroups.delete(g) : state.openGroups.add(g);
-    drawRail();
-  });
-
   $("stageopts").innerHTML = SL.map((s, i) =>
     `<label class="opt"><input type="radio" name="stg" value="${i}"
       ${state.stage === i ? "checked" : ""}> ${s}
@@ -748,7 +693,9 @@ function drawHead(rows) {
   $("lead").innerHTML = `Predicting the <b>detailed-route</b> value from <b>${SL[state.stage]}</b>
     on <b>${pdkLabel}</b>, scored by <b>${state.metric}</b>${withUnit}.
     ${hi(state.metric) ? "Higher wins." : "Lower wins."} The OpenROAD estimate at the same stage
-    is in the table as a competitor, not as a footnote.`;
+    is in the table as a competitor, not as a footnote.
+    A name that repeats across stages is a separately trained checkpoint — EDA-Schema-V2 does not
+    share one ML model across the flow.`;
 
   const st = RD() && RD().stats || {};
   const run = RD() && RD().run(state.pdk, STAGES[state.stage]);
@@ -760,41 +707,6 @@ function drawHead(rows) {
     ["Checkpoints", `<b>${st.checkpoints || 360}</b> real`],
     ["Baseline", `Table 8`]
   ].map(([k, v]) => `<span>${k} ${v}</span>`).join("");
-  drawHub();
-}
-
-function hubMetric(t) {
-  const ms = metricsOf(t);
-  if (ms.includes(state.metric) && cellState(t, state.metric, state.pdk, state.stage) === "live")
-    return state.metric;
-  return ms.find(m => cellState(t, m, state.pdk, state.stage) === "live") || ms[0];
-}
-function drawHub() {
-  const grpOf = id => (GROUPS.find(([, ids]) => ids.includes(id)) || ["", []])[0];
-  $("hub").innerHTML = TASKS.map(([id, label]) => {
-    const m = hubMetric(id);
-    const live = cellState(id, m, state.pdk, state.stage) === "live";
-    const names = (isRealTask(id) ? [RM] : []).concat(SYNTH);
-    /* ranking-only, no bootstrap — the hub is a snapshot, not a claim */
-    const ranked = live
-      ? names.map(n => ({ n, v: modelVal(id, m, state.pdk, state.stage, n) }))
-          .sort((a, b) => better(a.v, b.v, m) ? -1 : 1)
-      : [];
-    const top = ranked[0];
-    return `<button class="hubcard${live ? "" : " dead"}" data-hub="${id}"
-      aria-current="${id === state.task}" ${live ? "" : "disabled"}>
-      <div class="hgrp">${grpOf(id)}</div>
-      <div class="hname">${label}</div>
-      <div class="htop">${top ? `<span class="medal medal--1" title="1st">🥇</span>
-        <span>${top.n}</span>` : "—"}</div>
-      <div class="hscore">${top && live ? `${m} ${fmt(top.v, m)} · ${SL[state.stage]}` : "not scoreable here"}</div>
-    </button>`;
-  }).join("");
-  $("hub").querySelectorAll("[data-hub]").forEach(b => b.onclick = () => {
-    state.task = b.dataset.hub;
-    if (!metricsOf(state.task).includes(state.metric)) state.metric = hubMetric(state.task);
-    state.sort = null; render();
-  });
 }
 
 const spreadSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -957,10 +869,6 @@ const SEQ = t => t.dark
 const DIV = t => t.dark
   ? [[0,"#8c3a30"],[.5,"#0b3d6e"],[1,"#ffce12"]]
   : [[0,"#b8453a"],[.5,"#f2f0ec"],[1,"#07294d"]];
-/* leaderboard model×circuit: lose red → tie cream → win green */
-const WINLOSE = t => t.dark
-  ? [[0,"#8c3a30"],[.5,"#0b3d6e"],[1,"#3f8a45"]]
-  : [[0,"#b8453a"],[.5,"#f2f0ec"],[1,"#3f8a45"]];
 
 const BASE_LAYOUT = t => ({
   paper_bgcolor: t.paper, plot_bgcolor: t.plotbg, font: t.font,
@@ -977,6 +885,7 @@ function drawPlots(rows) {
   if (typeof Plotly === "undefined") {
     ["p1","p2","p3","p4"].forEach(id =>
       $(id).innerHTML = '<p class="plotwarn">Plotly could not be loaded, so the plots are unavailable offline.</p>');
+    drawMxCircuit(rows);
     return;
   }
   const t = plotTheme(), m = state.metric, unit = taskDef()[2];
@@ -1054,41 +963,118 @@ function drawPlots(rows) {
     yaxis: { autorange: "reversed", tickfont: { size: 8, color: t.font.color } }
   }), CONFIG);
 
-  /* 4 — model × circuit: who beats OpenROAD, design by design.
-     Port of index.html chCircuits. Colour is win/lose against that circuit's
-     own OpenROAD error; intensity is |log(model/tool)| clipped at 1.2 nats. */
-  const tool = perCircuit(state.task, m, state.pdk, state.stage, "__baseline__");
-  const z = top.map(r => cs.map((c, ci) => {
-    const v = r.series[ci], b = tool[ci];
-    if (!isFinite(v) || !isFinite(b) || b === 0) return null;
-    const mag = Math.min(1, Math.abs(Math.log(Math.abs(v / b))) / 1.2);
-    return better(v, b, m) ? mag : -mag;
-  }));
-  const hover = top.map(r => cs.map((c, ci) => {
-    const v = r.series[ci], b = tool[ci];
-    if (!isFinite(v) || !isFinite(b)) return r.n + "<br>" + c;
-    const verdict = !b ? "no OpenROAD error to beat"
-      : better(v, b, m) ? "beats OpenROAD" : "loses to OpenROAD";
-    return r.n + "<br>" + c + "<br>" + m + " " + fmt(v, m)
-      + "<br>OpenROAD " + fmt(b, m) + "<br>" + verdict;
-  }));
-  $("p4t").textContent = `Model × circuit — ${m} vs OpenROAD`;
-  $("p4c").textContent = `Each cell is one of the ${cs.length} IWLS’05 designs. `
-    + `Green beats the tool on that circuit, red loses. Intensity is how far `
-    + `the ratio sits from a tie, the same encoding as the leaderboard.`;
+  /* 4 — average win rate against the field */
+  const avg = top.map((r, i) => {
+    const row = W[i].filter(v => v !== null);
+    return { n: r.n, real: r.real, v: row.reduce((a, b) => a + b, 0) / (row.length || 1) };
+  }).sort((a, b) => b.v - a.v);
   Plotly.react($("p4"), [{
-    type: "heatmap", z: z, x: cs, y: top.map(r => r.n),
-    colorscale: WINLOSE(t), zmin: -1, zmax: 1, xgap: 1, ygap: 1,
-    customdata: hover,
-    hovertemplate: "%{customdata}<extra></extra>",
-    colorbar: { thickness: 8, len: .6, tickvals: [-1, 0, 1],
-      ticktext: ["loses", "tie", "beats"],
-      tickfont: { size: 9, color: t.font.color }, outlinewidth: 0 }
+    type: "bar", x: avg.map(a => a.n), y: avg.map(a => a.v),
+    marker: { color: avg.map(a => a.real ? t.gold : t.accent),
+      line: { width: 0 } },
+    text: avg.map(a => (a.v * 100).toFixed(1)), textposition: "outside",
+    textfont: { size: 9, color: t.font.color },
+    hovertemplate: "%{x}<br>wins %{y:.1%} of pairings<extra></extra>"
   }], Object.assign(BASE_LAYOUT(t), {
-    margin: { l: 132, r: 14, t: 10, b: 96 },
-    xaxis: { tickangle: -55, tickfont: { size: 8, color: t.font.color } },
-    yaxis: { autorange: "reversed", tickfont: { size: 8, color: t.font.color } }
+    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { tickformat: ".0%",
+      title: { text: "Average win rate", font: { size: 11 } } }),
+    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, { tickangle: -55 })
   }), CONFIG);
+
+  drawMxCircuit(rows);
+}
+
+/* leaderboard model × circuit SVG (index.html chCircuits), for this cell.
+   Colour is win/lose against the cell's aggregate OpenROAD number; intensity
+   is |log(model/tool)| clipped at 1.2 nats. */
+const CIRC_SHORT = ["ac97","aes","des3","eth","i2c","jpeg","mem","pci","sasc","sspi",
+                    "spi","pcm","scaes","scdes","tv80","usb_f","usb_p","wbdma"];
+let mxHi = null, MX_ROWS = [];
+const tipEl = () => $("tip");
+function showTip(e, html) {
+  const tip = tipEl(); if (!tip) return;
+  tip.innerHTML = html; tip.classList.add("on");
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { const tip = tipEl(); if (tip) tip.classList.remove("on"); };
+
+function drawMxCircuit(rows) {
+  const host = $("mxcirc");
+  if (!host) return;
+  MX_ROWS = rows;
+  const m = state.metric, b = baseVal(state.task, m, state.pdk, state.stage);
+  const cs = CIRCUITS();
+  const nC = CIRC_SHORT.length;
+  const W = 1100, Hh = 34 + Math.max(16, Math.min(22, 380 / Math.max(rows.length, 1))) * rows.length + 36;
+  host.setAttribute("viewBox", `0 0 ${W} ${Hh}`);
+  const X0 = 118, Y0 = 34, cw = (W - X0 - 16) / nC, chh = (Hh - Y0 - 30) / Math.max(rows.length, 1);
+  let g = "";
+  CIRC_SHORT.forEach((c, i) => {
+    const x = X0 + i * cw + cw / 2;
+    g += `<text class="cl2" x="${x.toFixed(1)}" y="${Y0 - 6}" text-anchor="end" ` +
+         `transform="rotate(-52 ${x.toFixed(1)} ${Y0 - 6})">${c}</text>`;
+  });
+  rows.forEach((r, ri) => {
+    const dim = mxHi && mxHi !== r.n;
+    g += `<text class="cl2" data-mn="${r.n}" x="${X0 - 8}" ` +
+         `y="${(Y0 + ri * chh + chh / 2 + 3).toFixed(1)}" text-anchor="end" ` +
+         `opacity="${dim ? .35 : 1}">${r.n}</text>`;
+    for (let ci = 0; ci < nC; ci++) {
+      const v = r.series[ci];
+      const ok = isFinite(v) && isFinite(b) && b !== 0;
+      const win = ok && better(v, b, m);
+      const mag = ok ? Math.min(1, Math.abs(Math.log(Math.abs(v / b))) / 1.2) : 0;
+      const op = dim ? .12 : (ok ? 0.14 + 0.7 * mag : .06);
+      g += `<rect class="cpt" x="${(X0 + ci * cw).toFixed(1)}" y="${(Y0 + ri * chh).toFixed(1)}" ` +
+           `width="${(cw - 1).toFixed(1)}" height="${(chh - 1).toFixed(1)}" ` +
+           `fill="${ok ? (win ? "#3f8a45" : "#b8453a") : "#9aa3ad"}" opacity="${op.toFixed(2)}" ` +
+           `data-mn="${r.n}" data-ci="${ci}" data-op="${(ok ? 0.14 + 0.7 * mag : .06).toFixed(2)}"/>`;
+    }
+  });
+  host.innerHTML = g;
+  $("p5t").textContent = `Model × circuit — ${m} vs OpenROAD`;
+  $("p5c").textContent = `Each cell is one of the ${cs.length} IWLS’05 designs, compared to the ` +
+    `aggregate OpenROAD ${m} for this (PDK, stage) — the same encoding as the leaderboard. ` +
+    `These are independently trained per (PDK, stage, circuit); a row is not one model scored at every stage.`;
+  host.querySelectorAll("[data-mn]").forEach(el => {
+    el.onmouseenter = e => {
+      mxHi = el.dataset.mn;
+      host.querySelectorAll("[data-mn]").forEach(n => {
+        const dim = n.dataset.mn !== mxHi;
+        if (n.tagName === "text") n.setAttribute("opacity", dim ? .35 : 1);
+        else n.setAttribute("opacity", dim ? .12 : n.dataset.op);
+      });
+      if (el.dataset.ci == null) { hideTip(); return; }
+      const r = MX_ROWS.find(x => x.n === el.dataset.mn);
+      const ci = +el.dataset.ci;
+      if (!r) return;
+      const v = r.series[ci], full = cs[ci] || CIRC_SHORT[ci];
+      const verdict = !isFinite(v) || !isFinite(b) ? "no comparison"
+        : better(v, b, m) ? "beats OpenROAD" : "loses to OpenROAD";
+      showTip(e, `<b>${r.n}</b><br>${CIRC_SHORT[ci]} · ${full}<br>${m} ${fmt(v, m)}` +
+        `<br>OpenROAD ${fmt(b, m)}<br>${verdict}`);
+    };
+    el.onmousemove = e => {
+      const tip = tipEl();
+      if (!tip || !tip.classList.contains("on")) return;
+      const box = tip.getBoundingClientRect();
+      let x = e.clientX + 14, y = e.clientY + 14;
+      if (x + box.width > innerWidth - 8) x = e.clientX - box.width - 14;
+      if (y + box.height > innerHeight - 8) y = e.clientY - box.height - 14;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    };
+  });
+  host.onmouseleave = () => {
+    mxHi = null; hideTip();
+    host.querySelectorAll("[data-mn]").forEach(n => {
+      if (n.tagName === "text") n.setAttribute("opacity", 1);
+      else n.setAttribute("opacity", n.dataset.op);
+    });
+  };
 }
 
 /* ===================================================================
@@ -1152,7 +1138,8 @@ function drawStageView() {
     ? `Rank across PDKs · ${m}` : `Rank across stages · ${m}`;
   $("slicecap").textContent = `Cells are rank under ${m}. `
     + `Gold / silver / bronze mark 1st–3rd in that column. Click a column to sort, `
-    + `a cell to open that ranking.`;
+    + `a cell to open that ranking. A repeated name is a new checkpoint per stage, `
+    + `not one model scored across the flow.`;
 
   $("slicehead").innerHTML = "<tr><th>Model</th>" + keys.map(k =>
     `<th class="rt sortable${k.id === here ? " act" : ""}${k.id === sortKey ? " act" : ""}"
@@ -1237,7 +1224,9 @@ function drawStagePlot(boards, models, m, unit) {
   $("pt").textContent = `${m} across ${state.slice === "pdk" ? "PDKs" : "stages"}`;
   $("pc").innerHTML = `Follows the metric selected under <b>Score by</b> — `
     + `MAE, MAPE, R², or whichever error this task ranks on. `
-    + `Gold is the lab’s <b>fixed_mlp</b>; the dashed gold line is OpenROAD. `
+    + `Gold is the lab’s <b>fixed_mlp</b> — a separate checkpoint per (PDK, stage, circuit), `
+    + `not one network reused across the flow. The dashed gold line is OpenROAD’s own `
+    + `stage estimate (EDA-Schema-V2 §6.2). `
     + `${hi(m) ? "Higher is better." : "Lower is better."}`;
   Plotly.react($("stagebox"), traces, Object.assign(BASE_LAYOUT(t), {
     showlegend: true,
