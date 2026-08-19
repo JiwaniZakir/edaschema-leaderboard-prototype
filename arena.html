@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="description" content="EDA-Schema Arena — trained models vs. OpenROAD for final-stage QoR prediction. Drexel ICE Lab.">
-<title>EDA-Schema Arena | Drexel ICE Lab</title>
+<title>model ranking | Drexel ICE Lab</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2307294D'/><text x='16' y='23' font-family='Roboto,Arial' font-size='18' fill='%23fec500' text-anchor='middle'>E</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,8 +19,8 @@
 
    Structure is LMArena's, measured off arena.ai/leaderboard/text/overall:
    filter rail + content column, a rank table carrying a rank interval and a
-   confidence interval on every score, a 2x2 of default plots, and the
-   leaderboard model×circuit heatmap under them. The skin is the lab's: Drexel navy and gold, Roboto, the tokens in
+   confidence interval on every score, a 2x2 of default plots, and a
+   model×circuit heatmap on the Model matrix view (Arena’s Pareto slot). The skin is the lab's: Drexel navy and gold, Roboto, the tokens in
    theme.css. Arena's own type scale is kept, because a dense rank table is
    what it was designed for.
 
@@ -41,14 +41,24 @@ body { font-size: 16px; font-weight: 400; }
 /* --- shell ---------------------------------------------------------------- */
 .shell { display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 0;
   max-width: 1680px; margin: 0 auto; align-items: start; }
+.shell.rail-off { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1080px) { .shell { grid-template-columns: 1fr; } }
 
 .rail { position: sticky; top: 72px; align-self: start; max-height: calc(100vh - 72px);
-  overflow-y: auto; padding: 1.25rem 1rem 2rem 1.25rem;
+  display: flex; flex-direction: column; min-width: 0;
   border-right: 1px solid var(--global-divider-color); }
-@media (max-width: 1080px) { .rail { position: static; max-height: none; border-right: 0;
-  border-bottom: 1px solid var(--global-divider-color); } }
-.rail.hidden { display: none; }
+@media (max-width: 1080px) { .rail { position: static; max-height: none;
+  border-right: 0; border-bottom: 1px solid var(--global-divider-color); } }
+.shell.rail-off .rail { display: none; }
+
+.railclose { position: absolute; top: .55rem; right: .55rem; z-index: 1;
+  width: 28px; height: 28px; display: grid; place-items: center; border: 0;
+  border-radius: 6px; cursor: pointer; background: none;
+  color: var(--global-text-color-light); padding: 0; }
+.railclose:hover { background: var(--global-card-bg-color); color: var(--global-text-color); }
+.railclose svg { width: 16px; height: 16px; display: block; }
+.railscroll { overflow-y: auto; overflow-x: hidden; padding: 2.35rem 1rem 2rem 1.25rem;
+  flex: 1; min-height: 0; }
 
 .railsec { margin-bottom: 1.5rem; }
 .railhd { display: flex; align-items: center; gap: .4rem; margin-bottom: .6rem;
@@ -70,9 +80,11 @@ body { font-size: 16px; font-weight: 400; }
   display: flex; align-items: center; justify-content: center; gap: .35rem;
   transition: background .15s, color .15s; }
 .seg button:hover { color: var(--global-text-color); }
+.seg button svg { width: 14px; height: 14px; flex: none; opacity: .65; }
 .seg button[aria-selected="true"] { background: var(--global-bg-color);
   color: var(--global-theme-color); font-weight: 500;
   box-shadow: 0 1px 2px rgba(7,41,77,.08); }
+.seg button[aria-selected="true"] svg { opacity: 1; }
 
 .opt { display: flex; align-items: center; gap: .5rem; font-size: .82rem;
   padding: .22rem .5rem; border-radius: 6px; cursor: pointer;
@@ -81,36 +93,36 @@ body { font-size: 16px; font-weight: 400; }
 .opt:hover { background: var(--global-card-bg-color); }
 .opt[aria-selected="true"] { background: var(--global-card-bg-color);
   color: var(--global-theme-color); font-weight: 500; }
+#pdkopts .opt[aria-selected="true"] {
+  box-shadow: inset 3px 0 0 var(--md-secondary);
+}
 .opt input { accent-color: var(--global-theme-color); }
 .opt .sub { margin-left: auto; font-size: .7rem; color: var(--global-text-color-light); }
 
 /* --- content -------------------------------------------------------------- */
 .content { padding: 1.5rem 1.75rem 3rem; min-width: 0; }
 
-.crumbs { font-size: .78rem; color: var(--global-text-color-light); margin-bottom: .75rem; }
-.crumbs a { color: var(--global-link-color); }
-
-.h1row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-h1.title { font-size: 1.9rem; font-weight: 300; color: var(--md-heading-color); margin: 0; }
-.catchip { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem;
-  padding: .18rem .6rem; border-radius: 999px; background: var(--global-card-bg-color);
-  border: 1px solid var(--global-divider-color); color: var(--global-text-color); }
+h1.title { font-size: 1.9rem; font-weight: 300; color: var(--md-heading-color);
+  margin: 0; text-transform: lowercase; }
 .lead { font-size: .95rem; color: var(--global-text-color-light); margin: .5rem 0 0;
   max-width: 76ch; line-height: 1.55; }
 
-/* meta strip — Arena's icon + figure row under the title */
 .meta { display: flex; flex-wrap: wrap; gap: 1.15rem; margin: .85rem 0 1.1rem;
   font-size: .78rem; color: var(--global-text-color-light); }
 .meta span { display: inline-flex; align-items: center; gap: .38rem; }
-.meta b { font-weight: 500; color: var(--global-text-color); font-variant-numeric: tabular-nums; }
+.meta svg { width: 14px; height: 14px; flex: none; }
 
 /* toolbar above the table */
 .tbar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .7rem; }
 .tbtn { font: inherit; font-size: .78rem; padding: .28rem .65rem; cursor: pointer;
   border: 1px solid var(--global-divider-strong); border-radius: 6px;
   background: var(--global-bg-color); color: var(--global-text-color);
-  display: inline-flex; align-items: center; gap: .35rem; }
+  display: inline-flex; align-items: center; gap: .4rem; }
 .tbtn:hover { border-color: var(--global-theme-color); }
+.tbtn[aria-pressed="true"] { background: var(--global-theme-color); color: #fff;
+  border-color: var(--global-theme-color); }
+.tbtn svg { width: 14px; height: 14px; display: block; flex: none; }
+.tbar.about-on .srch, .tbar.about-on #groupseg { display: none; }
 .srch { flex: 1; min-width: 180px; max-width: 320px; font: inherit; font-size: .8rem;
   padding: .3rem .6rem; border: 1px solid var(--global-divider-strong); border-radius: 6px;
   background: var(--global-bg-color); color: var(--global-text-color); }
@@ -124,10 +136,8 @@ h1.title { font-size: 1.9rem; font-weight: 300; color: var(--md-heading-color); 
   background: var(--global-bg-color); overflow: hidden; }
 .tscroll { overflow-x: auto; }
 table.lb { width: 100%; border-collapse: collapse; table-layout: auto; }
-/* arena does not grey its headers out: th and td are the same colour and the
-   same weight, so the header row reads as content rather than as a form label */
 table.lb thead th { background: var(--global-bg-color); font-size: .75rem; font-weight: 400;
-  color: var(--global-text-color); text-align: left; white-space: nowrap;
+  color: var(--global-text-color-light); text-align: left; white-space: nowrap;
   padding: .875rem 1.5rem; border-bottom: 1px solid var(--global-divider-color); }
 table.lb th.sortable { cursor: pointer; user-select: none; }
 table.lb th.sortable:hover { color: var(--global-text-color); }
@@ -137,6 +147,7 @@ table.lb th .caret i { font-style: normal; }
 table.lb th .caret .on { opacity: 1; color: var(--global-theme-color); }
 table.lb th.act { color: var(--global-theme-color); }
 table.lb th.act .caret { opacity: 1; }
+table.lb th .thinfo { margin-left: .28rem; font-size: .65rem; opacity: .5; }
 table.lb th.rt, table.lb td.rt { text-align: right; }
 table.lb th.ct, table.lb td.ct { text-align: center; }
 table.lb tbody td { font-size: .875rem; padding: .5rem 1.5rem; vertical-align: middle;
@@ -148,20 +159,20 @@ table.lb tbody tr.base { background: color-mix(in srgb, var(--md-secondary) 9%, 
 table.lb tbody tr.base:hover { background: color-mix(in srgb, var(--md-secondary) 14%, transparent); }
 table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-secondary); }
 
-.rk { font-variant-numeric: tabular-nums; font-size: .9rem; }
+.rk { font-variant-numeric: tabular-nums; font-size: 1rem; }
 .place { font-size: .85rem; line-height: 1; }
 /* rank interval — Arena's "1 —o— 4" glyph */
 .spread { display: flex; align-items: center; justify-content: center; gap: .3rem;
   font-size: .78rem; color: var(--global-text-color-light); font-variant-numeric: tabular-nums; }
 .spread svg { opacity: .55; }
-.mcell { display: flex; align-items: center; gap: .55rem; min-width: 0; min-height: 36px; }
-.mname { font-family: "Roboto Mono", var(--global-font-mono); font-size: .875rem;
-  color: var(--global-text-color); white-space: nowrap; }
-.msub { font-size: .7rem; color: var(--global-text-color-light); }
-.fam { width: 20px; height: 20px; border-radius: 4px; flex: none; display: grid;
-  place-items: center; font-size: .6rem; font-weight: 600; color: #fff; }
-.val { font-variant-numeric: tabular-nums; }
-.pm { font-size: .72rem; color: var(--global-text-color-light); margin-left: .3rem;
+.mcell { display: flex; align-items: center; gap: .7rem; min-width: 0; min-height: 44px; }
+.mname { font-size: .95rem; font-weight: 500; color: var(--global-text-color);
+  white-space: nowrap; }
+.msub { font-size: .75rem; color: var(--global-text-color-light); }
+.fam { width: 28px; height: 28px; border-radius: 6px; flex: none; display: grid;
+  place-items: center; font-size: .65rem; font-weight: 600; color: #fff; }
+.val { font-variant-numeric: tabular-nums; font-size: 1rem; font-weight: 500; }
+.pm { font-size: .72rem; font-weight: 400; color: var(--global-text-color-light); margin-left: .3rem;
   font-variant-numeric: tabular-nums; }
 .tag { display: inline-flex; align-items: center; gap: .25rem; font-size: .62rem;
   font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: .05rem .35rem;
@@ -188,11 +199,6 @@ table.lb tbody tr.isreal td:first-child { box-shadow: inset 3px 0 0 var(--md-sec
 .plotcard p.cap { font-size: .72rem; color: var(--global-text-color-light);
   margin: 0 0 .6rem; line-height: 1.45; }
 .plotbox { width: 100%; height: 430px; }
-#p4 { overflow: hidden; }
-#mxcirc { width: 100%; height: 100%; display: block; }
-text.cl2 { font-size: 9px; fill: var(--global-text-color-light);
-  font-family: "Roboto Mono", var(--global-font-mono, monospace); }
-.cpt { cursor: pointer; }
 .plotwarn { font-size: .78rem; color: var(--global-text-color-light); padding: 2rem 0;
   text-align: center; }
 #tip { position: fixed; z-index: 200; pointer-events: none;
@@ -206,22 +212,105 @@ text.cl2 { font-size: 9px; fill: var(--global-text-color-light);
 .pareto { border: 1px solid var(--global-divider-color); border-radius: 6px;
   background: var(--global-bg-color); padding: 1rem 1.1rem 1.1rem; }
 .pareto h3 { font-size: .85rem; font-weight: 500; margin: 0 0 .15rem; }
-#stagebox { width: 100%; height: 480px; }
-
-/* models × stage/PDK rank matrix */
-.slicetool { display: flex; align-items: baseline; justify-content: space-between;
-  gap: .8rem; flex-wrap: wrap; margin: 0 0 .7rem; }
-.slicetool h2 { font-size: 1rem; font-weight: 500; margin: 0; }
-.mxcell { display: flex; align-items: center; justify-content: flex-end; gap: .28rem; }
-.mxcell .mdl { font-size: .85rem; }
-.mxact { background: var(--global-card-bg-color); }
-table.lb td[data-go] { cursor: pointer; }
-table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
-.stageview { display: flex; flex-direction: column; gap: 1.25rem; }
+.pareto .cap { font-size: .72rem; color: var(--global-text-color-light);
+  margin: 0 0 .55rem; line-height: 1.45; }
+.matrixview { display: flex; flex-direction: column; min-height: calc(100vh - 210px); }
+.mxhead { margin: 0 0 .85rem; }
+.mxhead h2 { font-size: 1.05rem; font-weight: 500; margin: 0 0 .2rem; }
+.mxlayout { display: grid; grid-template-columns: minmax(0, 1fr) 292px; gap: 1.15rem;
+  align-items: stretch; flex: 1; min-height: 0; }
+@media (max-width: 1180px) { .mxlayout { grid-template-columns: 1fr; } }
+.mxpanel { display: flex; flex-direction: column; min-width: 0; }
+.mxhost { width: 100%; height: min(78vh, 920px); min-height: 540px; overflow: hidden; }
+#mxcirc { width: 100%; height: 100%; display: block; }
+#mxcirc text { user-select: none; }
+text.cl2 { font-size: 11px; fill: var(--global-text-color-light);
+  font-family: "Roboto Mono", var(--global-font-mono, monospace); }
+text.cl2.real { fill: var(--md-secondary); font-weight: 600; }
+.cpt { cursor: pointer; }
+.mxkey { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .76rem;
+  color: var(--global-text-color-light); margin: 0 0 .55rem; }
+.mxkey span { display: inline-flex; align-items: center; gap: .32rem; }
+.mxkey i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.mxhint { font-size: .76rem; color: var(--global-text-color-light); margin: .55rem 0 0;
+  min-height: 1.4em; }
+.mxhint a { color: var(--global-link-color); }
+.mxside { border: 1px solid var(--global-divider-color); border-radius: 6px;
+  background: var(--global-bg-color); padding: .95rem .85rem .7rem;
+  display: flex; flex-direction: column; max-height: min(78vh, 920px); }
+.mxside h3 { font-size: .85rem; font-weight: 500; margin: 0; }
+.mxside .cap { font-size: .72rem; color: var(--global-text-color-light);
+  margin: .2rem 0 .65rem; line-height: 1.4; }
+.mxside ol { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.mxitem { display: flex; align-items: center; gap: .55rem; padding: .42rem .4rem;
+  border-radius: 6px; cursor: pointer; }
+.mxitem:hover, .mxitem.on { background: var(--global-card-bg-color); }
+.mxitem.dimmed { opacity: .38; }
+.mxitem .minw { min-width: 0; }
+.mxitem .mxscore { margin-left: auto; text-align: right; flex: none; }
+.famlogo { width: 20px; height: 20px; border-radius: 4px; flex: none; display: grid;
+  place-items: center; font-size: .6rem; font-weight: 600; color: #fff; }
 
 .foot { text-align: center; padding: 1.3rem; font-size: .8rem;
   background: var(--global-footer-bg-color); color: var(--global-footer-text-color); margin-top: 2.5rem; }
 .foot a { color: var(--global-footer-link-color); }
+
+/* contextual About — same layout as the leaderboard cell About tab */
+.ab { max-width: 920px; }
+.abkick { font-size: .74rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--global-theme-color); font-weight: 600; margin-bottom: .3rem; }
+.abtitle { font-family: var(--global-font-slab); font-weight: 400; font-size: 1.75rem;
+  margin: 0 0 .4rem; line-height: 1.25; color: var(--md-heading-color); }
+.ablead { font-size: 1.02rem; color: var(--global-text-color-light); margin: 0 0 1.5rem; max-width: 70ch; }
+.abgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+  background: var(--global-divider-color); border: 1px solid var(--global-divider-color);
+  border-radius: var(--r-lg); overflow: hidden; margin-bottom: 2rem; }
+.abstat { background: var(--global-bg-color); padding: .8rem .9rem; }
+.abstat .t { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--global-text-color-light); }
+.abstat .v { font-family: var(--global-font-slab); font-size: 1.25rem; margin: .1rem 0; }
+.abstat .s { font-size: .75rem; color: var(--global-text-color-light); }
+.ab h2 { font-family: var(--global-font-slab); font-weight: 400; font-size: 1.28rem;
+  margin: 2rem 0 .5rem; padding-bottom: .3rem; border-bottom: 1px solid var(--global-divider-color); }
+.ab p { margin: 0 0 .85rem; line-height: 1.7; max-width: 72ch; }
+.abcall { border-left: 3px solid var(--global-theme-color); background: var(--global-card-bg-color);
+  padding: .8rem 1rem; border-radius: 0 6px 6px 0; margin: .2rem 0 1.2rem; }
+.abcall.warn { border-left-color: var(--lb-warn); }
+.abcall p { margin: 0; }
+.abfigs { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1rem; margin: 1rem 0 .5rem; }
+@media (max-width: 800px) { .abfigs { grid-template-columns: 1fr; } }
+.abfigs figure { margin: 0; }
+.abfigs canvas { width: 100%; height: auto; border: 1px solid var(--global-divider-color);
+  border-radius: var(--r-md); display: block; }
+.abfigs figcaption { font-size: .78rem; color: var(--global-text-color-light);
+  margin-top: .45rem; line-height: 1.5; }
+.abnote { font-size: .76rem !important; color: var(--global-text-color-light); font-style: italic; }
+.abtab { width: 100%; border-collapse: collapse; margin: .4rem 0 1.3rem; font-size: .92rem; }
+.abtab th { text-align: left; font-weight: 500; color: var(--global-text-color-light);
+  padding: .55rem .7rem .55rem 0; vertical-align: top;
+  border-bottom: 1px solid var(--global-divider-color); }
+.abtab td { padding: .55rem 0; border-bottom: 1px solid var(--global-divider-color); line-height: 1.6; }
+.abdir { display: inline-block; font-size: .72rem; padding: .05rem .5rem; border-radius: var(--r-pill);
+  background: var(--global-card-bg-color); color: var(--global-text-color-light); margin-left: .4rem; }
+.abcta { display: flex; align-items: center; justify-content: space-between; gap: 1.2rem; flex-wrap: wrap;
+  border: 1px solid var(--global-theme-color); border-radius: var(--r-lg); padding: 1.1rem 1.3rem;
+  margin: 2rem 0 1rem; background: var(--global-card-bg-color); }
+.abctat { font-family: var(--global-font-slab); font-size: 1.1rem; }
+.abctas { font-size: .88rem; color: var(--global-text-color-light); margin-top: .2rem; }
+.btn.primary { background: var(--global-theme-color); color: #fff; border: 1px solid var(--global-theme-color);
+  padding: .55rem 1.1rem; border-radius: var(--r-md); text-decoration: none; font-size: .92rem; white-space: nowrap; }
+.btn.primary:hover { opacity: .9; text-decoration: none; color: #fff; }
+.ivec { margin: .8rem 0 1.3rem; }
+.ivbar { display: flex; height: 26px; border-radius: var(--r-sm); overflow: hidden; }
+.ivseg { display: flex; align-items: center; justify-content: center; color: #fff;
+  font-size: .72rem; font-family: var(--global-font-mono); cursor: default; }
+.ivkey { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .5rem; font-size: .78rem;
+  color: var(--global-text-color-light); }
+.ivkey span { display: inline-flex; align-items: center; gap: .32rem; }
+.ivkey i { width: 11px; height: 11px; border-radius: var(--r-xs); display: inline-block; }
+.ivcells { display: flex; gap: 2px; flex-wrap: wrap; margin-top: .7rem; }
+.ivcells i { width: 13px; height: 13px; border-radius: var(--r-xs); display: block; opacity: .82; }
+.ivnote { font-size: .8rem; color: var(--global-text-color-light); margin-top: .6rem; }
 </style>
 </head>
 <body>
@@ -250,12 +339,26 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
 
   <!-- ============ filter rail ============ -->
   <aside class="rail" id="rail">
+    <button type="button" class="railclose" id="railclose" aria-label="Hide filters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 6l-6 6 6 6"/><path d="M18 6l-6 6 6 6"/>
+      </svg>
+    </button>
+    <div class="railscroll">
     <div class="railsec" data-sec="view">
       <button class="railhd"><span class="ico">◱</span> View as<span class="chev">▾</span></button>
       <div class="railbody">
         <div class="seg" id="viewseg">
-          <button data-view="ranking" aria-selected="true">Ranking</button>
-          <button data-view="stage" aria-selected="false">By stage</button>
+          <button data-view="ranking" aria-selected="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/>
+              <path d="M17 6h2.5a2.5 2.5 0 0 1 0 5H17"/><path d="M7 6H4.5a2.5 2.5 0 0 0 0 5H7"/>
+            </svg>
+            Ranking
+          </button>
+          <button data-view="matrix" aria-selected="false">Model matrix</button>
         </div>
       </div>
     </div>
@@ -274,28 +377,35 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
       <button class="railhd"><span class="ico">◎</span> Score by<span class="chev">▾</span></button>
       <div class="railbody"><div id="metricopts"></div></div>
     </div>
+    </div>
   </aside>
 
   <!-- ============ content ============ -->
   <main class="content">
-    <div class="crumbs"><a href="index.html">leaderboard</a> / <span id="crumb"></span></div>
-
-    <div class="h1row">
-      <h1 class="title" id="title">Total area</h1>
-      <span class="catchip" id="chip">🏆 <span id="chiptxt">Overall</span></span>
-    </div>
-    <p class="lead" id="lead"></p>
-
+    <h1 class="title" id="title">model ranking</h1>
+    <p class="lead" id="lead">View overall rankings of trained models vs OpenROAD on IWLS’05.</p>
     <div class="meta" id="meta"></div>
 
-    <div class="tbar">
-      <button class="tbtn" id="togglerail">☰ Hide filters</button>
+    <div class="tbar" id="tbar">
+      <button class="tbtn" id="togglerail" aria-expanded="true" aria-controls="rail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+          stroke-linecap="round" aria-hidden="true">
+          <path d="M4 8h16"/><path d="M4 16h16"/>
+          <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
+          <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/>
+        </svg>
+        Hide Filters
+      </button>
       <input class="srch" id="srch" placeholder="Search models, families, authors…">
       <div class="right">
-        <div class="seg seg--sm" id="sliceseg" hidden>
-          <button type="button" data-slice="stage" aria-selected="true">Stages</button>
-          <button type="button" data-slice="pdk" aria-selected="false">PDKs</button>
-        </div>
+        <button class="tbtn" id="aboutbtn" aria-pressed="false" title="About this ranking">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 3.5h7.2L19 8.2V20.5H7z"/><path d="M14.2 3.5V8.2H19"/>
+            <path d="M10 12.2h6"/><path d="M10 15.6h6"/>
+          </svg>
+          About
+        </button>
         <div class="seg seg--sm" id="groupseg">
           <button data-group="models" aria-selected="true">Models</button>
           <button data-group="families" aria-selected="false">Families</button>
@@ -328,28 +438,36 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
             <div class="plotbox" id="p3"></div>
           </div>
           <div class="plotcard">
-            <h3 id="p4t">Model × circuit vs OpenROAD</h3>
-            <p class="cap" id="p4c">Green beats the cell’s OpenROAD number, red loses. Hover a row
-              to isolate it. Opacity scales with |log(v / OpenROAD)|.</p>
+            <h3>Average win rate against each opponent</h3>
+            <p class="cap">Mean of the row above, over every other entry. The tool sits in the field like
+              any other competitor.</p>
             <div class="plotbox" id="p4"></div>
           </div>
         </div>
       </section>
     </div>
 
-    <div id="stageview" class="stageview" style="display:none">
-      <div class="slicetool">
-        <h2 id="slicetitle">Rank across stages</h2>
-        <p class="cap" id="slicecap" style="margin:0;font-size:.78rem;color:var(--global-text-color-light)"></p>
-      </div>
-      <div class="tablecard">
-        <div class="tscroll"><table class="lb" id="slicetbl"><thead id="slicehead"></thead><tbody id="slicebody"></tbody></table></div>
-        <div class="foot-note" id="slicefoot"></div>
-      </div>
-      <div class="pareto">
-        <h3 id="pt">Metric across stages</h3>
+    <div id="aboutview" class="aboutview" style="display:none"></div>
+
+    <div id="stageview" class="matrixview" style="display:none">
+      <div class="mxhead">
+        <h2 id="pt">Model matrix</h2>
         <p class="cap" id="pc"></p>
-        <div id="stagebox"></div>
+      </div>
+      <div class="mxlayout">
+        <div class="pareto mxpanel">
+          <div class="mxkey">
+            <span><i style="background:var(--lb-win-solid)"></i>beats OpenROAD</span>
+            <span><i style="background:var(--lb-lose-solid)"></i>loses</span>
+          </div>
+          <div class="mxhost" id="stagebox"></div>
+          <p class="mxhint" id="mxinfo">Hover a cell to see that model on that circuit against OpenROAD.</p>
+        </div>
+        <aside class="mxside">
+          <h3 id="mxsideh">Models</h3>
+          <p class="cap" id="mxsidecap"></p>
+          <ol id="mxlist"></ol>
+        </aside>
       </div>
     </div>
   </main>
@@ -362,6 +480,7 @@ table.lb td[data-go]:hover { background: var(--global-card-bg-color); }
 <script src="real-data.js"></script>
 <script src="data/real.js"></script>
 <script src="data/baselines.js"></script>
+<script src="about.js"></script>
 <script>
 /* ===================================================================
    Registries
@@ -633,14 +752,24 @@ function drawRail() {
   $("stageopts").querySelectorAll("input").forEach(r => r.onchange = () => {
     state.stage = +r.value; render(); });
 
-  $("pdkopts").innerHTML = PDKS.map(([id, label, node]) =>
-    `<button type="button" class="opt" data-pdk="${id}" aria-selected="${state.pdk === id}">
-      ${label}<span class="sub">${node}</span></button>`).join("");
-  $("pdkopts").querySelectorAll("[data-pdk]").forEach(b => b.onclick = () => {
-    if (state.pdk === b.dataset.pdk) return;
-    state.pdk = b.dataset.pdk;
-    render();
-  });
+  const pdkHost = $("pdkopts");
+  if (!pdkHost.dataset.ready) {
+    pdkHost.setAttribute("role", "radiogroup");
+    pdkHost.setAttribute("aria-label", "PDK");
+    pdkHost.innerHTML = PDKS.map(([id, label, node]) =>
+      `<button type="button" class="opt" role="radio" data-pdk="${id}">
+        ${label}<span class="sub">${node}</span></button>`).join("");
+    pdkHost.dataset.ready = "1";
+    pdkHost.addEventListener("click", e => {
+      const b = e.target.closest("[data-pdk]");
+      if (!b || !pdkHost.contains(b)) return;
+      if (state.pdk === b.dataset.pdk) return;
+      state.pdk = b.dataset.pdk;
+      render();
+    });
+  }
+  pdkHost.querySelectorAll("[data-pdk]").forEach(b =>
+    b.setAttribute("aria-selected", state.pdk === b.dataset.pdk));
 
   $("metricopts").innerHTML = metricsOf(state.task).map(m => {
     const st = cellState(state.task, m, state.pdk, state.stage);
@@ -657,30 +786,35 @@ function drawRail() {
    Header + table
    =================================================================== */
 function drawHead(rows) {
-  const [, label, unit] = taskDef();
-  const pdkLabel = PDKS.find(p => p[0] === state.pdk)[1];
-  $("title").textContent = label;
-  $("chiptxt").textContent = state.metric;
-  $("crumb").textContent = `${label} · ${pdkLabel} · ${SL[state.stage]}`;
-  /* only the metrics in the target's own units carry one */
-  const withUnit = ABSOLUTE(state.metric) && unit ? " in " + unit : "";
-  $("lead").innerHTML = `Predicting the <b>detailed-route</b> value from <b>${SL[state.stage]}</b>
-    on <b>${pdkLabel}</b>, scored by <b>${state.metric}</b>${withUnit}.
-    ${hi(state.metric) ? "Higher wins." : "Lower wins."} The OpenROAD estimate at the same stage
-    is in the table as a competitor, not as a footnote.
-    A name that repeats across stages is a separately trained checkpoint — EDA-Schema-V2 does not
-    share one ML model across the flow.`;
+  const [, label] = taskDef();
+  const pdkL = (PDKS.find(x => x[0] === state.pdk) || [state.pdk, state.pdk])[1];
+  if (state.view === "about") {
+    $("title").textContent = "about this ranking";
+    $("lead").textContent = `The problem behind ${label.toLowerCase()} prediction from ${SL[state.stage]} on ${pdkL}.`;
+  } else {
+    $("title").textContent = "model ranking";
+    $("lead").textContent = `View overall rankings of trained models vs OpenROAD for ${label.toLowerCase()} prediction.`;
+  }
 
   const st = RD() && RD().stats || {};
   const run = RD() && RD().run(state.pdk, STAGES[state.stage]);
+  const iso = (run && (run.run || {}).evaluated || "2026-08-04").slice(0, 10);
+  const pretty = (() => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US",
+      { month: "short", day: "numeric", year: "numeric" });
+  })();
+  const nCkpt = st.checkpoints || 360;
+  const nModels = rows.length;
+  const ico = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   $("meta").innerHTML = [
-    ["Updated", (run && (run.run || {}).evaluated || "2026-08-04").slice(0, 10)],
-    ["Entries", `<b>${rows.length}</b>`],
-    ["Circuits", `<b>${CIRCUITS().length}</b>`],
-    ["Instances", `<b>1,944</b>`],
-    ["Checkpoints", `<b>${st.checkpoints || 360}</b> real`],
-    ["Baseline", `Table 8`]
-  ].map(([k, v]) => `<span>${k} ${v}</span>`).join("");
+    [ico('<circle cx="12" cy="12" r="8.25"/><path d="M12 8v4.2l2.6 1.5"/>'), pretty],
+    [ico('<rect x="4.5" y="4.5" width="15" height="15" rx="2"/><path d="M8 12.1l2.7 2.7L16.3 9"/>'),
+      nCkpt.toLocaleString("en-US") + " checkpoints"],
+    [ico('<ellipse cx="12" cy="6.4" rx="7.25" ry="2.35"/><path d="M4.75 6.4v5.4c0 1.3 3.25 2.35 7.25 2.35s7.25-1.05 7.25-2.35V6.4"/><path d="M4.75 11.8v5.4c0 1.3 3.25 2.35 7.25 2.35s7.25-1.05 7.25-2.35v-5.4"/>'),
+      nModels + " models"]
+  ].map(([svg, t]) => `<span>${svg}${t}</span>`).join("");
 }
 
 const spreadSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -691,28 +825,17 @@ function placeMark(rank) {
   if (rank < 1 || rank > 3) return "";
   return `<span class="place" title="${["1st","2nd","3rd"][rank - 1]}">${MED[rank - 1]}</span>`;
 }
-function fmtGpu(mb) {
-  if (!mb) return "—";
-  return mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : mb + " MB";
-}
-
 const COLS = () => [
-  { k: "rank",   t: "Rank",        cls: "ct",  sortable: false },
+  { k: "rank",   t: "Rank",        cls: "ct",  sortable: true },
   { k: "spread", t: "Rank spread", cls: "ct",  sortable: false,
     tip: "Best and worst rank this entry could hold once the 95% interval on its score is taken into account" },
   { k: "model",  t: "Model",       cls: "",    sortable: true },
-  { k: "score",  t: state.metric,  cls: "rt",  sortable: true },
+  { k: "score",  t: "Score",       cls: "rt",  sortable: true },
 ].concat(metricsOf(state.task).filter(m => m !== state.metric &&
     cellState(state.task, m, state.pdk, state.stage) === "live")
   .map(m => ({ k: "m:" + m, t: m, cls: "rt", sortable: true })))
  .concat([
-  { k: "params", t: "Params",   cls: "rt", sortable: true },
-  { k: "wall",   t: "Wall",     cls: "rt", sortable: true,
-    tip: "Train wall clock from run.log, the cost analog of Arena's price column" },
-  { k: "gpu",    t: "Peak GPU", cls: "rt", sortable: true,
-    tip: "Peak GPU memory from run.log" },
-  { k: "regime", t: "Regime",   cls: "",   sortable: false },
-  { k: "kind",   t: "Source",   cls: "",   sortable: false }]);
+  { k: "kind", t: "Source", cls: "", sortable: false }]);
 
 function drawTable(rows) {
   const cols = COLS();
@@ -738,7 +861,8 @@ function drawTable(rows) {
 
   if (state.sort) {
     const c = state.sort;
-    const key = r => c === "model" ? r.n : c === "score" ? r.v : c === "params" ? r.params
+    const key = r => c === "model" ? r.n : c === "score" ? r.v : c === "rank" ? r.rank
+      : c === "params" ? r.params
       : c === "wall" ? r.wall : c === "gpu" ? (r.gpu || 0)
       : c.startsWith("m:") ? r.vals[c.slice(2)] : r.v;
     list = [...list].sort((a, b) => {
@@ -752,6 +876,7 @@ function drawTable(rows) {
     const act = state.sort === c.k;
     return `<th class="${c.cls}${c.sortable ? " sortable" : ""}${act ? " act" : ""}"
       ${c.sortable ? `data-sort="${c.k}"` : ""} ${c.tip ? `title="${c.tip}"` : ""}>${c.t}${
+      c.tip ? `<span class="thinfo" aria-hidden="true">ⓘ</span>` : ""}${
       c.sortable ? `<span class="caret"><i class="${act && state.asc ? "on" : ""}">▲</i><i class="${act && !state.asc ? "on" : ""}">▼</i></span>` : ""}</th>`;
   }).join("") + "</tr>";
   $("lbhead").querySelectorAll("[data-sort]").forEach(th => th.onclick = () => {
@@ -769,8 +894,6 @@ function drawTable(rows) {
       <div><div class="mname">OpenROAD</div>
       <div class="msub">EDA tool · estimate at ${SL[state.stage]}</div></div></div></td>
     <td class="rt val">${fmt(bv, state.metric)}</td>${extra}
-    <td class="rt dim">—</td><td class="rt dim">—</td><td class="rt dim">—</td>
-    <td class="dim">—</td>
     <td><span class="tag tag--synth">published</span></td></tr>`;
 
   $("lbbody").innerHTML = baseRow + list.map(r => {
@@ -787,11 +910,7 @@ function drawTable(rows) {
       cols.filter(c => c.k.startsWith("m:")).map(c => {
         const m = c.k.slice(2);
         return `<td class="rt val">${fmt(r.vals[m], m)}</td>`; }).join("") +
-      `<td class="rt val dim">${r.params ? r.params.toLocaleString("en-US") : "—"}</td>
-       <td class="rt val dim">${r.wall || "—"}</td>
-       <td class="rt val dim">${fmtGpu(r.gpu)}</td>
-       <td class="dim body-xs">${r.regime}</td>
-       <td>${r.real ? '<span class="tag tag--real">real</span>'
+      `<td>${r.real ? '<span class="tag tag--real">real</span>'
                     : '<span class="tag tag--synth">synthetic</span>'}</td></tr>`;
   }).join("");
 }
@@ -839,9 +958,8 @@ const CONFIG = { displayModeBar: false, responsive: true };
 
 function drawPlots(rows) {
   if (typeof Plotly === "undefined") {
-    ["p1","p2","p3"].forEach(id =>
+    ["p1","p2","p3","p4"].forEach(id =>
       $(id).innerHTML = '<p class="plotwarn">Plotly could not be loaded, so the plots are unavailable offline.</p>');
-    drawMxCircuit(rows.slice(0, 14));
     return;
   }
   const t = plotTheme(), m = state.metric, unit = taskDef()[2];
@@ -919,15 +1037,36 @@ function drawPlots(rows) {
     yaxis: { autorange: "reversed", tickfont: { size: 8, color: t.font.color } }
   }), CONFIG);
 
-  drawMxCircuit(top);
+  /* 4 — average win rate against every other entry */
+  const avg = top.map((r, i) => {
+    const row = W[i].filter(v => v !== null);
+    return { n: r.n, real: r.real, v: row.reduce((a, b) => a + b, 0) / (row.length || 1) };
+  }).sort((a, b) => b.v - a.v);
+  Plotly.react($("p4"), [{
+    type: "bar", x: avg.map(a => a.n), y: avg.map(a => a.v),
+    marker: { color: avg.map(a => a.real ? t.gold : t.accent), line: { width: 0 } },
+    text: avg.map(a => (a.v * 100).toFixed(1)), textposition: "outside",
+    textfont: { size: 9, color: t.font.color },
+    hovertemplate: "%{x}<br>wins %{y:.1%} of pairings<extra></extra>"
+  }], Object.assign(BASE_LAYOUT(t), {
+    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, { tickformat: ".0%",
+      title: { text: "Average win rate", font: { size: 11 } } }),
+    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, { tickangle: -55 })
+  }), CONFIG);
 }
 
-/* leaderboard model × circuit SVG (index.html chCircuits), same slot as the
-   old win-rate plot. Colour is win/lose against the cell's aggregate OpenROAD
-   number; intensity is |log(model/tool)| clipped at 1.2 nats. */
-const CIRC_SHORT = ["ac97","aes","des3","eth","i2c","jpeg","mem","pci","sasc","sspi",
-                    "spi","pcm","scaes","scdes","tv80","usb_f","usb_p","wbdma"];
-let mxHi = null, MX_ROWS = [];
+/* Model × circuit heatmap on Model matrix. Win/lose vs OpenROAD
+   on that design (or that PDK). Intensity is |log(model/tool)|. */
+const CIRC_SHORT = {
+  ac97_ctrl: "ac97", aes_core: "aes", des3_area: "des3", ethernet: "eth",
+  i2c: "i2c", jpeg: "jpeg", mem_ctrl: "mem", pci: "pci", sasc: "sasc",
+  simple_spi: "sspi", spi: "spi", ss_pcm: "pcm", systemcaes: "scaes",
+  systemcdes: "scdes", tv80: "tv80", usb_funct: "usb_f", usb_phy: "usb_p",
+  wb_dma: "wbdma"
+};
+const circShort = n => CIRC_SHORT[n] || String(n).replace(/_/g, " ").slice(0, 8);
+let mxHi = null, mxCol = null, mxPin = null, MX_ROWS = [];
+let mxRO = null, mxSkipRO = false;
 const tipEl = () => $("tip");
 function showTip(e, html) {
   const tip = tipEl(); if (!tip) return;
@@ -940,254 +1079,348 @@ function showTip(e, html) {
 }
 const hideTip = () => { const tip = tipEl(); if (tip) tip.classList.remove("on"); };
 
+function applyMxHi(host) {
+  const row = mxPin || mxHi;
+  if (host) host.querySelectorAll("[data-mn],[data-ci]").forEach(n => {
+    const isRow = row && n.dataset.mn === row;
+    const isCol = mxCol != null && n.hasAttribute("data-ci") && +n.dataset.ci === mxCol;
+    const lit = (!row && mxCol == null) || isRow || isCol;
+    if (n.dataset.op) n.setAttribute("opacity", lit ? n.dataset.op : .1);
+    else n.setAttribute("opacity", lit ? 1 : .28);
+  });
+  document.querySelectorAll("#mxlist [data-mn]").forEach(n => {
+    const on = row && n.dataset.mn === row;
+    n.classList.toggle("on", !!on);
+    n.classList.toggle("dimmed", !!(row && !on));
+  });
+}
+function explorerHref(n) {
+  const q = new URLSearchParams({
+    task: state.task, pdk: state.pdk, stage: STAGES[state.stage],
+    metric: state.metric, model: n
+  });
+  return "explorer.html?" + q;
+}
+let MX_SPEC = { mode: "circuit", cols: [] };
+function mxSpec() {
+  const m = state.metric;
+  if (state.slice === "pdk") {
+    return {
+      mode: "pdk",
+      cols: PDKS.map(([id, label, node], i) => ({
+        i, id, label, full: node,
+        pdk: id, stage: state.stage,
+        base: baseVal(state.task, m, id, state.stage),
+        live: cellState(state.task, m, id, state.stage) === "live",
+        current: id === state.pdk
+      }))
+    };
+  }
+  const p = state.pdk, s = state.stage;
+  const baseRow = perCircuit(state.task, m, p, s, "__baseline__");
+  const agg = baseVal(state.task, m, p, s);
+  return {
+    mode: "circuit",
+    cols: CIRCUITS().map((c, i) => ({
+      i, id: c, label: circShort(c), full: c,
+      pdk: p, stage: s,
+      base: isFinite(baseRow[i]) ? baseRow[i] : agg,
+      live: true, current: false
+    }))
+  };
+}
+function mxCellVal(r, col) {
+  if (!r || !col) return NaN;
+  if (MX_SPEC.mode === "pdk") {
+    return col.live ? modelVal(state.task, state.metric, col.pdk, col.stage, r.n) : NaN;
+  }
+  return r.series[col.i];
+}
+function setMxInfo(r, ci) {
+  const el = $("mxinfo"); if (!el) return;
+  const m = state.metric;
+  const link = n => ` · <a href="${explorerHref(n)}">explorer</a>`;
+  if (!r) {
+    el.textContent = mxPin
+      ? `Pinned ${mxPin}. Hover a cell, or click the row again to unpin.`
+      : (MX_SPEC.mode === "pdk"
+        ? "Hover a cell to compare that model on that PDK against OpenROAD. Click a PDK column to switch node."
+        : "Hover a cell to see that model on that circuit against OpenROAD. Click a row to pin it.");
+    return;
+  }
+  if (ci == null || !Number.isInteger(ci) || !MX_SPEC.cols[ci]) {
+    el.innerHTML = `${r.n}${mxPin === r.n ? " · pinned" : ""} · `
+      + `${r.real ? "ICE Lab, measured" : "placeholder"}` + link(r.n);
+    return;
+  }
+  const col = MX_SPEC.cols[ci], v = mxCellVal(r, col), b = col.base;
+  const ratio = isFinite(v) && isFinite(b) && b !== 0 ? v / b : null;
+  const verdict = !isFinite(v) || !isFinite(b) ? "no comparison"
+    : better(v, b, m) ? "beats OpenROAD" : "loses to OpenROAD";
+  const where = MX_SPEC.mode === "pdk"
+    ? `${col.label} <span class="mono">(${col.full})</span>`
+    : `${col.label} <span class="mono">(${col.full})</span>`;
+  el.innerHTML = `<b>${r.n}</b> on ${where} · `
+    + `${m} ${fmt(v, m)} vs OpenROAD ${fmt(b, m)}`
+    + (ratio != null ? ` · ${ratio.toFixed(2)}×` : "")
+    + ` · ${verdict}` + link(r.n);
+}
+function ensureMxRO() {
+  const box = $("stagebox");
+  if (!box || mxRO) return;
+  let t = 0;
+  mxRO = new ResizeObserver(() => {
+    if (mxSkipRO || state.view !== "matrix") return;
+    clearTimeout(t);
+    t = setTimeout(() => drawMxCircuit(), 40);
+  });
+  mxRO.observe(box);
+}
+
 function drawMxCircuit(rows) {
-  const box = $("p4");
+  const box = $("stagebox");
   if (!box) return;
   if (typeof Plotly !== "undefined" && box.data) Plotly.purge(box);
-  MX_ROWS = rows;
-  const m = state.metric, b = baseVal(state.task, m, state.pdk, state.stage);
-  const cs = CIRCUITS();
-  const nC = CIRC_SHORT.length;
-  const W = 760, Hh = 340;
-  box.innerHTML = `<svg id="mxcirc" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="xMidYMid meet"></svg>`;
+  if (rows) MX_ROWS = rows;
+  rows = MX_ROWS || [];
+  const m = state.metric;
+  MX_SPEC = mxSpec();
+  const cols = MX_SPEC.cols;
+  const nC = cols.length;
+  const pdkL = (PDKS.find(x => x[0] === state.pdk) || [state.pdk, state.pdk])[1];
+  if (MX_SPEC.mode === "pdk") {
+    $("pt").textContent = "Model matrix";
+    $("pc").textContent = `Each column is a process node at ${SL[state.stage]}. `
+      + `Green beats that PDK’s OpenROAD ${m}, red loses. Family marks on the left are architecture logos. `
+      + `Click a PDK column — or the rail — to switch node. Gold wash is the selected PDK.`;
+  } else {
+    $("pt").textContent = "Model matrix";
+    $("pc").textContent = `Each cell is one model on one of the ${nC} IWLS’05 designs, vs OpenROAD on that design `
+      + `at ${pdkL} · ${SL[state.stage]}. Green beats, red loses. Hover a mark or a name to isolate the row.`;
+  }
+
+  if (!rows.length || !nC) {
+    box.innerHTML = '<p class="plotwarn">No models to plot for this filter.</p>';
+    setMxInfo(null);
+    return;
+  }
+
+  mxSkipRO = true;
+  const W = Math.max(box.clientWidth || 0, 640);
+  const Hh = Math.max(box.clientHeight || 0, 520);
+  box.innerHTML = `<svg id="mxcirc" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" `
+    + `role="img" aria-label="${MX_SPEC.mode === "pdk" ? "Model by PDK" : "Model by circuit"} heatmap versus OpenROAD"></svg>`;
   const host = $("mxcirc");
-  const X0 = 118, Y0 = 34, cw = (W - X0 - 16) / nC, chh = (Hh - Y0 - 24) / Math.max(rows.length, 1);
+  const X0 = 176, Y0 = MX_SPEC.mode === "pdk" ? 44 : 96;
+  const cw = (W - X0 - 12) / nC;
+  const chh = (Hh - Y0 - 10) / rows.length;
   let g = "";
-  CIRC_SHORT.forEach((c, i) => {
-    const x = X0 + i * cw + cw / 2;
-    g += `<text class="cl2" x="${x.toFixed(1)}" y="${Y0 - 6}" text-anchor="end" ` +
-         `transform="rotate(-52 ${x.toFixed(1)} ${Y0 - 6})">${c}</text>`;
+  cols.forEach((col, i) => {
+    const x = X0 + i * cw;
+    if (col.current) {
+      g += `<rect x="${x.toFixed(1)}" y="${Y0.toFixed(1)}" width="${cw.toFixed(1)}" `
+        + `height="${(Hh - Y0).toFixed(1)}" fill="var(--md-secondary)" opacity=".12"/>`;
+    }
+    const tx = x + cw / 2;
+    const rot = MX_SPEC.mode === "pdk" ? 0 : -58;
+    const anchor = MX_SPEC.mode === "pdk" ? "middle" : "end";
+    const ty = MX_SPEC.mode === "pdk" ? Y0 - 14 : Y0 - 18;
+    g += `<text class="cl2 cpt${col.current ? " real" : ""}" data-ci="${i}" x="${tx.toFixed(1)}" y="${ty}" `
+      + `text-anchor="${anchor}"`
+      + (rot ? ` transform="rotate(${rot} ${tx.toFixed(1)} ${ty})"` : "")
+      + `>${col.label}</text>`;
   });
   rows.forEach((r, ri) => {
-    const dim = mxHi && mxHi !== r.n;
-    g += `<text class="cl2" data-mn="${r.n}" x="${X0 - 8}" ` +
-         `y="${(Y0 + ri * chh + chh / 2 + 3).toFixed(1)}" text-anchor="end" ` +
-         `opacity="${dim ? .35 : 1}">${r.n}</text>`;
-    for (let ci = 0; ci < nC; ci++) {
-      const v = r.series[ci];
-      const ok = isFinite(v) && isFinite(b) && b !== 0;
+    const y = Y0 + ri * chh;
+    const fy = y + chh / 2;
+    const fam = r.fam || famOf(r.n);
+    if (r.real) {
+      g += `<rect x="${(X0 - 5).toFixed(1)}" y="${y.toFixed(1)}" width="3" `
+        + `height="${(chh - 1).toFixed(1)}" fill="var(--md-secondary)"/>`;
+    }
+    g += `<rect class="cpt" data-mn="${r.n}" rx="3" x="10" y="${(fy - 8).toFixed(1)}" `
+      + `width="16" height="16" fill="${FAMCOL[fam] || FAMCOL.MLP}"/>`;
+    g += `<text data-mn="${r.n}" x="18" y="${(fy + 4).toFixed(1)}" text-anchor="middle" `
+      + `fill="#fff" font-size="7.5" font-weight="600" font-family="Roboto,sans-serif" `
+      + `pointer-events="none">${fam.slice(0, 2).toUpperCase()}</text>`;
+    g += `<text class="cl2${r.real ? " real" : ""} cpt" data-mn="${r.n}" x="32" `
+      + `y="${(fy + 4).toFixed(1)}" text-anchor="start">${r.n}</text>`;
+    cols.forEach((col, ci) => {
+      const v = mxCellVal(r, col), b = col.base;
+      const ok = col.live && isFinite(v) && isFinite(b) && b !== 0;
       const win = ok && better(v, b, m);
       const mag = ok ? Math.min(1, Math.abs(Math.log(Math.abs(v / b))) / 1.2) : 0;
-      const op = dim ? .12 : (ok ? 0.14 + 0.7 * mag : .06);
-      g += `<rect class="cpt" x="${(X0 + ci * cw).toFixed(1)}" y="${(Y0 + ri * chh).toFixed(1)}" ` +
-           `width="${(cw - 1).toFixed(1)}" height="${(chh - 1).toFixed(1)}" ` +
-           `fill="${ok ? (win ? "#3f8a45" : "#b8453a") : "#9aa3ad"}" opacity="${op.toFixed(2)}" ` +
-           `data-mn="${r.n}" data-ci="${ci}" data-op="${(ok ? 0.14 + 0.7 * mag : .06).toFixed(2)}"/>`;
-    }
+      const baseOp = ok ? 0.16 + 0.74 * mag : .06;
+      g += `<rect class="cpt" x="${(X0 + ci * cw).toFixed(1)}" y="${y.toFixed(1)}" `
+        + `width="${Math.max(cw - 1.2, 2).toFixed(1)}" height="${Math.max(chh - 1.2, 2).toFixed(1)}" `
+        + `fill="${ok ? (win ? "var(--lb-win-solid)" : "var(--lb-lose-solid)") : "#9aa3ad"}" `
+        + `opacity="${baseOp.toFixed(2)}" data-mn="${r.n}" data-ci="${ci}" `
+        + `data-op="${baseOp.toFixed(2)}"/>`;
+    });
   });
   host.innerHTML = g;
-  $("p4t").textContent = `Model × circuit — ${m} vs OpenROAD`;
-  $("p4c").textContent = `Each cell is one of the ${cs.length} IWLS’05 designs, compared to the ` +
-    `aggregate OpenROAD ${m} for this (PDK, stage). Green beats that number, red loses. ` +
-    `Hover a row to isolate it.`;
+  applyMxHi(host);
+  setMxInfo(mxPin ? rows.find(x => x.n === mxPin) : null);
+
+  const rowOf = n => MX_ROWS.find(x => x.n === n);
+  const focusCol = ci => {
+    const col = cols[ci];
+    if (!col || MX_SPEC.mode !== "pdk" || state.pdk === col.id) return;
+    state.pdk = col.id;
+    render();
+  };
+
   host.querySelectorAll("[data-mn]").forEach(el => {
     el.onmouseenter = e => {
       mxHi = el.dataset.mn;
-      host.querySelectorAll("[data-mn]").forEach(n => {
-        const dim = n.dataset.mn !== mxHi;
-        if (n.tagName === "text") n.setAttribute("opacity", dim ? .35 : 1);
-        else n.setAttribute("opacity", dim ? .12 : n.dataset.op);
-      });
-      if (el.dataset.ci == null) { hideTip(); return; }
-      const r = MX_ROWS.find(x => x.n === el.dataset.mn);
-      const ci = +el.dataset.ci;
-      if (!r) return;
-      const v = r.series[ci], full = cs[ci] || CIRC_SHORT[ci];
+      mxCol = el.hasAttribute("data-ci") ? +el.dataset.ci : null;
+      applyMxHi(host);
+      const r = rowOf(mxHi);
+      setMxInfo(r, mxCol);
+      if (!el.hasAttribute("data-ci") || !r) { hideTip(); return; }
+      const col = cols[+el.dataset.ci], v = mxCellVal(r, col), b = col.base;
       const verdict = !isFinite(v) || !isFinite(b) ? "no comparison"
         : better(v, b, m) ? "beats OpenROAD" : "loses to OpenROAD";
-      showTip(e, `<b>${r.n}</b><br>${CIRC_SHORT[ci]} · ${full}<br>${m} ${fmt(v, m)}` +
-        `<br>OpenROAD ${fmt(b, m)}<br>${verdict}`);
+      const ratio = isFinite(v) && isFinite(b) && b !== 0 ? (v / b).toFixed(2) + "×" : "";
+      showTip(e, `<b>${r.n}</b><br>${col.label}${col.full ? " · " + col.full : ""}<br>${m} ${fmt(v, m)}`
+        + `<br>OpenROAD ${fmt(b, m)}${ratio ? "<br>" + ratio : ""}<br>${verdict}`
+        + (MX_SPEC.mode === "pdk" ? "<br>click to switch PDK" : ""));
     };
     el.onmousemove = e => {
       const tip = tipEl();
       if (!tip || !tip.classList.contains("on")) return;
-      const box = tip.getBoundingClientRect();
+      const br = tip.getBoundingClientRect();
       let x = e.clientX + 14, y = e.clientY + 14;
-      if (x + box.width > innerWidth - 8) x = e.clientX - box.width - 14;
-      if (y + box.height > innerHeight - 8) y = e.clientY - box.height - 14;
+      if (x + br.width > innerWidth - 8) x = e.clientX - br.width - 14;
+      if (y + br.height > innerHeight - 8) y = e.clientY - br.height - 14;
       tip.style.left = x + "px"; tip.style.top = y + "px";
     };
+    el.onclick = () => {
+      if (el.hasAttribute("data-ci") && MX_SPEC.mode === "pdk") {
+        focusCol(+el.dataset.ci);
+        return;
+      }
+      mxPin = mxPin === el.dataset.mn ? null : el.dataset.mn;
+      applyMxHi(host);
+      setMxInfo(rowOf(mxPin || mxHi), mxCol);
+    };
+  });
+  host.querySelectorAll("text[data-ci]").forEach(el => {
+    el.onmouseenter = () => {
+      mxCol = +el.dataset.ci;
+      applyMxHi(host);
+      const r = rowOf(mxPin || mxHi);
+      setMxInfo(r, mxCol);
+    };
+    el.onclick = () => focusCol(+el.dataset.ci);
   });
   host.onmouseleave = () => {
-    mxHi = null; hideTip();
-    host.querySelectorAll("[data-mn]").forEach(n => {
-      if (n.tagName === "text") n.setAttribute("opacity", 1);
-      else n.setAttribute("opacity", n.dataset.op);
-    });
+    mxHi = null; mxCol = null; hideTip();
+    applyMxHi(host);
+    setMxInfo(rowOf(mxPin));
   };
+
+  requestAnimationFrame(() => { mxSkipRO = false; });
+  ensureMxRO();
 }
 
 /* ===================================================================
-   By stage / by PDK — rank matrix + the selected metric plotted across
-   the slice. Metric follows Score by (and the leaderboard URL).
+   Model matrix — heatmap + model list (Arena Pareto slot). Circuits
+   slice: model×circuit for the rail PDK. PDKs slice: model×PDK at the
+   current stage. Family colour marks stand in for org logos.
    =================================================================== */
-function sliceKeys() {
-  return state.slice === "pdk"
-    ? PDKS.map(([id, label]) => ({ id, label, pdk: id, stage: state.stage }))
-    : STAGES.map((id, i) => ({ id, label: SL[i], pdk: state.pdk, stage: i }));
-}
-function rankBoard(t, p, s, metric) {
-  const names = (isRealTask(t) ? [RM] : []).concat(SYNTH);
-  const rows = names.map(n => ({
-    n, fam: famOf(n), v: modelVal(t, metric, p, s, n), real: isReal(n, t)
-  })).sort((a, b) => better(a.v, b.v, metric) ? -1 : 1);
-  rows.forEach((r, i) => r.rank = i + 1);
-  return rows;
-}
-function drawStageView() {
-  const m = state.metric, unit = taskDef()[2], keys = sliceKeys();
-  const boards = keys.map(k => {
-    const live = cellState(state.task, m, k.pdk, k.stage) === "live";
-    const rows = live ? rankBoard(state.task, k.pdk, k.stage, m) : [];
-    return {
-      k, live,
-      rank: new Map(rows.map(r => [r.n, r.rank])),
-      val: new Map(rows.map(r => [r.n, r.v])),
-      open: live ? baseVal(state.task, m, k.pdk, k.stage) : null,
-      rows
-    };
-  });
-  const names = (isRealTask(state.task) ? [RM] : []).concat(SYNTH);
+function matrixRows() {
   const q = state.search.trim().toLowerCase();
-  let models = names.filter(n => !q || n.toLowerCase().includes(q) || famOf(n).toLowerCase().includes(q));
+  let rows = ROWS.filter(r =>
+    !q || r.n.toLowerCase().includes(q) || r.fam.toLowerCase().includes(q));
   if (state.group === "families") {
     const best = new Map();
-    models.forEach(n => {
-      const live = boards.find(b => b.live);
-      const rk = live ? live.rank.get(n) : 99;
-      const cur = best.get(famOf(n));
-      if (!cur || rk < cur.rk) best.set(famOf(n), { n, rk });
+    rows.forEach(r => {
+      const cur = best.get(r.fam);
+      if (!cur || r.rank < cur.rank) best.set(r.fam, r);
     });
-    models = [...best.values()].map(x => x.n);
+    rows = [...best.values()].sort((a, b) => a.rank - b.rank);
   }
-  const mean = n => {
-    const rs = boards.filter(b => b.live && b.rank.has(n)).map(b => b.rank.get(n));
-    return rs.length ? rs.reduce((a, b) => a + b, 0) / rs.length : 99;
-  };
-  const sortKey = state.sliceSort;
-  models.sort((a, b) => {
-    if (sortKey) {
-      const A = boards.find(x => x.k.id === sortKey);
-      if (A && A.live) return (A.rank.get(a) || 99) - (A.rank.get(b) || 99);
-    }
-    return mean(a) - mean(b);
-  });
-
-  const here = state.slice === "pdk" ? state.pdk : STAGES[state.stage];
-  $("slicetitle").textContent = state.slice === "pdk"
-    ? `Rank across PDKs · ${m}` : `Rank across stages · ${m}`;
-  $("slicecap").textContent = `Cells are rank under ${m}. `
-    + `Gold / silver / bronze mark 1st–3rd in that column. Click a column to sort, `
-    + `a cell to open that ranking. A repeated name is a new checkpoint per stage, `
-    + `not one model scored across the flow.`;
-
-  $("slicehead").innerHTML = "<tr><th>Model</th>" + keys.map(k =>
-    `<th class="rt sortable${k.id === here ? " act" : ""}${k.id === sortKey ? " act" : ""}"
-      data-sk="${k.id}">${k.label}<span class="caret"><i>▲</i><i>▼</i></span></th>`
-  ).join("") + '<th class="rt">mean rank</th></tr>';
-  $("slicehead").querySelectorAll("[data-sk]").forEach(th => th.onclick = () => {
-    state.sliceSort = th.dataset.sk === state.sliceSort ? null : th.dataset.sk;
-    drawStageView();
-  });
-
-  $("slicebody").innerHTML = models.map(n => {
-    const fam = famOf(n);
-    return `<tr class="${n === RM && isRealTask(state.task) ? "isreal" : ""}" data-n="${n}">
-      <td><div class="mcell">
-        <span class="fam" style="background:${FAMCOL[fam]}">${fam.slice(0, 2).toUpperCase()}</span>
-        <div><div class="mname">${n}</div>
-        <div class="msub">${n === RM ? "ICE Lab · measured" : "placeholder · " + fam}</div></div>
-      </div></td>` +
-      boards.map(b => {
-        if (!b.live) return `<td class="rt dim">—</td>`;
-        const rk = b.rank.get(n), v = b.val.get(n);
-        const win = better(v, b.open, m);
-        const on = b.k.id === here ? " mxact" : "";
-        return `<td class="rt${on}${win ? " win" : ""}" data-go="${b.k.id}">
-          <div class="mxcell">${placeMark(rk)}<span class="mono">${rk}</span></div></td>`;
-      }).join("") +
-      `<td class="rt mono dim">${mean(n).toFixed(1)}</td></tr>`;
-  }).join("") +
-  `<tr class="base"><td><div class="mcell"><span class="fam" style="background:${FAMCOL.Tool}">OR</span>
-    <div><div class="mname">OpenROAD</div><div class="msub">EDA tool · Table 8</div></div></div></td>` +
-    boards.map(b => `<td class="rt val">${b.live ? fmt(b.open, m) : "—"}</td>`).join("") +
-    `<td class="rt dim">—</td></tr>`;
-
-  $("slicebody").querySelectorAll("[data-go]").forEach(td => td.onclick = e => {
-    e.stopPropagation();
-    const id = td.dataset.go;
-    if (state.slice === "pdk") state.pdk = id;
-    else state.stage = STAGES.indexOf(id);
-    state.view = "ranking";
-    $("viewseg").querySelectorAll("[data-view]").forEach(o =>
-      o.setAttribute("aria-selected", o.dataset.view === "ranking"));
-    render();
-  });
-
-  const liveN = boards.filter(b => b.live).length;
-  $("slicefoot").innerHTML = `<b>${models.length}</b> models · <b>${liveN}</b> of ${keys.length} `
-    + `${state.slice === "pdk" ? "PDKs" : "stages"} are scoreable under ${m} · `
-    + `mean rank is over the live columns only.`;
-
-  drawStagePlot(boards, models, m, unit);
+  return rows;
 }
-
-function drawStagePlot(boards, models, m, unit) {
-  if (typeof Plotly === "undefined") {
-    $("stagebox").innerHTML = '<p class="plotwarn">Plotly could not be loaded, so the plot is unavailable offline.</p>';
-    return;
-  }
-  const t = plotTheme();
-  const xs = boards.map(b => b.k.label);
-  const top = models.slice(0, 8);
-  const traces = top.map((n, i) => ({
-    type: "scatter", mode: "lines+markers", name: n,
-    x: xs,
-    y: boards.map(b => b.live ? b.val.get(n) : null),
-    line: { width: n === RM ? 2.6 : 1.5, color: n === RM ? t.gold : t.accent,
-      dash: i > 4 ? "dot" : "solid" },
-    marker: { size: n === RM ? 9 : 7, color: n === RM ? t.gold : t.accent,
-      line: { color: t.dark ? "#001d36" : "#fff", width: 1 } },
-    hovertemplate: n + "<br>%{x}<br>" + m + ": %{y}<extra></extra>",
-    connectgaps: false
-  }));
-  traces.push({
-    type: "scatter", mode: "lines+markers", name: "OpenROAD",
-    x: xs, y: boards.map(b => b.live ? b.open : null),
-    line: { width: 2, color: t.gold, dash: "dash" },
-    marker: { size: 7, color: t.gold, symbol: "diamond" },
-    hovertemplate: "OpenROAD<br>%{x}<br>" + m + ": %{y}<extra></extra>",
-    connectgaps: false
+function drawMxList(rows) {
+  const m = state.metric;
+  const b = baseVal(state.task, m, state.pdk, state.stage);
+  const pdkL = (PDKS.find(x => x[0] === state.pdk) || [state.pdk, state.pdk])[1];
+  $("mxsideh").textContent = "Models";
+  $("mxsidecap").textContent = `Ranked by ${m} at ${pdkL} · ${SL[state.stage]}. `
+    + `Hover to isolate a row on the matrix.`;
+  $("mxlist").innerHTML = rows.map(r => {
+    const fam = r.fam || famOf(r.n);
+    const win = better(r.v, b, m);
+    return `<li class="mxitem" data-mn="${r.n}">
+      <span class="famlogo" style="background:${FAMCOL[fam] || FAMCOL.MLP}">${fam.slice(0, 2).toUpperCase()}</span>
+      <div class="minw">
+        <div class="mname">${r.n}</div>
+        <div class="msub">${r.real ? "ICE Lab · measured" : fam}</div>
+      </div>
+      <div class="mxscore">
+        <div class="val">${fmt(r.v, m)}</div>
+        <div class="${win ? "win" : "dim"} body-xs">${win ? "beats OpenROAD" : "vs OpenROAD"}</div>
+      </div>
+    </li>`;
+  }).join("");
+  $("mxlist").querySelectorAll("[data-mn]").forEach(el => {
+    el.onmouseenter = () => {
+      mxHi = el.dataset.mn; mxCol = null;
+      applyMxHi($("mxcirc"));
+      setMxInfo(MX_ROWS.find(x => x.n === mxHi));
+    };
+    el.onmouseleave = () => {
+      mxHi = null;
+      applyMxHi($("mxcirc"));
+      setMxInfo(mxPin ? MX_ROWS.find(x => x.n === mxPin) : null);
+    };
+    el.onclick = () => {
+      mxPin = mxPin === el.dataset.mn ? null : el.dataset.mn;
+      applyMxHi($("mxcirc"));
+      setMxInfo(MX_ROWS.find(x => x.n === (mxPin || mxHi)) || null);
+    };
   });
-  const here = state.slice === "pdk" ? PDKS.find(p => p[0] === state.pdk)[1] : SL[state.stage];
-  const xi = xs.indexOf(here);
-  $("pt").textContent = `${m} across ${state.slice === "pdk" ? "PDKs" : "stages"}`;
-  $("pc").innerHTML = `Follows the metric selected under <b>Score by</b> — `
-    + `MAE, MAPE, R², or whichever error this task ranks on. `
-    + `Gold is the lab’s <b>fixed_mlp</b> — a separate checkpoint per (PDK, stage, circuit), `
-    + `not one network reused across the flow. The dashed gold line is OpenROAD’s own `
-    + `stage estimate (EDA-Schema-V2 §6.2). `
-    + `${hi(m) ? "Higher is better." : "Lower is better."}`;
-  Plotly.react($("stagebox"), traces, Object.assign(BASE_LAYOUT(t), {
-    showlegend: true,
-    legend: { orientation: "h", y: 1.08, font: { size: 10, color: t.font.color },
-      bgcolor: "rgba(0,0,0,0)" },
-    margin: { l: 64, r: 18, t: 36, b: 48 },
-    xaxis: Object.assign(BASE_LAYOUT(t).xaxis, {
-      title: { text: state.slice === "pdk" ? "PDK" : "Predict from", font: { size: 11 } } }),
-    yaxis: Object.assign(BASE_LAYOUT(t).yaxis, {
-      title: { text: m + (ABSOLUTE(m) && unit ? ` (${unit})` : ""), font: { size: 11 } } }),
-    shapes: xi >= 0 ? [{ type: "rect", xref: "x", x0: xi - 0.4, x1: xi + 0.4,
-      yref: "paper", y0: 0, y1: 1,
-      fillcolor: t.dark ? "rgba(254,197,0,.08)" : "rgba(254,197,0,.12)",
-      line: { width: 0 } }] : []
-  }), CONFIG);
+}
+function drawStageView() {
+  const mxRows = matrixRows();
+  if (mxPin && !mxRows.some(r => r.n === mxPin)) mxPin = null;
+  drawMxCircuit(mxRows);
+  drawMxList(mxRows);
 }
 
 /* ===================================================================
    Render + wiring
    =================================================================== */
 let ROWS = [];
+function drawAbout() {
+  const [, label] = taskDef();
+  EDA_ABOUT.render($("aboutview"), {
+    task: state.task,
+    pdk: state.pdk,
+    stage: STAGES[state.stage],
+    taskLabel: label,
+    metrics: metricsOf(state.task),
+    cellState, baseVal, fmt, hi,
+    playgroundHref: "playground.html?" + new URLSearchParams({
+      task: state.task, pdk: state.pdk, stage: STAGES[state.stage]
+    })
+  });
+}
+
+function setViewChrome() {
+  const about = state.view === "about";
+  if (!about) state._prevView = state.view;
+  $("rankview").style.display = state.view === "ranking" ? "" : "none";
+  $("stageview").style.display = state.view === "matrix" ? "" : "none";
+  $("aboutview").style.display = about ? "" : "none";
+  $("tbar").classList.toggle("about-on", about);
+  $("aboutbtn").setAttribute("aria-pressed", String(about));
+  $("viewseg").querySelectorAll("[data-view]").forEach(o =>
+    o.setAttribute("aria-selected", o.dataset.view === state.view));
+}
+
 function render() {
   /* a metric the tool has already saturated cannot be raced on */
   if (cellState(state.task, state.metric, state.pdk, state.stage) !== "live") {
@@ -1198,55 +1431,67 @@ function render() {
   drawRail();
   ROWS = buildRows(state.task, state.pdk, state.stage, state.metric);
   drawHead(ROWS);
-  const ranking = state.view === "ranking";
-  $("rankview").style.display = ranking ? "" : "none";
-  $("stageview").style.display = ranking ? "none" : "";
-  $("sliceseg").hidden = ranking;
-  $("sliceseg").querySelectorAll("[data-slice]").forEach(o =>
-    o.setAttribute("aria-selected", o.dataset.slice === state.slice));
-  if (ranking) { drawTable(ROWS); drawPlots(ROWS); } else { drawStageView(); }
+  setViewChrome();
+  if (state.view === "about") drawAbout();
+  else if (state.view === "ranking") { drawTable(ROWS); drawPlots(ROWS); }
+  else drawStageView();
   pushURL();
 }
 
 $("viewseg").querySelectorAll("[data-view]").forEach(b => b.onclick = () => {
   state.view = b.dataset.view;
-  $("viewseg").querySelectorAll("[data-view]").forEach(o =>
-    o.setAttribute("aria-selected", o === b));
   render();
 });
+$("aboutbtn").onclick = () => {
+  state.view = state.view === "about" ? (state._prevView || "ranking") : "about";
+  render();
+};
 $("groupseg").querySelectorAll("[data-group]").forEach(b => b.onclick = () => {
   state.group = b.dataset.group;
   $("groupseg").querySelectorAll("[data-group]").forEach(o =>
     o.setAttribute("aria-selected", o === b));
-  if (state.view === "ranking") drawTable(ROWS); else drawStageView();
-});
-$("sliceseg").querySelectorAll("[data-slice]").forEach(b => b.onclick = () => {
-  state.slice = b.dataset.slice;
-  state.sliceSort = null;
-  render();
+  if (state.view === "ranking") drawTable(ROWS);
+  else if (state.view === "matrix") drawStageView();
 });
 $("srch").oninput = e => {
   state.search = e.target.value;
-  if (state.view === "ranking") drawTable(ROWS); else drawStageView();
+  if (state.view === "ranking") drawTable(ROWS);
+  else if (state.view === "matrix") drawStageView();
 };
 document.querySelectorAll(".railsec > .railhd").forEach(h => h.onclick = () =>
   h.parentElement.classList.toggle("closed"));
-$("togglerail").onclick = () => {
-  const r = $("rail"); r.classList.toggle("hidden");
-  $("togglerail").textContent = r.classList.contains("hidden") ? "☰ Show filters" : "☰ Hide filters";
-  if (typeof Plotly !== "undefined") setTimeout(() => {
-    ["p1","p2","p3","stagebox"].forEach(id => { const e = $(id); if (e && e.data) Plotly.Plots.resize(e); });
+$("togglerail").onclick = () => setRail(document.querySelector(".shell").classList.contains("rail-off"));
+$("railclose").onclick = () => setRail(false);
+const FILTER_ICO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+  stroke-linecap="round" aria-hidden="true"><path d="M4 8h16"/><path d="M4 16h16"/>
+  <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
+  <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/></svg>`;
+function setRail(on) {
+  document.querySelector(".shell").classList.toggle("rail-off", !on);
+  $("togglerail").innerHTML = FILTER_ICO + (on ? " Hide Filters" : " Filters");
+  $("togglerail").setAttribute("aria-expanded", String(on));
+  setTimeout(() => {
+    if (typeof Plotly !== "undefined") {
+      ["p1","p2","p3","p4"].forEach(id => { const e = $(id); if (e && e.data) Plotly.Plots.resize(e); });
+    }
+    if (state.view === "matrix") drawMxCircuit();
   }, 60);
-};
+}
 addEventListener("themechange", () => {
-  if (state.view === "ranking") drawPlots(ROWS); else drawStageView();
+  if (state.view === "about") drawAbout();
+  else if (state.view === "ranking") drawPlots(ROWS);
+  else drawStageView();
+});
+addEventListener("keydown", e => {
+  if (e.key !== "Escape" || state.view !== "about") return;
+  state.view = state._prevView || "ranking";
+  render();
 });
 
 /* the address carries the whole view, as it does on the other pages */
 function pushURL() {
   const q = new URLSearchParams({ task: state.task, pdk: state.pdk,
     stage: STAGES[state.stage], metric: state.metric, view: state.view });
-  if (state.slice === "pdk") q.set("slice", "pdk");
   history.replaceState(null, "", location.pathname + "?" + q);
 }
 (function boot() {
@@ -1255,17 +1500,9 @@ function pushURL() {
   const p = q.get("pdk"); if (p && PDKS.some(x => x[0] === p)) state.pdk = p;
   const s = STAGES.indexOf(q.get("stage") || ""); if (s >= 0) state.stage = s;
   const m = q.get("metric"); if (m && metricsOf(state.task).includes(m)) state.metric = m;
-  const sl = q.get("slice"); if (sl === "pdk" || sl === "stage") {
-    state.slice = sl;
-    $("sliceseg").querySelectorAll("[data-slice]").forEach(o =>
-      o.setAttribute("aria-selected", o.dataset.slice === sl));
-  }
   const v = q.get("view");
-  if (v === "stage" || v === "pareto") {
-    state.view = "stage";
-    $("viewseg").querySelectorAll("[data-view]").forEach(o =>
-      o.setAttribute("aria-selected", o.dataset.view === "stage"));
-  }
+  if (v === "about") state.view = "about";
+  else if (v === "matrix" || v === "stage" || v === "pareto") state.view = "matrix";
   render();
 })();
 </script>

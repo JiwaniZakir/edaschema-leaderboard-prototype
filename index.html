@@ -1767,12 +1767,12 @@ function syncLinks(){
     const page=a.dataset.ctxlink;
     a.href=inCell&&cur.t?page+"?"+ctxQuery(
       page==="explorer.html"?{model:RM}:
-      page==="arena.html"?{view:"stage"}:null):page;
+      page==="arena.html"?{view:"matrix"}:null):page;
   });
   const bb=document.getElementById("beatbtn");
   if(bb&&cur.t)bb.href="playground.html?"+ctxQuery({model:RM});
   const ab=document.getElementById("arenabtn");
-  if(ab&&cur.t)ab.href="arena.html?"+ctxQuery({view:"stage"});
+  if(ab&&cur.t)ab.href="arena.html?"+ctxQuery({view:"matrix"});
 }
 addEventListener("popstate",e=>{
   navLock=true;
