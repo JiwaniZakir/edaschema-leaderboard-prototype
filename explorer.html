@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&display=swap">
 <link rel="stylesheet" href="theme.css">
 <script src="theme.js"></script>
+<script src="https://cdn.plot.ly/plotly-cartesian-2.35.2.min.js" charset="utf-8"></script>
 <title>Model Explorer | Drexel ICE Lab</title>
 <style>
 /* ===================================================================
@@ -226,7 +227,6 @@ body{
 @keyframes kin{to{opacity:1;transform:none}}
 .k:hover{border-color:var(--global-divider-strong)}
 .k--live{border-color:var(--global-theme-color)}
-.k--flat{background:var(--global-card-bg-color)}
 
 /* card head */
 .keyebrow{
@@ -262,39 +262,55 @@ body.loading .bento{opacity:.45;transition:opacity .15s}
 /* identity card — copy | spatial map from EDA-Schema-V2. */
 .idcard{
   display:grid; grid-template-columns:minmax(0,1fr) 192px;
-  gap:1.15rem 1.35rem; align-items:start; flex:1; width:100%;
+  gap:1.15rem 1.35rem; align-items:stretch; flex:1; width:100%;
 }
 @media(max-width:720px){
   .idcard{grid-template-columns:1fr; gap:1rem}
 }
-.idcopy{min-width:0; overflow:hidden}
+.idcopy{
+  min-width:0; overflow:hidden;
+  display:flex; flex-direction:column;
+}
 .idname{
   font-family:var(--global-font-sans); font-weight:300;
   font-size:1.85rem; line-height:1.15; letter-spacing:-.02em;
   color:var(--md-heading-color); margin:0 0 .4rem;
 }
 .idblurb{
-  font-size:.88rem; line-height:1.5; color:var(--global-text-color);
+  font-size:1.02rem; line-height:1.5; color:var(--global-text-color);
   margin:0 0 .85rem;
 }
 .idblurb a{color:var(--global-theme-color); text-decoration:none}
 .idblurb a:hover{text-decoration:underline}
 .idmeta{
-  font-family:var(--global-font-mono); font-size:.72rem;
-  color:var(--global-text-color-light); line-height:1.45;
-  white-space:normal;
+  display:flex; flex-wrap:wrap; gap:.35rem; align-items:center;
+  font-family:var(--global-font-mono); font-size:.82rem;
+  line-height:1.3;
 }
-@media(min-width:1100px){
-  .idmeta{white-space:nowrap}
+.idchip{
+  display:inline-flex; align-items:center;
+  padding:.22rem .55rem;
+  border:1px solid var(--global-divider-strong); border-radius:6px;
+  background:var(--global-card-bg-color); color:var(--md-heading-color);
+  font-weight:500;
 }
-.idmeta b{color:var(--global-text-color); font-weight:500}
 .idscore{
-  font-family:var(--global-font-mono); font-size:.72rem;
-  color:var(--global-text-color-light); line-height:1.45;
-  margin:.7rem 0 0;
+  flex:1; display:flex; flex-direction:column;
+  justify-content:flex-end; align-items:flex-start;
+  margin-top:.45rem; min-height:0;
 }
 .idscore[hidden]{display:none}
-.idscore b{color:var(--global-text-color); font-weight:500}
+.idscore-lab{
+  font-family:var(--global-font-sans); font-weight:300;
+  font-size:1.15rem; line-height:1.15; letter-spacing:-.02em;
+  color:var(--global-text-color-light); text-transform:lowercase;
+}
+.idscore-val{
+  font-family:var(--global-font-sans); font-weight:300;
+  font-size:1.85rem; line-height:1.15; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; color:#c62828;
+}
+html[data-theme="dark"] .idscore-val{color:#ef9a9a}
 .idside{display:flex; flex-direction:column; align-items:center; gap:.3rem}
 .idviz{width:100%}
 .idviz svg{display:block; width:100%; height:auto}
@@ -367,7 +383,7 @@ html[data-theme="dark"] .idviz .path{stroke:var(--md-primary-300)}
 .mini.on{background:var(--neg);color:#fff;border-color:var(--neg)}
 input[type=range]{width:100%;accent-color:var(--global-theme-color);margin:0}
 .ctlrow{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;font-size:.76rem;
-  color:var(--global-text-color-light);margin-bottom:.55rem}
+  color:var(--global-text-color-light);margin-bottom:.55rem; flex:none}
 .ctlrow input[type=range]{width:120px}
 
 svg,canvas{display:block;width:100%;height:auto}
@@ -437,14 +453,13 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 
 /* ---- 3D network + op graph ---- */
 .viewtog{display:inline-flex;border:1px solid var(--global-divider-strong);border-radius:var(--r-pill);
-  overflow:hidden;margin-bottom:.6rem}
-.viewtog button{font:inherit;font-size:.74rem;padding:.2rem .75rem;background:none;border:none;
-  cursor:pointer;color:var(--global-text-color)}
+  overflow:hidden;margin-bottom:.6rem; flex:none; align-self:flex-start}
+.viewtog button{font:inherit;padding:.2rem .75rem;background:none;border:none;
+  cursor:pointer;color:var(--md-heading-color)}
 .viewtog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
 .c3dhost{position:relative;border:1px solid var(--global-divider-color);border-radius:var(--r-md);
   overflow:hidden;background:var(--global-bg-color)}
-#net3d{display:block;width:100%;height:auto;touch-action:none}
-.unitinfo{font-size:.78rem;color:var(--global-text-color);margin:.5rem 0 0;min-height:1.2em}
+.unitinfo{font-size:.78rem;color:var(--global-text-color);margin:.5rem 0 0;min-height:1.2em;flex:none}
 .unitinfo .dim{color:var(--global-text-color-light)}
 .graphbox{border:1px solid var(--global-divider-color);border-radius:var(--r-md);
   padding:.5rem 0;background:var(--global-bg-color);overflow:hidden}
@@ -454,67 +469,232 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 .cbx{font-size:.76rem;display:inline-flex;align-items:center;gap:.3rem}
 .cbx input{accent-color:var(--global-theme-color)}
 
-/* network split: canvas | hideable feature/param rail (arena Hide Filters) */
+/* network split: canvas | hideable feature rail */
 .nethead{display:flex;align-items:flex-start;justify-content:space-between;
   gap:.8rem;flex-wrap:wrap;margin-bottom:.15rem}
-.nethead .ksub{margin-bottom:.35rem}
-.tbtn{font:inherit;font-size:.78rem;padding:.28rem .65rem;cursor:pointer;
+.nethead .idname{margin:0 0 .25rem}
+.netsub{
+  font-family:var(--global-font-mono); font-size:.82rem; font-weight:500;
+  line-height:1.3; color:var(--md-heading-color); margin:0;
+}
+.nethead-btns{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+
+/* training curves — identity title + blurb, chip-mono chrome */
+.curvehead{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:.8rem;flex-wrap:wrap;margin-bottom:.65rem}
+#k-curves .idname{margin:0 0 .4rem}
+#k-curves .idblurb{margin:0}
+#k-curves .viewtog{margin:0;flex:none;align-self:flex-start}
+#k-curves .viewtog,
+#k-curves .viewtog button,
+#k-curves .idmeta,
+#k-curves .idchip,
+#k-curves .chipc,
+#k-curves .plotwarn{
+  font-family:var(--global-font-mono); font-size:.82rem; font-weight:500;
+  line-height:1.3;
+}
+#k-curves .viewtog button{padding:.22rem .65rem;color:var(--md-heading-color)}
+#k-curves .idmeta{margin-top:.75rem}
+#curveplot{width:100%;height:520px;min-height:520px;flex:none;position:relative}
+#k-curves .plotwarn{color:var(--global-text-color-light);margin:2rem 0}
+.curvefilts{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem .85rem;margin:0 0 .7rem}
+.curvefilts-meta,.curvefilts-circs{display:flex;flex-wrap:wrap;align-items:center;gap:.28rem}
+.curvefilts-circs{flex:1;min-width:12rem}
+#k-curves .chipc{
+  margin:0; padding:.22rem .55rem; border-radius:6px;
+  color:var(--md-heading-color); display:inline-flex; align-items:center; gap:.4rem;
+}
+#k-curves .chipc .cpip{
+  width:.55rem; height:.55rem; border-radius:50%; flex:none; background:var(--cc);
+}
+#k-curves .chipc[data-ccirc].on{
+  background:var(--global-card-bg-color); color:var(--md-heading-color);
+  border-color:var(--cc); box-shadow:inset 3px 0 0 var(--cc);
+}
+#k-curves .chipc[data-ccirc]:not(.on){opacity:.42; background:transparent}
+#k-curves .chipc[data-ccirc].here{outline:1px solid var(--cc); outline-offset:1px}
+#k-curves .chipc[data-cs].on{color:#fff}
+
+/* Plotly zoom chrome — compact, themed, always there */
+.js-plotly-plot .modebar-container{
+  top:6px !important; right:6px !important;
+}
+.js-plotly-plot .modebar{
+  background:transparent !important;
+}
+.js-plotly-plot .modebar-group{
+  background:var(--global-card-bg-color) !important;
+  border:1px solid var(--global-divider-strong);
+  border-radius:6px;
+  padding:1px 2px !important;
+}
+.js-plotly-plot .modebar-btn path{
+  fill:var(--md-heading-color) !important;
+}
+.js-plotly-plot .modebar-btn:hover,
+.js-plotly-plot .modebar-btn.active{
+  background:var(--global-bg-color) !important;
+}
+.js-plotly-plot .modebar-btn:hover path,
+.js-plotly-plot .modebar-btn.active path{
+  fill:var(--global-theme-color) !important;
+}
+
+/* weights — matrix | histogram, same identity chrome as training curves */
+#k-wdist .idname{margin:0 0 .4rem}
+#k-wdist .idblurb{margin:0}
+#k-wdist .curvehead{margin-bottom:.55rem}
+#k-wdist .viewtog{margin:0;flex:none;align-self:flex-start}
+#k-wdist .viewtog,
+#k-wdist .viewtog button,
+#k-wdist .idmeta,
+#k-wdist .idchip,
+#k-wdist .chipc,
+#k-wdist .plotwarn,
+#k-wdist .ksub,
+#k-wdist .cap{
+  font-family:var(--global-font-mono); font-size:.82rem; font-weight:500;
+  line-height:1.3;
+}
+#k-wdist .viewtog button{padding:.22rem .65rem;color:var(--md-heading-color)}
+#k-wdist .ksub{margin:0 0 .55rem}
+#k-wdist .idmeta{margin-top:.65rem}
+#k-wdist .plotwarn{color:var(--global-text-color-light);margin:2rem 0}
+#k-wdist .chipc{
+  margin:0; padding:.22rem .55rem; border-radius:6px;
+  color:var(--md-heading-color);
+}
+#k-wdist .chipc.on{color:#fff}
+.wsplit{
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:.85rem; align-items:stretch;
+}
+.wsplit-m,.wsplit-d{
+  min-width:0; height:420px; min-height:420px;
+}
+.hmbox{
+  position:relative;
+  height:100%; min-height:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:.55rem;
+  border:1px solid var(--global-divider-color); border-radius:var(--r-sm);
+  background:var(--global-card-bg-color); overflow:hidden;
+}
+#k-wdist #hm{
+  width:auto; height:auto; max-width:100%; max-height:100%;
+  border:none; border-radius:0; cursor:crosshair;
+  image-rendering:pixelated; object-fit:contain;
+}
+#k-wdist .wsplit-m .cap{
+  position:absolute; left:.65rem; right:.65rem; bottom:.4rem;
+  margin:0; min-height:0; pointer-events:none;
+  text-align:center;
+}
+.wsplit-d{
+  border:1px solid var(--global-divider-color); border-radius:var(--r-sm);
+  overflow:hidden; height:420px; min-height:420px;
+}
+#wdistplot{width:100%;height:100%;min-height:0;flex:none;border:none}
+@media(max-width:720px){
+  .wsplit{grid-template-columns:1fr}
+}
+#k-net .tbtn,
+#k-net .viewtog,
+#k-net .viewtog button,
+#k-net .ctlrow,
+#k-net .cbx,
+#k-net .mini,
+#k-net .unitinfo,
+#k-net .cap,
+#k-net .hint,
+#k-net .widthopt-lab,
+#k-net .hpwidths,
+#k-net .hpwidths input,
+#k-net .hpwidths span,
+#k-net .fgh,
+#k-net .fr,
+#k-net .fn,
+#k-net .fv,
+#k-net .chipc,
+#k-net .pgh,
+#k-net .pgl{
+  font-family:var(--global-font-mono);
+  font-size:.82rem;
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+}
+#k-net .tbtn{font-size:.82rem;padding:.28rem .65rem;cursor:pointer;
   border:1px solid var(--global-divider-strong);border-radius:6px;
-  background:var(--global-bg-color);color:var(--global-text-color);
+  background:var(--global-bg-color);color:var(--md-heading-color);
   display:inline-flex;align-items:center;gap:.4rem}
 .tbtn:hover{border-color:var(--global-theme-color)}
 .tbtn svg{width:14px;height:14px;display:block;flex:none}
+#k-net{
+  height:min(78vh, 880px);
+  min-height:560px;
+}
+#k-net .netshell{flex:1; min-height:0}
 .netshell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1rem 1.15rem;
   align-items:stretch}
 .netshell.rail-off{grid-template-columns:minmax(0,1fr)}
 .netshell.rail-off .netrail{display:none}
 @media(max-width:1080px){
+  #k-net{height:auto; min-height:0}
   .netshell{grid-template-columns:1fr}
   .netrail{border-left:0;padding-left:0;border-top:1px solid var(--global-divider-color);
-    padding-top:.9rem}
+    padding-top:.9rem; min-height:42vh}
 }
-.netview{min-width:0}
-.netrail{min-width:0;display:flex;flex-direction:column;gap:.65rem;
-  border-left:1px solid var(--global-divider-color);padding-left:1rem}
-@media(max-width:1080px){
-  .netrail{max-height:none}
+.netview{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
+#wrap3d, #wrapgr{
+  flex:1; display:flex; flex-direction:column; min-height:0;
 }
-.netseg{display:grid;grid-template-columns:1fr 1fr;gap:2px;
-  background:var(--global-card-bg-color);border:1px solid var(--global-divider-color);
-  border-radius:8px;padding:3px}
-.netseg button{font:inherit;font-size:.76rem;padding:.28rem .4rem;border:0;cursor:pointer;
-  background:none;color:var(--global-text-color-light);border-radius:6px}
-.netseg button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff}
-.netpane{min-height:0;display:flex;flex-direction:column;gap:.45rem}
-.netpane[hidden]{display:none}
-#inputs{overflow-y:auto;max-height:380px;padding-right:.15rem}
-.liveout{border-top:1px solid var(--global-divider-color);padding-top:.45rem}
-.liveout .hint{margin:.35rem 0 0}
-.hpgrid{display:grid;gap:.55rem}
-.hprow label{font-size:.7rem;color:var(--global-text-color-light);display:block;margin-bottom:.1rem}
-.hprow input,.hprow select{width:100%;font:inherit;font-size:.88rem;padding:.12rem 0;
-  border:none;border-bottom:1px solid var(--global-divider-strong);background:none;
-  color:var(--global-text-color);border-radius:0}
-.hprow input:focus,.hprow select:focus{outline:none;border-bottom-color:var(--global-theme-color)}
-.hprow input:disabled,.hprow select:disabled{opacity:.65}
+.c3dhost{flex:1; min-height:280px; position:relative}
+#net3d{
+  position:absolute; inset:0; width:100%; height:100%;
+  display:block; touch-action:none; border:none; border-radius:0;
+}
+.graphbox{flex:1; min-height:0; overflow:auto}
+.netrail{min-width:0; min-height:0; display:flex; flex-direction:column; gap:.65rem;
+  border-left:1px solid var(--global-divider-color);padding-left:1rem; overflow:hidden}
+.widthopt{flex:none; padding-bottom:.55rem;
+  border-bottom:1px solid var(--global-divider-color)}
+.widthopt[hidden]{display:none}
+.addrbody{display:grid; gap:.7rem; margin-bottom:.55rem}
+.addrbody .chipc{
+  font-size:.82rem; padding:.22rem .55rem; margin:0 .28rem .28rem 0;
+  color:var(--md-heading-color); border-radius:6px;
+}
+.addrbody .pg{
+  grid-template-columns:4.8rem repeat(5,minmax(0,1fr));
+  gap:5px; width:100%;
+}
+.addrbody .pgh, .addrbody .pgl{color:var(--md-heading-color)}
+.addrbody .pgc{height:28px}
+.widthopt-lab{
+  color:var(--md-heading-color); display:block; margin-bottom:.28rem}
+#inputs{flex:1; overflow-y:auto; min-height:0; padding-right:.15rem}
 .hpwidths{display:flex;gap:.35rem;align-items:center}
-.hpwidths input{width:3.4rem;text-align:center}
+.hpwidths input{
+  width:3.4rem; text-align:center; font:inherit;
+  padding:.12rem 0; border:none; border-bottom:1px solid var(--global-divider-strong);
+  background:none; color:var(--md-heading-color); border-radius:0}
+.hpwidths input:focus{outline:none;border-bottom-color:var(--global-theme-color)}
+.hpwidths input:disabled{opacity:.65}
 .hpwidths span{color:var(--global-text-color-light);font-size:.78rem}
-.effect{margin:.15rem 0 0;font-size:.72rem;line-height:1.45}
-.effect li{margin:.15rem 0}
-.effect .can{color:var(--global-text-color)}
-.effect .cant{color:var(--global-text-color-light)}
 
 /* explorer-specific */
 .fg{margin-bottom:.6rem}
-.fgh{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
-  margin-bottom:.2rem;display:flex;gap:.35rem}
+.fgh{margin-bottom:.2rem;display:flex;gap:.35rem}
 .fgh span{color:var(--global-text-color-light);font-weight:400}
-.fr{display:grid;grid-template-columns:1fr 74px 34px;gap:.4rem;align-items:center;
-  font-size:.72rem;padding:.05rem 0}
+.fr{display:grid;grid-template-columns:16px 1fr 74px 34px;gap:.4rem;align-items:center;
+  padding:.05rem 0}
+.fr.off{opacity:.42}
+.fr input[type=checkbox]{margin:0;accent-color:var(--global-theme-color)}
 .fn{color:var(--global-text-color-light);overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
-.fv{font-size:.7rem;text-align:right}
+.fv{text-align:right}
 .chipc{font:inherit;font-size:.71rem;padding:.16rem .5rem;margin:2px;border-radius:var(--r-sm);
   border:1px solid var(--global-divider-color);background:var(--global-bg-color);
   color:var(--global-text-color-light);cursor:pointer;font-family:var(--global-font-mono)}
@@ -528,22 +708,6 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
   cursor:pointer;background:var(--global-card-bg-color);transition:.12s}
 .pgc:hover{border-color:var(--global-theme-color)}
 .pgc.on{background:var(--global-theme-color);border-color:var(--global-theme-color)}
-.hmtog{display:flex;gap:.28rem;flex-wrap:wrap;margin-bottom:.5rem}
-.hmtog button{font:inherit;font-size:.7rem;padding:.18rem .52rem;border-radius:var(--r-sm);
-  cursor:pointer;border:1px solid var(--global-divider-strong);
-  background:var(--global-bg-color);color:var(--global-text-color);
-  font-family:var(--global-font-mono)}
-.hmtog button[aria-pressed="true"]{background:var(--global-theme-color);color:#fff;
-  border-color:var(--global-theme-color)}
-.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
-.kpi .k{font-size:.68rem;color:var(--global-text-color-light);
-  text-transform:uppercase;letter-spacing:.06em}
-.kpi .v{font-family:var(--global-font-slab);font-size:1.05rem;
-  font-variant-numeric:tabular-nums}
-.cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.ctab{background:var(--global-theme-color);color:#fff;border:1px solid var(--global-theme-color);
-  padding:.5rem 1.1rem;border-radius:var(--r-md);text-decoration:none;font-size:.9rem;white-space:nowrap}
-.ctab:hover{opacity:.9;color:#fff}
 </style>
 </head>
 <body>
@@ -590,28 +754,47 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
     </div>
   </div>
 
-  <!-- network: 3D / graph | feature & parameter rail -->
+  <!-- network: 3D / graph | feature rail -->
   <div class="k s12" style="--i:1" id="k-net">
     <div class="nethead">
       <div>
-        <div class="keyebrow">architecture</div>
-        <div class="ktitle">Network</div>
-        <div class="ksub">The checkpoint for this task, PDK and stage. Features drive a
-          live forward pass; training hyperparameters do not rewrite the published weights.</div>
+        <h2 class="idname">neural net</h2>
+        <p class="netsub">Uncheck an input or change a width to rebuild the graph.</p>
       </div>
-      <button class="tbtn" id="togglenetrail" aria-expanded="true" aria-controls="netrail">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
-          stroke-linecap="round" aria-hidden="true">
-          <path d="M4 8h16"/><path d="M4 16h16"/>
-          <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
-          <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/>
-        </svg>
-        Hide controls
-      </button>
+      <div class="nethead-btns">
+        <button class="tbtn" id="toggleaddr" aria-expanded="false" aria-controls="addrbody">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M4 8h16"/><path d="M4 16h16"/>
+            <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
+            <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/>
+          </svg>
+          Filters
+        </button>
+        <button class="tbtn" id="togglenetrail" aria-expanded="true" aria-controls="netrail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M4 8h16"/><path d="M4 16h16"/>
+            <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
+            <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/>
+          </svg>
+          Hide controls
+        </button>
+      </div>
     </div>
 
     <div class="netshell" id="netshell">
       <div class="netview">
+        <div class="widthopt addrbody" id="addrbody" hidden>
+          <div>
+            <div class="widthopt-lab">circuit</div>
+            <div id="circhips"></div>
+          </div>
+          <div>
+            <div class="widthopt-lab">pdk × stage</div>
+            <div id="cmpgrid"></div>
+          </div>
+        </div>
         <div class="viewtog">
           <button data-nm3="3d" aria-pressed="true">3D units</button>
           <button data-nm3="graph" aria-pressed="false">op graph</button>
@@ -638,97 +821,68 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
       </div>
 
       <aside class="netrail" id="netrail">
-        <div class="netseg" id="railmode">
-          <button data-rail="features" aria-pressed="true">Features</button>
-          <button data-rail="params" aria-pressed="false">Parameters</button>
+        <div class="widthopt" id="widthopt" hidden>
+          <label class="widthopt-lab">hidden widths</label>
+          <div class="hpwidths" id="hpwidths"></div>
         </div>
-        <div class="netpane" id="pane-features">
-          <div id="inputs"></div>
-        </div>
-        <div class="netpane" id="pane-params" hidden>
-          <div id="params"></div>
-        </div>
-        <div class="liveout" id="liveout"></div>
+        <div id="inputs"></div>
       </aside>
     </div>
   </div>
 
-  <!-- circuit -->
-  <div class="k s6" style="--i:4">
-    <div class="keyebrow">the one free axis</div>
-    <div class="ktitle">Circuit</div>
-    <div class="ksub">Task, architecture, PDK and stage were fixed by the cell you came from.
-      18 independently seeded models exist per cell.</div>
-    <div  id="circhips"></div>
-  </div>
-
-  <!-- compare -->
-  <div class="k s6" style="--i:5">
-    <div class="keyebrow">comparison</div>
-    <div class="ktitle">Across PDK and stage</div>
-    <div class="ksub">Loads the same task, architecture and circuit elsewhere. Per the audit,
-      the weights barely move.</div>
-    <div  id="cmpgrid"></div>
-  </div>
-
-  <!-- weight matrix -->
-  <div class="k s7" style="--i:6">
-    <div class="keyebrow">tensors</div>
-    <div class="ktitle">Weight matrices</div>
-    <div class="ksub" id="hmmeta"></div>
-    <div class="hmtog"  id="hmtog"></div>
-    <canvas id="hm"></canvas>
-    <p class="cap mono" id="hmtip">hover a cell</p>
-  </div>
-
-  <!-- null overlay -->
-  <div class="k s5" style="--i:7">
-    <div class="keyebrow">distribution</div>
-    <div class="ktitle">Weights against the untrained null</div>
-    <div class="ksub">Histogram vs the theoretical U(&plusmn;1/&radic;fan_in) for this layer.</div>
-    <svg viewBox="0 0 520 210" id="nullsvg"></svg>
-    <div style="margin-top:.5rem" id="nullstat"></div>
-  </div>
-
-  <!-- cosine -->
-  <div class="k s6" style="--i:8">
-    <div class="keyebrow">similarity</div>
-    <div class="ktitle">Cosine similarity</div>
-    <div class="ksub">First-layer weights, holding task and architecture fixed.</div>
-    <div class="tog" style="margin:0 0 .6rem">
-      <button data-cm="circuits" aria-pressed="true">across 18 circuits</button>
-      <button data-cm="configs" aria-pressed="false">across 20 configs</button>
-    </div>
-    <canvas id="cos" style="max-width:300px"></canvas>
-    <div style="margin-top:.5rem" id="cosstat"></div>
-    <p class="cap" id="coscap"></p>
-  </div>
-
-  <!-- curves -->
-  <div class="k s6" style="--i:9">
-    <div class="keyebrow">training</div>
-    <div class="ktitle">Training curves</div>
-    <div class="ksub">25 epochs on a z-scored target &mdash; not comparable to leaderboard metrics.</div>
-    <div class="tog" style="margin:0 0 .6rem">
-      <button data-ct="loss" aria-pressed="true">loss</button>
-      <button data-ct="r2" aria-pressed="false">R&sup2;</button>
-      <button data-ct="mae" aria-pressed="false">MAE</button>
-    </div>
-    <svg viewBox="0 0 520 210" id="curvesvg"></svg>
-    <div style="margin-top:.5rem" id="curvestat"></div>
-  </div>
-
-  <!-- cta -->
-  <div class="k s12 k--flat" style="--i:10">
-    <div class="cta" >
+  <!-- weight matrix | distribution — shared layer filters -->
+  <div class="k s12" style="--i:6" id="k-wdist">
+    <div class="curvehead">
       <div>
-        <div class="keyebrow" style="margin-left:0">your turn</div>
-        <div class="ktitle" style="margin-left:0">Think you can beat OpenROAD?</div>
-        <div class="ksub" style="margin:0">Build your own network, train it here on real design
-          data, and see how it compares.</div>
+        <h2 class="idname">weight matrices</h2>
+        <p class="idblurb">Click a layer. Matrix left, the same numbers right. The gold band is where untrained weights live &mdash; training would pile them in the middle or push them outside.</p>
       </div>
-      <a class="ctab" id="beatcta" href="playground.html">&#9889; Beat OpenROAD &rarr;</a>
+      <div class="viewtog">
+        <button type="button" data-wd="bars" aria-pressed="true">bars</button>
+        <button type="button" data-wd="dots" aria-pressed="false">dots</button>
+      </div>
     </div>
+    <div class="curvefilts">
+      <div class="curvefilts-meta" id="hmtog"></div>
+    </div>
+    <div class="ksub" id="hmmeta"></div>
+    <div class="wsplit">
+      <div class="wsplit-m">
+        <div class="hmbox" id="hmbox">
+          <canvas id="hm"></canvas>
+          <p class="cap mono" id="hmtip">hover a cell</p>
+        </div>
+      </div>
+      <div class="wsplit-d">
+        <div id="wdistplot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- training curves -->
+  <div class="k s12" style="--i:8" id="k-curves">
+    <div class="curvehead">
+      <div>
+        <h2 class="idname">training curves</h2>
+        <p class="idblurb">One independently trained run per circuit. Drag a box to zoom, scroll to zoom, double-click to reset. Shift-click a chip to isolate one circuit.</p>
+      </div>
+      <div class="viewtog">
+        <button data-ct="loss" aria-pressed="true">loss</button>
+        <button data-ct="r2" aria-pressed="false">R&sup2;</button>
+        <button data-ct="mae" aria-pressed="false">MAE</button>
+        <button data-ct="mape" aria-pressed="false">MAPE</button>
+      </div>
+    </div>
+    <div class="curvefilts" id="curvefilts">
+      <div class="curvefilts-meta">
+        <button type="button" class="chipc on" data-cs="tr" aria-pressed="true">train</button>
+        <button type="button" class="chipc on" data-cs="va" aria-pressed="true">val</button>
+        <button type="button" class="chipc" data-cc="all">all</button>
+        <button type="button" class="chipc" data-cc="none">none</button>
+      </div>
+      <div class="curvefilts-circs" id="curvecircs"></div>
+    </div>
+    <div id="curveplot"></div>
   </div>
 
 </div>
@@ -888,6 +1042,47 @@ function forward(W,x,ablate){
   return acts;
 }
 
+/* Rebuild displayed tensors from the checkpoint without mutating the cache.
+   Overlapping units keep published weights. New units use PyTorch nn.Linear
+   init: U(±1/√fan_in). Feature uncheck = drop those columns from layer 0. */
+function cloneLayer(src, fi, fo, colIdx, seed){
+  const r=mulberry32(seed);
+  const b=1/Math.sqrt(fi);
+  const Wt=new Float32Array(fo*fi), B=new Float32Array(fo);
+  for(let i=0;i<Wt.length;i++)Wt[i]=(r()*2-1)*b;
+  for(let i=0;i<fo;i++)B[i]=(r()*2-1)*b;
+  const copyFo=Math.min(fo, src.fo);
+  if(colIdx){
+    for(let o=0;o<copyFo;o++){
+      B[o]=src.B[o];
+      for(let j=0;j<fi;j++){
+        const si=colIdx[j];
+        if(si<src.fi)Wt[o*fi+j]=src.W[o*src.fi+si];
+      }
+    }
+  }else{
+    const copyFi=Math.min(fi, src.fi);
+    for(let o=0;o<copyFo;o++){
+      B[o]=src.B[o];
+      for(let i=0;i<copyFi;i++)Wt[o*fi+i]=src.W[o*src.fi+i];
+    }
+  }
+  return{
+    kind:src.kind, fi, fo, W:Wt, B, bound:b, shape:[fo,fi],
+    label:src.label, real:src.real, idx:src.idx
+  };
+}
+function reshapeNet(src, colIdx, widths){
+  const L=src.length, lastFo=src[L-1].fo, out=[];
+  for(let i=0;i<L;i++){
+    const fo=i===L-1?lastFo:Math.max(1,Math.min(256, widths[i]|0 || src[i].fo));
+    const fi=i===0?colIdx.length:out[i-1].fo;
+    out.push(cloneLayer(src[i], fi, fo, i===0?colIdx:null,
+      hash("rs|"+i+"|"+fi+"|"+fo+"|"+colIdx.length)));
+  }
+  return out;
+}
+
 /* ===================== statistics ===================== */
 function layerStats(l){
   let mn=Infinity,mx=-Infinity,s=0,s2=0,past=0;
@@ -897,13 +1092,21 @@ function layerStats(l){
   return{n,mn,mx,mean,std,expStd:l.bound/Math.sqrt(3),
          ratio:std/(l.bound/Math.sqrt(3)),pastFrac:past/n};
 }
-function cosine(a,b){
-  const n=Math.min(a.length,b.length);
-  let d=0,na=0,nb=0;
-  for(let i=0;i<n;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}
-  return d/Math.sqrt(na*nb);
+function uniformCdf(x,b){
+  if(x<=-b)return 0;
+  if(x>=b)return 1;
+  return (x+b)/(2*b);
 }
-
+function ksUniform(vals,b){
+  const xs=Array.from(vals).sort((a,c)=>a-c),n=xs.length;
+  let d=0;
+  for(let i=0;i<n;i++){
+    const u=uniformCdf(xs[i],b);
+    d=Math.max(d,Math.abs(i/n-u),Math.abs((i+1)/n-u));
+  }
+  return d;
+}
+function layerLab(l){return l.shape.slice(0,2).join("\u00d7");}
 /* ===================================================================
    3D network view — hand-rolled perspective projection, no Three.js.
 
@@ -921,6 +1124,17 @@ const V3={
 };
 
 /* layer geometry: units laid out as a grid on a plane, planes spaced in z */
+function packedCol(orig){
+  if(!featOn)return orig;
+  if(!featOn[orig])return -1;
+  let k=0;
+  for(let i=0;i<orig;i++)if(featOn[i])k++;
+  return k;
+}
+function origFeatName(i){
+  if(typeof FEATFLAT!=="undefined"&&FEATFLAT[i])return FEATFLAT[i].full;
+  return "in["+i+"]";
+}
 function grid3d(n){
   const cols=Math.max(1,Math.ceil(Math.sqrt(n*1.35)));
   const rows=Math.ceil(n/cols);
@@ -929,10 +1143,13 @@ function grid3d(n){
 function build3d(M,fam){
   /* Node counts per layer. For conv layers fi is the flattened kernel
      (k*k*Cin), not the previous layer's unit count, so the input layer
-     is sized from the architecture spec rather than from fi.          */
+     is sized from the architecture spec rather than from fi.
+     Unchecked features keep their slot on the input plane (a hole) so
+     unit i stays feature i; W is still the packed (fo × n_on) matrix. */
   const spec=(typeof ARCHSPEC!=="undefined"&&fam)?ARCHSPEC[fam]:null;
   const firstIsConv=M&&M[0]&&M[0].kind==="conv";
-  const n0=!M?0:(firstIsConv?(spec?spec.input:3):M[0].fi);
+  const n0=!M?0:(firstIsConv?(spec?spec.input:3)
+    :(featOn&&featOn.length?featOn.length:M[0].fi));
   const dims=[n0,...(M?M.map(l=>l.fo):[])];
   const LG=150, NG=22;                       /* layer gap, neuron gap */
   const layers=dims.map((n,i)=>{
@@ -964,7 +1181,7 @@ function computeFit(G,W,H){
     y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);
   }
   const bw=Math.max(1,x1-x0), bh=Math.max(1,y1-y0);
-  const k=Math.min((W*0.80)/bw,(H*0.78)/bh);
+  const k=Math.min((W*0.92)/bw,(H*0.90)/bh);
   FIT={k, dx:W/2-((x0+x1)/2-W/2)*k-W/2*k+W/2*0,
           dy:H/2-((y0+y1)/2-H/2)*k-H/2*k+H/2*0};
   /* solve directly: we want (mid - W/2)*k + W/2 + dx == W/2 */
@@ -1015,7 +1232,12 @@ function draw3d(cv,M,acts,opts){
       const stepI=Math.max(1,Math.ceil(nSrc/14));
       const stepO=Math.max(1,Math.ceil(nDst/14));
       for(let o=0;o<nDst;o+=stepO)for(let i=0;i<nSrc;i+=stepI){
-        const w=l.W[(o%l.fo)*l.fi+(i%l.fi)],a=Math.abs(w)/(mx||1);
+        let ii=i;
+        if(li===0&&featOn&&featOn.length!==l.fi){
+          ii=packedCol(i);
+          if(ii<0)continue;
+        }
+        const w=l.W[(o%l.fo)*l.fi+(ii%l.fi)],a=Math.abs(w)/(mx||1);
         if(a<0.22)continue;
         const A=P[li][i],B=P[li+1][o];
         if(!A||!B)continue;
@@ -1059,10 +1281,24 @@ function draw3d(cv,M,acts,opts){
     /* units */
     for(let k=0;k<L.n;k++){
       const p=P[li][k];
-      const a=acts&&acts[li]?acts[li][k]:0;
-      const t=Math.max(-1,Math.min(1,a*1.3));
+      const dropped=isIn&&featOn&&!featOn[k];
+      const a=dropped?0
+        :(isIn&&Xfull&&k<Xfull.length?Xfull[k]
+          :(acts&&acts[li]?acts[li][k]:0));
       const r=Math.max(1.6,(isOut?7:4.4)*p.s*V3.zoom);
       ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.283);
+      if(dropped){
+        ctx.fillStyle=dark?"rgba(255,255,255,.03)":"rgba(7,41,77,.04)";
+        ctx.fill();
+        ctx.setLineDash([2.2,2.2]);
+        ctx.lineWidth=Math.max(.4,0.9*p.s);
+        ctx.strokeStyle=dark?"rgba(255,255,255,.28)":"rgba(0,0,0,.28)";
+        ctx.stroke();
+        ctx.setLineDash([]);
+        hits.push({x:p.x,y:p.y,r:r+3,layer:li,unit:k,act:a,dropped:true});
+        continue;
+      }
+      const t=Math.max(-1,Math.min(1,a*1.3));
       ctx.fillStyle = t>=0
         ? `rgba(59,111,176,${(0.22+0.72*t).toFixed(3)})`
         : `rgba(192,106,46,${(0.22+0.72*-t).toFixed(3)})`;
@@ -1074,7 +1310,9 @@ function draw3d(cv,M,acts,opts){
     }
 
     /* layer caption, placed at the plate's near corner */
-    const lab=isIn?`input ${L.n}`:isOut?"output":`${M[li-1].label||"layer"} ${L.n}`;
+    const nOn=isIn&&featOn?featOn.reduce((s,on)=>s+(on?1:0),0):L.n;
+    const lab=isIn?(nOn===L.n?`input ${L.n}`:`input ${nOn}/${L.n}`)
+      :isOut?"output":`${M[li-1].label||"layer"} ${L.n}`;
     ctx.fillStyle=dark?"rgba(232,232,232,.8)":"rgba(60,60,60,.85)";
     ctx.font=`${Math.max(9,12*c3.s*V3.zoom).toFixed(0)}px ui-sans-serif,system-ui`;
     ctx.textAlign="center";
@@ -1132,9 +1370,10 @@ function opGraph(M,fam,taskLabel){
     return id;
   };
 
+  const inN=(M&&M[0]&&spec.inputKind!=="image")?M[0].fi:spec.input;
   push("in","input", "io",
-    spec.inputKind==="image"?`[N, ${spec.input}, H, W]`:`[N, ${spec.input}]`,
-    spec.inputKind==="scalar"?"41 schema attributes":spec.inputKind);
+    spec.inputKind==="image"?`[N, ${spec.input}, H, W]`:`[N, ${inN}]`,
+    spec.inputKind==="scalar"?`${inN} schema attributes`:spec.inputKind);
 
   for(const l of spec.layers){
     if(l.k==="linear"||l.k==="gatconv"||l.k==="conv"){
@@ -1227,10 +1466,11 @@ const fmt=(v,d)=>v===null||!isFinite(v)?"\u2014":v.toFixed(d===undefined?3:d);
    rather than on a placeholder */
 let CUR={task:"total_area",arch:"fixed_mlp",pdk:"ng45",stage:"floorplan",
   circuit:"ac97_ctrl",metric:"MAE"};
-let M=null, FAM="MLP", X=null, ACTS=null;
+let M=null, M0=null, FAM="MLP", X=null, Xfull=null, featOn=null, ACTS=null;
 let ablate=new Set(), edits=new Map();
-let edgeCap=500, hmLayer=0, cmpMode="circuits", curveTab="loss";
-let railMode="features";
+let edgeCap=500, hmLayer=0, curveTab="loss", wdistMode="bars";
+const curveOn=Object.fromEntries(CIRCUITS.map(c=>[c,true]));
+let curveShowTr=true, curveShowVa=true;
 const LAB_HP={optimizer:"SGD",lr:0.01,loss:"MSE",batch:1024,epochs:25,weight_decay:0};
 let HP=Object.assign({},LAB_HP);
 const RAIL_ICO=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -1242,14 +1482,29 @@ const taskLabel=t=>(TASKS.find(x=>x[0]===t)||[t,t])[1];
 const inputWidth=()=>ARCHSPEC[FAM].input;
 const isTree=()=>!!ARCHSPEC[FAM].trees;
 
+let addrGen=0;
+function addrQuery(){
+  return new URLSearchParams({
+    task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,
+    model:CUR.arch,circuit:CUR.circuit,metric:CUR.metric
+  }).toString();
+}
+function syncAddrUrl(){
+  const q=addrQuery();
+  if(location.search.slice(1)!==q)
+    history.replaceState(null,"",location.pathname+"?"+q);
+}
 function loadModel(){
+  addrGen++;
+  const gen=addrGen;
+  syncAddrUrl();
+  drawPicker();
   /* a real address waits for its checkpoint bundle; everything else is
      generated locally and renders immediately */
   if(isRealAddr(CUR.task,CUR.arch)&&!realLoaded()){
     setLoading(true);
-    const want=CUR.pdk+"|"+CUR.stage;
     EDA_REAL.loadRun(CUR.pdk,CUR.stage,()=>{
-      if(CUR.pdk+"|"+CUR.stage!==want)return;      // user moved on meanwhile
+      if(gen!==addrGen)return;
       setLoading(false);
       buildModel();
     });
@@ -1258,14 +1513,83 @@ function loadModel(){
   setLoading(false);
   buildModel();
 }
+function canReshape(){
+  return !!(M0&&M0.length&&M0.every(l=>l.kind==="linear"||l.kind==="gatconv"));
+}
+function enabledIdx(){
+  if(!M0||!M0[0])return[];
+  if(!featOn)return Array.from({length:M0[0].fi},(_,i)=>i);
+  const e=[];
+  for(let i=0;i<featOn.length;i++)if(featOn[i])e.push(i);
+  return e.length?e:[0];
+}
+function packX(){
+  if(!M0||isTree())return;
+  if(!canReshape()){X=Xfull||X;return;}
+  const e=enabledIdx();
+  X=new Float32Array(e.length);
+  if(Xfull)e.forEach((si,j)=>{X[j]=Xfull[si]||0});
+}
+function applyNetView(){
+  if(isTree()||!M0){M=M0;ACTS=null;return;}
+  if(!canReshape()){
+    M=M0;
+    if(!X||X.length!==M[0].fi)X=Xfull&&Xfull.length===M[0].fi?Xfull:new Float32Array(M[0].fi);
+    run();
+    return;
+  }
+  if(!HP.widths||HP.widths.length!==M0.length-1)
+    HP.widths=M0.slice(0,-1).map(l=>l.fo);
+  M=reshapeNet(M0,enabledIdx(),HP.widths);
+  packX();
+  if(hmLayer>=M.length)hmLayer=0;
+  edits.clear();ablate.clear();
+  run();
+}
+function liveShape(){
+  if(isTree())return"300 trees";
+  if(!M||!M.length)return"";
+  return[M[0].fi,...M.map(l=>l.fo)].join(" \u2192 ");
+}
+function syncFeatGroupCounts(){
+  if(!featOn)return;
+  let base=0;
+  const heads=[...document.querySelectorAll("#inputs .fgh span")];
+  FEATS.forEach(([,ns],gi)=>{
+    const nOn=ns.reduce((s,_,j)=>s+(featOn[base+j]?1:0),0);
+    if(heads[gi])heads[gi].textContent=nOn===ns.length?String(ns.length):nOn+"/"+ns.length;
+    base+=ns.length;
+  });
+}
+function redrawNetView(){
+  applyNetView();
+  drawNet();
+  if(!isTree()&&M){drawHeat();drawWDist();}
+  drawHeader();
+  syncFeatGroupCounts();
+}
 function buildModel(){
   FAM=famOf(CUR.arch);
-  M=getModel(CUR.task,CUR.arch,CUR.pdk,CUR.stage,CUR.circuit);
+  M0=getModel(CUR.task,CUR.arch,CUR.pdk,CUR.stage,CUR.circuit);
+  M=M0;
   edits.clear();ablate.clear();
   hmLayer=0;
   HP=Object.assign({},LAB_HP);
-  X=new Float32Array(isTree()?ARCHSPEC[FAM].input:M[0].fi);
-  if(!isTree())run();
+  featOn=null;Xfull=null;ACTS=null;
+  if(isTree()||!M0){
+    X=new Float32Array(ARCHSPEC[FAM].input);
+    renderAll();
+    return;
+  }
+  if(canReshape()){
+    featOn=Array.from({length:M0[0].fi},()=>true);
+    Xfull=new Float32Array(M0[0].fi);
+    HP.widths=M0.slice(0,-1).map(l=>l.fo);
+  }else{
+    Xfull=new Float32Array(M0[0].fi);
+    X=Xfull;
+  }
+  applyNetView();
   renderAll();
 }
 function setLoading(on){
@@ -1282,16 +1606,23 @@ function run(){
       if(a===li)W2[o*l.fi+i]=v;});
     return{...l,W:W2};});
   ACTS=forward(L,X,ablate);
-  drawLiveOut();
 }
 
 /* ---------- identity card ---------- */
-function archLine(){
-  if(isTree())return "300 trees \u00b7 41 features";
-  if(!M||!M.length)return ARCHSPEC[FAM].label;
-  const dims=[M[0].fi,...M.map(l=>l.fo)];
+function archBits(){
+  if(isTree())return["300 trees","41 features"];
+  if(!M||!M.length)return[ARCHSPEC[FAM].label];
+  const dims=[M[0].fi,...M.map(l=>l.fo)].join(" \u2192 ");
   const n=M.reduce((t,l)=>t+l.W.length+l.B.length,0);
-  return dims.join(" \u2192 ")+" \u00b7 "+n.toLocaleString("en-US")+" parameters";
+  return[dims, n.toLocaleString("en-US")+" parameters"];
+}
+function metaChips(items){
+  return items.map(t=>`<span class="idchip">${t}</span>`).join("");
+}
+function inputFeatName(col){
+  const srcIdx=(()=>{const e=enabledIdx();return e[col]===undefined?col:e[col];})();
+  if(M0&&M0[0]&&M0[0].fi===41&&FEATFLAT[srcIdx])return FEATFLAT[srcIdx].full;
+  return "in["+srcIdx+"]";
 }
 const TASKCAP={
   total_area:"total area \u00b7 \u00b5m\u00b2",
@@ -1511,18 +1842,23 @@ function drawScore(){
     return;
   }
   el.hidden=false;
-  el.innerHTML=`${CUR.metric} <b>${fmtMetric(v)}</b>`;
+  el.innerHTML=`<div class="idscore-lab">${CUR.metric}</div>`+
+    `<div class="idscore-val">${fmtMetric(v)}</div>`;
 }
 function drawHeader(){
   const real=realLoaded();
   $("m-title").textContent=CUR.arch;
+  const nOn=featOn?featOn.reduce((s,on)=>s+(on?1:0),0):null;
+  const featPhrase=nOn===null||nOn===41
+    ? `the 41 EDA-Schema features known at this PDK and stage`
+    : `${nOn} of 41 EDA-Schema features (dropped inputs are holes on the input plane; their columns are gone from the first Linear)`;
   if(real){
     $("m-sub").innerHTML=
-      `Predicts routed total area from the 41 EDA-Schema features known at this `+
-      `PDK and stage. One independently trained checkpoint per circuit.`;
-    $("idmeta").innerHTML=
-      `<b>${archLine()}</b> \u00b7 SGD \u00b7 lr 0.01 \u00b7 MSE \u00b7 batch 1024 \u00b7 25 epochs`+
-      ` \u00b7 ${PDKL[CUR.pdk]} \u00b7 ${SL[STAGES.indexOf(CUR.stage)]} \u00b7 ${CUR.circuit}`;
+      `Predicts routed total area from ${featPhrase}. `+
+      `One independently trained checkpoint per circuit.`;
+    $("idmeta").innerHTML=metaChips([
+      ...archBits(),"SGD","lr 0.01","MSE","batch 1024","25 epochs",
+      PDKL[CUR.pdk],SL[STAGES.indexOf(CUR.stage)],CUR.circuit]);
   }else{
     const href="explorer.html?"+new URLSearchParams(
       {task:"total_area",pdk:CUR.pdk,stage:CUR.stage,model:"fixed_mlp",circuit:CUR.circuit});
@@ -1530,8 +1866,8 @@ function drawHeader(){
       `${ARCHSPEC[FAM].label} stand-in for <b>${taskLabel(CUR.task)}</b>. `+
       `No published checkpoint at this address. `+
       `<a href="${href}">open fixed_mlp</a>`;
-    $("idmeta").innerHTML=
-      `<b>${archLine()}</b> \u00b7 ${PDKL[CUR.pdk]} \u00b7 ${SL[STAGES.indexOf(CUR.stage)]} \u00b7 ${CUR.circuit}`;
+    $("idmeta").innerHTML=metaChips([
+      ...archBits(),PDKL[CUR.pdk],SL[STAGES.indexOf(CUR.stage)],CUR.circuit]);
   }
   drawScore();
   drawTaskGraphic($("idviz"),CUR.task,CUR.stage);
@@ -1541,9 +1877,6 @@ function drawHeader(){
   $("crumb").innerHTML=`<a href="index.html">leaderboard</a> / `+
     `<a href="${back}">${taskLabel(CUR.task)} \u00b7 ${PDKL[CUR.pdk]} \u00b7 `+
     `${SL[STAGES.indexOf(CUR.stage)]}</a> / <b>${CUR.arch}</b>`;
-  const cta=$("beatcta");
-  if(cta)cta.href="playground.html?"+new URLSearchParams(
-    {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit,metric:CUR.metric});
   document.querySelectorAll("[data-ctxlink]").forEach(a=>{
     a.href=a.dataset.ctxlink+"?"+new URLSearchParams(
       {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit,metric:CUR.metric});});
@@ -1554,8 +1887,8 @@ let netMode="3d", hits3d=[], hoverUnit=null, graphSel=null;
 
 function drawNet(){
   const is3=netMode==="3d";
-  document.getElementById("wrap3d").style.display=is3?"":"none";
-  document.getElementById("wrapgr").style.display=is3?"none":"";
+  document.getElementById("wrap3d").style.display=is3?"flex":"none";
+  document.getElementById("wrapgr").style.display=is3?"none":"flex";
   document.getElementById("ctl3d").style.display=is3?"":"none";
   if(is3){render3d();}
   else{
@@ -1569,17 +1902,24 @@ function drawNet(){
       const li=wi++;
       el.onmouseenter=()=>{graphSel=i;drawGraph($("graph"),G,graphSel);};
       el.onmouseleave=()=>{graphSel=null;drawGraph($("graph"),G,graphSel);};
-      el.onclick=()=>{hmLayer=Math.min(li,M.length-1);drawHeat();drawNull();
-        $("hm").scrollIntoView({behavior:"smooth",block:"center"});};
+      el.onclick=()=>{hmLayer=Math.min(li,M.length-1);
+        drawHeat();drawWDist();
+        $("k-wdist").scrollIntoView({behavior:"smooth",block:"center"});};
     });
   }
 }
 function render3d(){
   const cv=$("net3d");
+  if(!cv)return;
   const host=cv.parentElement;
-  const w=Math.max(360,host.clientWidth||760);
-  if(cv.width!==w*2){cv.width=w*2;cv.height=Math.round(w*2*0.62);}
-  cv.style.width="100%";cv.style.height="auto";
+  let w=host.clientWidth|0, h=host.clientHeight|0;
+  if((w<8||h<8)&&!render3d._wait){
+    render3d._wait=1;
+    requestAnimationFrame(()=>{render3d._wait=0;render3d();});
+  }
+  w=Math.max(w,320); h=Math.max(h,240);
+  const tw=w*2, th=h*2;
+  if(cv.width!==tw||cv.height!==th){cv.width=tw;cv.height=th;}
   hits3d=draw3d(cv,isTree()?null:M,isTree()?null:ACTS,{fam:FAM});
   if(isTree()){
     const ctx=cv.getContext("2d");
@@ -1587,298 +1927,576 @@ function render3d(){
     ctx.font="26px ui-sans-serif";ctx.textAlign="center";
     ctx.fillText("tree ensemble \u2014 no unit topology to render",cv.width/2,cv.height/2);
   }
+  const shape=liveShape();
   $("unitinfo").innerHTML=hoverUnit
-    ? `<b>${hoverUnit.layer===0?"input":hoverUnit.layer===M.length?"output":"hidden "+hoverUnit.layer}</b>`+
-      ` unit ${hoverUnit.unit}<span class="dim"> \u00b7 activation </span>`+
+    ? `<span class="mono">${shape}</span><span class="dim"> \u00b7 </span>`+
+      `<b>${hoverUnit.layer===0?"input":hoverUnit.layer===M.length?"output":"hidden "+hoverUnit.layer}</b>`+
+      (hoverUnit.layer===0
+        ? ` ${origFeatName(hoverUnit.unit)}${hoverUnit.dropped?" (dropped)":""}`
+        : ` unit ${hoverUnit.unit}`)+
+      `<span class="dim"> \u00b7 activation </span>`+
       `<span class="mono">${fmt(hoverUnit.act,4)}</span>`
-    : `<span class="dim">drag to orbit \u00b7 shift-drag to pan \u00b7 scroll to zoom</span>`;
+    : `<span class="mono">${shape}</span>`+
+      `<span class="dim"> \u00b7 drag to orbit \u00b7 shift-drag to pan \u00b7 scroll to zoom</span>`;
 }
 
 /* ---------- 4. inputs ---------- */
+function featRow(i, name, val, on){
+  const checked=on!==false;
+  return `<div class="fr${checked?"":" off"}">`+
+    (featOn?`<input type="checkbox" data-on="${i}" ${checked?"checked":""} title="drop this input unit">`:
+      `<span></span>`)+
+    `<span class="fn">${name}</span>
+      <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${val}"${checked?"":" disabled"}>
+      <span class="fv mono" id="fv${i}">${fmt(val,2)}</span></div>`;
+}
 function bindFeatureSliders(el){
   el.querySelectorAll("[data-x]").forEach(s=>s.oninput=()=>{
-    const i=+s.dataset.x;X[i]=+s.value;
-    const lab=$("fv"+i);if(lab)lab.textContent=fmt(X[i],2);
-    run();drawNet();});
+    const i=+s.dataset.x, v=+s.value;
+    if(Xfull&&i<Xfull.length)Xfull[i]=v;else if(X)X[i]=v;
+    const lab=$("fv"+i);if(lab)lab.textContent=fmt(v,2);
+    packX();run();drawNet();});
+  el.querySelectorAll("[data-on]").forEach(cb=>cb.onchange=()=>{
+    if(!featOn)return;
+    const i=+cb.dataset.on;
+    const nOn=featOn.reduce((a,on)=>a+(on?1:0),0);
+    if(!cb.checked&&nOn<=1){cb.checked=true;return;}
+    featOn[i]=cb.checked;
+    const row=cb.closest(".fr");
+    if(row){
+      row.classList.toggle("off",!cb.checked);
+      const sl=row.querySelector("[data-x]");
+      if(sl)sl.disabled=!cb.checked;
+    }
+    redrawNetView();
+  });
   const rst=el.querySelector("[data-resetx]");
-  if(rst)rst.onclick=()=>{for(let i=0;i<X.length;i++)X[i]=0;drawInputs();run();drawNet();};
+  if(rst)rst.onclick=()=>{
+    if(Xfull)Xfull.fill(0);else if(X)X.fill(0);
+    if(featOn)for(let i=0;i<featOn.length;i++)featOn[i]=true;
+    applyNetView();
+    drawInputs();
+    drawNet();
+    if(!isTree()&&M){drawHeat();drawWDist();}
+    drawHeader();
+  };
 }
 function drawInputs(){
   const el=$("inputs");
   if(!el)return;
   if(isTree()){el.innerHTML='<div class="hint">Tree ensembles take the same 41 scalar '+
-    'features but have no differentiable path to trace.</div>';drawLiveOut();return;}
+    'features but have no differentiable path to trace.</div>';return;}
+  const xv=i=>(Xfull&&i<Xfull.length?Xfull[i]:(X&&X[i])||0);
+  const on=i=>!featOn||featOn[i]!==false;
   if(inputWidth()!==41){
     el.innerHTML=`<div class="hint">This architecture consumes `+
       (ARCHSPEC[FAM].inputKind==="image"?"spatial layout maps":`a ${inputWidth()}-dimensional `+
       `node feature vector derived from the netlist graph`)+
-      `, not the 41 scalar features. Sliders are z-scored units; moving them recolors the net.</div>`+
+      (canReshape()?`. Uncheck a dim to drop that input unit from the drawn net.`
+        :`, not the 41 scalar features. Sliders recolor units on the drawn net.`)+
+      `</div>`+
       `<div class="fg">`+Array.from({length:Math.min(inputWidth(),12)},(_,i)=>
-      `<label class="fr"><span class="fn">dim ${i}</span>
-        <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${X[i]||0}">
-        <span class="fv mono" id="fv${i}">${fmt(X[i]||0,2)}</span></label>`).join("")+`</div>`+
+      featRow(i, `dim ${i}`, xv(i), on(i))).join("")+`</div>`+
       `<button class="mini" data-resetx type="button">reset to mean</button>`;
   }else{
-    /* checkpoints are published; the parquet behind them is not, so these
-       sliders live in z-scored space rather than a circuit's real feature row */
-    el.innerHTML=(realLoaded()?'<div class="hint">The 41 features in <span class="mono">hparams.yaml</span>, '+
-      'in checkpoint order. Values are z-scored &mdash; the EDA-Schema tables were not '+
-      'published with the weights. Dragging a slider runs the real checkpoint and recolors units.</div>':
-      '<div class="hint">Stand-in architecture. Sliders drive a local forward pass.</div>')+
+    el.innerHTML=(realLoaded()?"":
+      '<div class="hint">Stand-in architecture. Uncheck a feature to drop that input unit.</div>')+
       FEATS.map(([g,ns],gi)=>{
       const base=FEATS.slice(0,gi).reduce((a,[,x])=>a+x.length,0);
+      const nOn=ns.reduce((s,_,j)=>s+(on(base+j)?1:0),0);
       return `<div class="fg"><div class="fgh" style="color:${GCOL[g]}">${g.replace("_"," ")}
-        <span>${ns.length}</span></div>`+
+        <span>${nOn===ns.length?ns.length:nOn+"/"+ns.length}</span></div>`+
         ns.map((n,j)=>{const i=base+j;
-          return `<label class="fr"><span class="fn">${n}</span>
-            <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${X[i]}">
-            <span class="fv mono" id="fv${i}">${fmt(X[i],2)}</span></label>`;}).join("")+`</div>`;
+          return featRow(i, n, xv(i), on(i));}).join("")+`</div>`;
     }).join("")+
       `<button class="mini" data-resetx type="button">reset to mean</button>`;
   }
   bindFeatureSliders(el);
-  drawLiveOut();
 }
 function hiddenWidths(){
+  if(HP.widths&&HP.widths.length)return HP.widths;
   if(!M||!M.length)return[64,32,16];
   return M.slice(0,-1).map(l=>l.fo);
 }
-function drawParams(){
-  const el=$("params");
-  if(!el)return;
-  const real=realLoaded();
+function drawWidths(){
+  const box=$("widthopt"), row=$("hpwidths");
+  if(!box||!row)return;
+  if(isTree()||!canReshape()){
+    box.hidden=true;
+    row.innerHTML="";
+    return;
+  }
+  box.hidden=false;
   const ws=hiddenWidths();
-  const arch=isTree()?"300 trees":
-    (M&&M.length?([M[0].fi,...M.map(l=>l.fo)].join(" \u2192 ")):"\u2014");
-  const play="playground.html?"+new URLSearchParams(
-    {task:CUR.task,pdk:CUR.pdk,stage:CUR.stage,model:CUR.arch,circuit:CUR.circuit,metric:CUR.metric});
-  el.innerHTML=
-    `<div class="hint">${real
-      ? `Recipe from <span class="mono">total_area_prediction/fixed_mlp/default_config_${PDKL[CUR.pdk]}_${CUR.stage}/${CUR.circuit}/hparams.yaml</span>. `+
-        `This checkpoint is already trained. Editing the recipe does not rewrite its tensors or the published ${CUR.metric}.`
-      : `Training recipe for a stand-in. There is no published checkpoint at this address, so changing these fields still cannot produce a real ${CUR.metric}.`}</div>`+
-    `<div class="hpgrid">`+
-      `<div class="hprow"><label>architecture</label>`+
-        `<div class="mono" style="font-size:.82rem;padding:.2rem 0">${arch}</div></div>`+
-      `<div class="hprow"><label>hidden widths</label><div class="hpwidths">`+
-        ws.map((w,i)=>`<input type="number" data-hpw="${i}" min="1" max="256" value="${w}" disabled>`+
-          (i<ws.length-1?`<span>\u2192</span>`:"")).join("")+
-        `</div></div>`+
-      `<div class="hprow"><label>optimizer</label>`+
-        `<select data-hp="optimizer"><option>SGD</option><option>Adam</option></select></div>`+
-      `<div class="hprow"><label>learning rate</label>`+
-        `<input type="number" data-hp="lr" step="0.001" min="0" value="${HP.lr}"></div>`+
-      `<div class="hprow"><label>loss</label>`+
-        `<input type="text" data-hp="loss" value="${HP.loss}"></div>`+
-      `<div class="hprow"><label>batch size</label>`+
-        `<input type="number" data-hp="batch" step="1" min="1" value="${HP.batch}"></div>`+
-      `<div class="hprow"><label>epochs</label>`+
-        `<input type="number" data-hp="epochs" step="1" min="1" value="${HP.epochs}"></div>`+
-      `<div class="hprow"><label>weight decay</label>`+
-        `<input type="number" data-hp="weight_decay" step="0.001" min="0" value="${HP.weight_decay}"></div>`+
-    `</div>`+
-    `<ul class="effect">`+
-      `<li class="can"><b>Features</b> &mdash; yes. A slider changes the input vector, the JS forward pass, unit color, and live ŷ.</li>`+
-      `<li class="cant"><b>Optimizer, lr, batch, epochs, loss</b> &mdash; no. Those governed the 25-epoch SGD run that produced this file. They are not part of inference.</li>`+
-      `<li class="cant"><b>Hidden widths</b> &mdash; locked. The tensors are ${arch}. A different shape would be a different network, not this checkpoint.</li>`+
-      `<li class="cant"><b>Published ${CUR.metric}</b> &mdash; no. That number is a test-set statistic. The design-instance table and scaler were not shipped with the weights, so a slider cannot recompute it.</li>`+
-    `</ul>`+
-    `<p class="hint" style="margin:.5rem 0 0">To actually train a different recipe on this task / PDK / stage, use `+
-      `<a href="${play}">playground</a> &mdash; that page retrains in the browser on modelled (not measured) rows.</p>`;
-  const opt=el.querySelector("[data-hp=optimizer]");
-  if(opt)opt.value=HP.optimizer;
-  el.querySelectorAll("[data-hp]").forEach(n=>{
-    n.onchange=n.oninput=()=>{
-      const k=n.dataset.hp,v=n.type==="number"?+n.value:n.value;
-      HP[k]=v;
+  row.innerHTML=ws.map((w,i)=>`<input type="number" data-hpw="${i}" min="1" max="256" value="${w}">`+
+    (i<ws.length-1?`<span>\u2192</span>`:"")).join("");
+  row.querySelectorAll("[data-hpw]").forEach(n=>{
+    const commit=()=>{
+      const i=+n.dataset.hpw;
+      const v=Math.max(1,Math.min(256, parseInt(n.value,10)||1));
+      if(!HP.widths)HP.widths=hiddenWidths().slice();
+      if(HP.widths[i]===v&&M&&M[i]&&M[i].fo===v)return;
+      HP.widths[i]=v;
+      redrawNetView();
     };
+    n.oninput=()=>{clearTimeout(n._w);n._w=setTimeout(commit,80);};
+    n.onchange=()=>{clearTimeout(n._w);commit();};
   });
-}
-function drawLiveOut(){
-  const el=$("liveout");
-  if(!el)return;
-  const y=(!isTree()&&ACTS&&ACTS.length)?ACTS[ACTS.length-1][0]:null;
-  const pub=metricVal();
-  const ytxt=(y===null||!isFinite(y))?"\u2014":fmt(y,4);
-  const ptxt=pub===null?"\u2014":fmtMetric(pub);
-  el.innerHTML=
-    `<div class="st"><span>live ŷ (z-scored)</span><b class="mono">${ytxt}</b></div>`+
-    `<div class="st"><span>published ${CUR.metric}</span><b class="mono">${ptxt}</b></div>`+
-    `<p class="hint">${realLoaded()
-      ? `ŷ is this checkpoint&rsquo;s output on the current slider vector, in the z-scored space it trained in. `+
-        `The published ${CUR.metric} is the eval pass over held-out design instances &mdash; it does not move when you drag a slider.`
-      : `No published eval at this address, so there is no real ${CUR.metric} to move.`}</p>`;
 }
 
 /* ---------- 5. weight heatmap ---------- */
+function liveLayer(li){
+  if(!M||!M.length)return null;
+  const i=Math.min(Math.max(0,li|0),M.length-1), l=M[i];
+  const Wt=new Float32Array(l.W.length);
+  for(let o=0;o<l.fo;o++)for(let j=0;j<l.fi;j++)Wt[o*l.fi+j]=W(i,o,j);
+  return Object.assign({},l,{W:Wt,idx:i});
+}
+function ensureHeatResize(){
+  const box=$("hmbox");
+  if(!box||box._ro||!window.ResizeObserver)return;
+  box._ro=new ResizeObserver(()=>{
+    const wh=box.clientWidth+"x"+box.clientHeight;
+    if(box._wh===wh)return;
+    box._wh=wh;
+    clearTimeout(box._t);
+    box._t=setTimeout(()=>{if(!isTree()&&M)drawHeat();},60);
+  });
+  box._ro.observe(box);
+}
 function drawHeat(){
-  const tog=$("hmtog");
-  if(isTree()){tog.innerHTML="";$("hmmeta").textContent="no weight tensors";
-    const cv=$("hm");cv.width=cv.height=1;return;}
-  tog.innerHTML=M.map((l,i)=>`<button data-hl="${i}" aria-pressed="${i===hmLayer}">`+
-    `${l.label} ${l.shape.slice(0,2).join("\u00d7")}</button>`).join("");
-  tog.querySelectorAll("[data-hl]").forEach(b=>b.onclick=()=>{
-    hmLayer=+b.dataset.hl;drawHeat();drawNull();});
-  const l=M[hmLayer],cv=$("hm"),ctx=cv.getContext("2d");
-  const cw=Math.max(2,Math.min(14,760/l.fi)),ch=Math.max(2,Math.min(14,420/l.fo));
-  cv.width=Math.round(l.fi*cw);cv.height=Math.round(l.fo*ch);
-  let mx=0;for(const v of l.W)mx=Math.max(mx,Math.abs(v));
+  const tog=$("hmtog"), meta=$("hmmeta"), cv=$("hm"), tip=$("hmtip");
+  if(!tog||!cv)return;
+  ensureHeatResize();
+  if(isTree()||!M||!M.length){
+    tog.innerHTML="";
+    if(meta)meta.textContent="no weight tensors";
+    cv.width=cv.height=1;
+    if(tip)tip.textContent="";
+    return;
+  }
+  if(hmLayer>=M.length)hmLayer=0;
+  tog.innerHTML=M.map((l,i)=>
+    `<button type="button" class="chipc${i===hmLayer?" on":""}" data-hl="${i}" aria-pressed="${i===hmLayer}">`+
+    `${l.label} ${layerLab(l)}</button>`).join("");
+  const l=M[hmLayer], ctx=cv.getContext("2d");
+  const box=$("hmbox");
+  const availW=Math.max(120,(box&&box.clientWidth||420)-20);
+  const availH=Math.max(120,(box&&box.clientHeight||420)-20);
+  const cell=Math.max(2,Math.min(18,Math.floor(availW/l.fi),Math.floor(availH/l.fo)));
+  cv.width=Math.round(l.fi*cell); cv.height=Math.round(l.fo*cell);
+  let mx=0; for(let o=0;o<l.fo;o++)for(let i=0;i<l.fi;i++)mx=Math.max(mx,Math.abs(W(hmLayer,o,i)));
   const img=ctx.createImageData(cv.width,cv.height);
   for(let o=0;o<l.fo;o++)for(let i=0;i<l.fi;i++){
     const v=W(hmLayer,o,i)/(mx||1);
     const R=v>0?90+165*(1-v):225,G=v>0?140+90*(1-v):140+70*(1+v),B=v>0?200:70+120*(1+v);
-    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
-      const px=((Math.round(o*ch)+y)*cv.width+(Math.round(i*cw)+x))*4;
-      if(px<0||px>=img.data.length)continue;
+    for(let y=0;y<cell;y++)for(let x=0;x<cell;x++){
+      const px=((o*cell+y)*cv.width+(i*cell+x))*4;
       img.data[px]=R;img.data[px+1]=G;img.data[px+2]=B;img.data[px+3]=255;}}
   ctx.putImageData(img,0,0);
-  $("hmmeta").textContent=`${l.label} \u00b7 ${l.shape.join(" \u00d7 ")} \u00b7 `+
+  if(meta)meta.textContent=`${l.label} \u00b7 ${l.shape.join(" \u00d7 ")} \u00b7 `+
     `${l.W.length.toLocaleString("en-US")} weights \u00b7 range \u00b1${fmt(mx,4)}`;
   cv.onmousemove=e=>{
     const r=cv.getBoundingClientRect();
     const i=Math.floor((e.clientX-r.left)/r.width*l.fi),o=Math.floor((e.clientY-r.top)/r.height*l.fo);
     if(i<0||i>=l.fi||o<0||o>=l.fo)return;
-    const src=hmLayer===0&&inputWidth()===41&&FEATFLAT[i]?FEATFLAT[i].full
-      :(hmLayer===0?"in["+i+"]":M[hmLayer-1].label+"["+i+"]");
-    $("hmtip").textContent=`${src} \u2192 ${hmLayer===M.length-1?"output":l.label+"["+o+"]"}`+
+    const src=hmLayer===0?inputFeatName(i):(M[hmLayer-1].label+"["+i+"]");
+    if(tip)tip.textContent=`${src} \u2192 ${hmLayer===M.length-1?"output":l.label+"["+o+"]"}`+
       `  =  ${fmt(W(hmLayer,o,i),5)}`;};
-  cv.onmouseleave=()=>$("hmtip").textContent="hover a cell";
+  cv.onmouseleave=()=>{if(tip)tip.textContent="hover a cell";};
 }
 
-/* ---------- 6. null overlay ---------- */
-function drawNull(){
-  if(isTree()){$("nullsvg").innerHTML="";
-    $("nullstat").innerHTML='<div class="hint">Not applicable to tree ensembles.</div>';return;}
-  const l=M[hmLayer],s=layerStats(l),b=l.bound;
-  const NB=44,lo=-b*1.35,hi=b*1.35,bw=(hi-lo)/NB,bins=new Array(NB).fill(0);
-  for(const v of l.W){const k=Math.floor((v-lo)/bw);if(k>=0&&k<NB)bins[k]++;}
-  const peak=Math.max(...bins),Wd=520,Ht=210,X0=46,Y0=170,PW=Wd-70;
-  let g=`<line x1="${X0}" y1="${Y0}" x2="${Wd-16}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`;
-  bins.forEach((c,i)=>{const h=c/peak*138,x=X0+i*(PW/NB);
-    g+=`<rect class="br2" style="animation-delay:${i*9}ms" x="${x.toFixed(1)}" `+
-       `y="${(Y0-h).toFixed(1)}" width="${(PW/NB-1).toFixed(1)}" height="${h.toFixed(1)}" `+
-       `fill="var(--global-theme-color)" opacity=".45"/>`;});
-  const expCount=l.W.length/(2*b/bw),yTh=Y0-(expCount/peak)*138;
-  const x1=X0+((-b-lo)/(hi-lo))*PW,x2=X0+((b-lo)/(hi-lo))*PW;
-  g+=`<path class="ln2" style="--len:900" d="M${X0} ${Y0} L${x1.toFixed(1)} ${Y0} `+
-     `L${x1.toFixed(1)} ${yTh.toFixed(1)} L${x2.toFixed(1)} ${yTh.toFixed(1)} `+
-     `L${x2.toFixed(1)} ${Y0} L${Wd-16} ${Y0}" fill="none" stroke="var(--neg)" `+
-     `stroke-width="2.2" stroke-dasharray="6 4"/>`+
-     `<text class="cl" x="${(x2+6).toFixed(1)}" y="${(yTh-6).toFixed(1)}" fill="var(--neg)">`+
-     `U(\u00b1${fmt(b,4)}) if untrained</text>`;
-  $("nullsvg").innerHTML=g;
-  $("nullstat").innerHTML=
-    `<div class="st"><span>layer</span><b class="mono">${l.label} ${l.shape.join("\u00d7")}</b></div>`+
-    `<div class="st"><span>observed std</span><b class="mono">${fmt(s.std,5)}</b></div>`+
-    `<div class="st"><span>std if untrained</span><b class="mono">${fmt(s.expStd,5)}</b></div>`+
-    `<div class="st"><span>ratio</span><b class="mono big">${fmt(s.ratio,4)}</b></div>`;
+/* ---------- weight distribution vs init ---------- */
+function wdistAxis(t, extra){
+  return Object.assign({
+    gridcolor:t.grid, zeroline:false, linecolor:t.grid, fixedrange:false,
+    tickfont:{family:t.mono,size:11,color:t.muted},
+    title:{font:{family:t.mono,size:11,color:t.muted},standoff:8}
+  }, extra||{});
 }
+function initBand(b, t){
+  const gold=t.gold, fill=t.ribbon;
+  return{
+    shapes:[{
+      type:"rect", x0:-b, x1:b, y0:0, y1:1, yref:"paper",
+      fillcolor:fill, line:{width:0}, layer:"below"
+    },{
+      type:"line", x0:-b, x1:-b, y0:0, y1:1, yref:"paper",
+      line:{color:gold,width:1.6}
+    },{
+      type:"line", x0:b, x1:b, y0:0, y1:1, yref:"paper",
+      line:{color:gold,width:1.6}
+    }],
+    annotations:[]
+  };
+}
+function barTraces(l, t){
+  const b=l.bound, vals=Array.from(l.W), n=vals.length, nBins=14, bw=(2*b)/nBins;
+  const pad=bw*2, exp=n/nBins;
+  return[{
+    type:"histogram", x:vals,
+    xbins:{start:-b-pad, end:b+pad, size:bw},
+    marker:{color:t.accent}, opacity:0.82,
+    name:"our model", showlegend:false,
+    hovertemplate:"%{y} weights around %{x:.4f}<extra></extra>"
+  },{
+    type:"scatter", mode:"lines",
+    x:[-b,b], y:[exp,exp],
+    line:{color:t.gold,width:2.2,dash:"dot"},
+    name:"untrained", showlegend:false,
+    hovertemplate:"flat line = still random init  (%{y:.0f} per bar)<extra></extra>"
+  }];
+}
+function splitByBand(vals, b){
+  const inside=[], outside=[];
+  for(let i=0;i<vals.length;i++){
+    if(Math.abs(vals[i])>b)outside.push(vals[i]);
+    else inside.push(vals[i]);
+  }
+  return{inside, outside};
+}
+function jitterY(n, seed){
+  const r=mulberry32(hash("wj|"+seed+"|"+n));
+  const y=new Array(n);
+  for(let i=0;i<n;i++)y[i]=(r()-0.5)*1.7;
+  return y;
+}
+function dotTraces(l, t){
+  const b=l.bound, vals=Array.from(l.W), n=vals.length;
+  const parts=splitByBand(vals,b);
+  let inside=parts.inside, outside=parts.outside, shown=n;
+  const cap=900;
+  if(inside.length>cap){
+    const r=mulberry32(hash("wdc|"+n+"|"+hmLayer));
+    for(let i=inside.length-1;i>0;i--){
+      const j=(r()*(i+1))|0, tmp=inside[i]; inside[i]=inside[j]; inside[j]=tmp;
+    }
+    inside=inside.slice(0,cap);
+    shown=cap+outside.length;
+  }
+  const traces=[];
+  if(inside.length){
+    traces.push({
+      type:"scatter", mode:"markers",
+      x:inside, y:jitterY(inside.length, hmLayer+"in"),
+      marker:{size:n<80?9:n<400?6:4, color:t.accent, opacity:n>400?0.38:0.78, line:{width:0}},
+      name:"our model", showlegend:false,
+      hovertemplate:"w %{x:.4f}<extra>inside</extra>"
+    });
+  }
+  if(outside.length){
+    traces.push({
+      type:"scatter", mode:"markers",
+      x:outside, y:jitterY(outside.length, hmLayer+"out"),
+      marker:{size:n<80?10:7, color:t.test, opacity:0.95, line:{width:0}},
+      name:"outside the band", showlegend:false,
+      hovertemplate:"w %{x:.4f}<extra>outside</extra>"
+    });
+  }
+  traces._shown=shown;
+  traces._total=n;
+  return traces;
+}
+function drawWDist(){
+  const plot=$("wdistplot");
+  if(!plot)return;
+  if(isTree()||!M||!M.length){
+    wdistEmpty("Not applicable to tree ensembles.");
+    return;
+  }
+  if(typeof Plotly==="undefined"){
+    wdistEmpty("Plotly could not be loaded, so the distribution is unavailable offline.");
+    return;
+  }
+  const l=liveLayer(hmLayer);
+  if(!l){wdistEmpty("No weight tensors at this address.");return;}
+  const t=curveTheme();
+  const b=l.bound, n=l.W.length;
+  const mode=wdistMode==="dots"?"dots":"bars";
+  const traces=mode==="dots"?dotTraces(l,t):barTraces(l,t);
+  const band=initBand(b,t);
+  const pad=b*1.45;
+  const layoutKey=mode+"|"+hmLayer+"|"+n;
+  if(plot._wdKey!==layoutKey&&window.Plotly){
+    try{Plotly.purge(plot);}catch(e){}
+  }
+  plot._wdKey=layoutKey;
+  const layout={
+    paper_bgcolor:t.paper, plot_bgcolor:t.plotbg, font:t.font,
+    showlegend:false, hovermode:"closest", hoverlabel:t.hover,
+    dragmode:"zoom",
+    title:{
+      text:"our model vs. an untrained model",
+      font:{family:t.mono,size:13,color:t.fg},
+      x:0, xanchor:"left", y:1, yanchor:"bottom", pad:{b:10}
+    },
+    margin:{l:54,r:18,t:40,b:48},
+    uirevision:layoutKey,
+    shapes:band.shapes,
+    xaxis:wdistAxis(t,{
+      title:{text:"weight value",font:t.font,standoff:8},
+      range:[-pad,pad]
+    })
+  };
+  if(mode==="dots"){
+    layout.yaxis=wdistAxis(t,{
+      title:{text:"",font:t.font},
+      range:[-1.15,1.15],
+      showticklabels:false, ticks:"", showgrid:false
+    });
+  }else{
+    layout.yaxis=wdistAxis(t,{
+      title:{text:"number of weights",font:t.font,standoff:8},
+      rangemode:"tozero"
+    });
+  }
+  try{
+    Plotly.react(plot, traces, layout, CURVE_CFG);
+  }catch(err){
+    plot.innerHTML='<p class="plotwarn">Could not draw this distribution.</p>';
+    return;
+  }
+  ensureWDistResize(plot);
+}
+function ensureWDistResize(el){
+  if(!el||el._ro||!window.ResizeObserver)return;
+  el._ro=new ResizeObserver(()=>{
+    if(window.Plotly&&el.classList.contains("js-plotly-plot")&&el.clientHeight>0)
+      Plotly.Plots.resize(el);
+  });
+  el._ro.observe(el.parentElement||el);
+}
+function wdistEmpty(msg){
+  const plot=$("wdistplot");
+  if(window.Plotly){
+    if(plot){try{Plotly.purge(plot);}catch(e){} plot._wdKey=null;}
+  }
+  if(plot)plot.innerHTML=`<p class="plotwarn">${msg}</p>`;
+}
+/* ---------- training curves ---------- */
+const cssTok=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function curveTheme(){
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  const mono=cssTok("--global-font-mono")||"ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+  const fg=cssTok("--md-heading-color")||(dark?"#eef6fd":"#263238");
+  const muted=cssTok("--global-text-color-light")||(dark?"#b6d7f2":"#7f858c");
+  return{
+    dark, mono, fg, muted,
+    paper:"rgba(0,0,0,0)", plotbg:"rgba(0,0,0,0)",
+    grid:dark?"#11528e":"#e8e8e8",
+    accent:dark?"#85bbe7":"#07294d",
+    gold:dark?"#fec500":"#c9a000",
+    ribbon:dark?"rgba(133,187,231,.10)":"rgba(7,41,77,.05)",
+    test:dark?"#e39a5f":"#c06a2e",
+    font:{family:mono,size:12,color:muted},
+    hover:{bgcolor:dark?"#07294d":"#ffffff",
+           bordercolor:dark?"#11528e":"#dadada",
+           namelength:-1,
+           font:{family:mono,size:12,color:fg}}
+  };
+}
+const CURVE_Y={loss:"loss",r2:"R\u00b2",mae:"MAE",mape:"MAPE"};
+const CURVE_CFG={
+  responsive:true, displaylogo:false, displayModeBar:true, scrollZoom:true,
+  doubleClick:"reset",
+  modeBarButtonsToRemove:["lasso2d","select2d","toImage"]
+};
 
-/* ---------- 7. cosine ---------- */
-function drawCos(){
-  if(isTree()){$("cos").width=1;
-    $("cosstat").innerHTML='<div class="hint">Not applicable to tree ensembles.</div>';
-    $("coscap").textContent="";return;}
-  const cv=$("cos"),ctx=cv.getContext("2d");
-  const real=realLoaded();
-  let mat=null;
-  /* For the real submission both matrices are precomputed over all 360
-     checkpoints, so this panel is exact without pulling 10 MB of tensors. */
-  if(real)mat=cmpMode==="circuits"?EDA_REAL.cosAcrossCircuits(CUR.pdk,CUR.stage)
-                                  :EDA_REAL.cosAcrossConfigs(CUR.circuit);
-  if(!mat){
-    if(cmpMode==="circuits"){
-      const Ws=CIRCUITS.map(c=>getModel(CUR.task,CUR.arch,CUR.pdk,CUR.stage,c)[0].W);
-      mat=Ws.map(a=>Ws.map(b=>cosine(a,b)));
-    }else{
-      const Ws=[];
-      for(const p of PDKS)for(const s of STAGES)
-        Ws.push(getModel(CUR.task,CUR.arch,p,s,CUR.circuit)[0].W);
-      mat=Ws.map(a=>Ws.map(b=>cosine(a,b)));
+function mockCurves(circuit){
+  const r=mulberry32(hash(CUR.task+CUR.arch+(circuit||CUR.circuit)+CUR.pdk+CUR.stage+"tb"));
+  const S={loss:{tr:[],va:[]},r2:{tr:[],va:[]},mae:{tr:[],va:[]},mape:{tr:[],va:[]}};
+  for(let e=0;e<25;e++){
+    const t=e/24;
+    S.loss.tr.push(1.011-0.060*t+(r()-0.5)*0.012);
+    S.loss.va.push(0.411-0.041*t+(r()-0.5)*0.010);
+    S.r2.tr.push(-0.078+0.098*t+(r()-0.5)*0.012);
+    S.r2.va.push(-0.114+0.110*t+(r()-0.5)*0.014);
+    S.mae.tr.push(0.664-0.065*t+(r()-0.5)*0.010);
+    S.mae.va.push(0.491-0.066*t+(r()-0.5)*0.010);
+    S.mape.tr.push(1.55-0.50*t+(r()-0.5)*0.03);
+    S.mape.va.push(1.38-0.24*t+(r()-0.5)*0.03);
+  }
+  return S;
+}
+function allCurves(){
+  const real=realLoaded(), out={};
+  for(const c of CIRCUITS){
+    const S=real?EDA_REAL.curvesFor(CUR.pdk,CUR.stage,c):null;
+    if(S)out[c]=S;
+    else if(!real)out[c]=mockCurves(c);
+  }
+  return out;
+}
+function circColor(i, dark){
+  const h=(i*(360/CIRCUITS.length)+208)%360;
+  return dark?`hsl(${h},64%,68%)`:`hsl(${h},58%,36%)`;
+}
+function drawCurveFilters(){
+  const host=$("curvecircs");
+  if(!host)return;
+  const dark=document.documentElement.getAttribute("data-theme")==="dark";
+  host.innerHTML=CIRCUITS.map((c,i)=>
+    `<button type="button" class="chipc${curveOn[c]?" on":""}${c===CUR.circuit?" here":""}" `+
+    `data-ccirc="${c}" aria-pressed="${!!curveOn[c]}" style="--cc:${circColor(i,dark)}">`+
+    `<span class="cpip" aria-hidden="true"></span>${c}</button>`).join("");
+  document.querySelectorAll("#curvefilts [data-cs]").forEach(b=>{
+    const on=b.dataset.cs==="tr"?curveShowTr:curveShowVa;
+    b.classList.toggle("on",on);
+    b.setAttribute("aria-pressed",String(on));
+  });
+}
+function ensureCurveResize(){
+  const el=$("curveplot");
+  if(!el||el._ro||!window.ResizeObserver)return;
+  el._ro=new ResizeObserver(()=>{
+    if(window.Plotly&&el.classList.contains("js-plotly-plot")&&el.clientHeight>0)
+      Plotly.Plots.resize(el);
+  });
+  el._ro.observe(el.parentElement||el);
+}
+function drawCurves(){
+  const host=$("curveplot");
+  if(!host)return;
+  drawCurveFilters();
+  const bag=allCurves();
+  const vis=CIRCUITS.filter(c=>curveOn[c]&&bag[c]);
+  const isReal=realLoaded();
+  if(!vis.length){
+    if(window.Plotly)Plotly.purge(host);
+    host.innerHTML='<p class="plotwarn">No circuits selected.</p>';
+    return;
+  }
+  if(typeof Plotly==="undefined"){
+    host.innerHTML='<p class="plotwarn">Plotly could not be loaded, so the curves are unavailable offline.</p>';
+    return;
+  }
+  const t=curveTheme();
+  const yTitle=CURVE_Y[curveTab]||curveTab;
+  const tkey=curveTab==="r2"?"r2":curveTab;
+  const solo=vis.length===1;
+  const showTr=curveShowTr, showVa=curveShowVa;
+  const traces=[];
+  let N=0, yMin=Infinity, yMax=-Infinity;
+  vis.forEach(c=>{
+    const s=(bag[c][curveTab]||bag[c].loss);
+    if(!s||!s.tr||!s.tr.length)return;
+    N=Math.max(N,s.tr.length);
+    const epochs=s.tr.map((_,i)=>i+1);
+    const i=CIRCUITS.indexOf(c);
+    const col=circColor(i,t.dark);
+    const thick=c===CUR.circuit?2.8:solo?2.6:1.85;
+    if(showTr){
+      const tr={
+        x:epochs, y:s.tr, name:c+" train", legendgroup:c, type:"scatter",
+        mode:solo?"lines+markers":"lines",
+        line:{color:col,width:thick},
+        hovertemplate:`<b>${c}</b>  train  %{y:.4f}<extra></extra>`
+      };
+      if(solo)tr.marker={size:6,color:col};
+      traces.push(tr);
+      yMin=Math.min(yMin,...s.tr); yMax=Math.max(yMax,...s.tr);
+    }
+    if(showVa){
+      const va={
+        x:epochs, y:s.va, name:c+" val", legendgroup:c, type:"scatter",
+        mode:solo?"lines+markers":"lines",
+        line:{color:col,width:thick,dash:showTr?"dot":"solid"},
+        hovertemplate:`<b>${c}</b>  val    %{y:.4f}<extra></extra>`
+      };
+      if(solo)va.marker={size:6,color:col};
+      if(solo&&showTr){va.fill="tonexty";va.fillcolor=t.ribbon;}
+      traces.push(va);
+      yMin=Math.min(yMin,...s.va); yMax=Math.max(yMax,...s.va);
+    }
+  });
+  if(!traces.length||!N){
+    if(window.Plotly)Plotly.purge(host);
+    host.innerHTML='<p class="plotwarn">No scalars logged for this address.</p>';
+    return;
+  }
+  let tv=null;
+  if(solo&&isReal){
+    const test=EDA_REAL.circuitTest(CUR.pdk,CUR.stage,vis[0]);
+    tv=test&&test[tkey];
+    if(tv!=null&&isFinite(tv)){
+      traces.push({
+        x:[1,N], y:[tv,tv], name:"test", type:"scatter", mode:"lines",
+        line:{color:t.test,width:1.5,dash:"dash"},
+        hovertemplate:"<b>test</b>   %{y:.4f}<extra></extra>"
+      });
     }
   }
-  const n=mat.length,cell=Math.floor(300/n);
-  cv.width=n*cell;cv.height=n*cell;
-  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
-    const v=mat[i][j],t=Math.max(0,Math.min(1,(v+0.1)/1.1));
-    ctx.fillStyle=v>0.9?"rgb(60,120,90)":`rgb(${235-60*t},${235-70*t},${235-40*t})`;
-    ctx.fillRect(j*cell,i*cell,cell-1,cell-1);}
-  const off=mat.flatMap((r,i)=>r.filter((_,j)=>j!==i));
-  const mean=off.reduce((a,b)=>a+b,0)/off.length;
-  $("cosstat").innerHTML=
-    `<div class="st"><span>mean off-diagonal</span><b class="mono big">${fmt(mean,4)}</b></div>`+
-    `<div class="st"><span>range</span><b class="mono">${fmt(Math.min(...off),3)} to ${fmt(Math.max(...off),3)}</b></div>`+
-    `<div class="st"><span>angle</span><b class="mono">${(Math.acos(Math.max(-1,Math.min(1,mean)))*180/Math.PI).toFixed(1)}\u00b0</b></div>`;
-  $("coscap").innerHTML=(cmpMode==="circuits"
-    ? `${CIRCUITS.length} circuits, holding <b>${taskLabel(CUR.task)}</b> / ${CUR.arch} / ${PDKL[CUR.pdk]} / ${SL[STAGES.indexOf(CUR.stage)]} fixed. Off-diagonal is indistinguishable from zero &mdash; a different circuit means a different seed.`
-    : `<b>${CUR.circuit}</b> across all 20 (PDK, stage) datasets, same task and architecture. Off-diagonal is 0.99+ &mdash; the weights follow the seed, not the data.`)+
-    (real?` Measured over all ${(EDA_REAL.stats||{}).checkpoints||360} checkpoints.`
-        :` Reproduced from the audited statistics.`);
-}
-
-/* ---------- training curves ---------- */
-function drawCurves(){
-  /* real runs read their TensorBoard scalars; mock addresses keep the
-     generated curves that were fitted to them */
-  let S=realLoaded()?EDA_REAL.curvesFor(CUR.pdk,CUR.stage,CUR.circuit):null;
-  const isReal=!!S;
-  if(!S){
-    const r=mulberry32(hash(CUR.task+CUR.arch+CUR.circuit+CUR.pdk+CUR.stage+"tb"));
-    S={loss:{tr:[],va:[]},r2:{tr:[],va:[]},mae:{tr:[],va:[]}};
-    for(let e=0;e<25;e++){
-      const t=e/24;
-      S.loss.tr.push(1.011-0.060*t+(r()-0.5)*0.012);
-      S.loss.va.push(0.411-0.041*t+(r()-0.5)*0.010);
-      S.r2.tr.push(-0.078+0.098*t+(r()-0.5)*0.012);
-      S.r2.va.push(-0.114+0.110*t+(r()-0.5)*0.014);
-      S.mae.tr.push(0.664-0.065*t+(r()-0.5)*0.010);
-      S.mae.va.push(0.491-0.066*t+(r()-0.5)*0.010);}
+  const shapes=[];
+  if(curveTab==="r2"&&yMin<0&&yMax>0){
+    shapes.push({type:"line",xref:"paper",x0:0,x1:1,y0:0,y1:0,
+      line:{color:t.test,width:1,dash:"dot"}});
   }
-  const s=S[curveTab],N=s.tr.length,all=[...s.tr,...s.va];
-  const lo=Math.min(...all),hi=Math.max(...all),pad=(hi-lo)*0.18;
-  const Wd=520,Ht=210,X0=48,Y0=172;
-  const px=i=>X0+(i/(N-1))*(Wd-X0-18),py=v=>Y0-((v-lo+pad)/((hi-lo)+2*pad))*146;
-  const path=a=>a.map((v,i)=>(i?"L":"M")+px(i).toFixed(1)+" "+py(v).toFixed(1)).join(" ");
-  let g=`<line x1="${X0}" y1="${Y0}" x2="${Wd-14}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`+
-    `<line x1="${X0}" y1="14" x2="${X0}" y2="${Y0}" stroke="var(--global-divider-strong)"/>`;
-  if(curveTab==="r2"&&lo<0&&hi>0)
-    g+=`<line x1="${X0}" y1="${py(0).toFixed(1)}" x2="${Wd-14}" y2="${py(0).toFixed(1)}" `+
-       `stroke="var(--neg)" stroke-dasharray="4 4" opacity=".6"/>`+
-       `<text class="cl" x="${Wd-16}" y="${(py(0)-5).toFixed(1)}" text-anchor="end" `+
-       `fill="var(--neg)">R\u00b2 = 0 (predicting the mean)</text>`;
-  g+=`<path class="ln2" style="--len:900" d="${path(s.tr)}" fill="none" `+
-     `stroke="var(--global-theme-color)" stroke-width="2"/>`+
-     `<path class="ln2" style="--len:900;animation-delay:.12s" d="${path(s.va)}" fill="none" `+
-     `stroke="var(--pos)" stroke-width="2" stroke-dasharray="4 3"/>`;
-  $("curvesvg").innerHTML=g;
-  const test=isReal?EDA_REAL.circuitTest(CUR.pdk,CUR.stage,CUR.circuit):null;
-  const tv=test&&test[curveTab==="r2"?"r2":curveTab];
-  $("curvestat").innerHTML=
-    `<div class="st"><span>first → last (train)</span><b class="mono">${fmt(s.tr[0],4)} → ${fmt(s.tr[N-1],4)}</b></div>`+
-    (tv!==undefined&&tv!==null
-      ? `<div class="st"><span>final test</span><b class="mono">${fmt(tv,4)}</b></div>`
-      : `<div class="st"><span>early stopping</span><b>never fired</b></div>`)+
-    `<div class="st"><span>gradient steps</span><b class="mono big">50</b></div>`+
-    (isReal?`<div class="st"><span>source</span><b>events.out.tfevents</b></div>`:"");
+  try{
+    Plotly.react(host, traces, {
+      paper_bgcolor:t.paper, plot_bgcolor:t.plotbg, font:t.font,
+      showlegend:false, hovermode:solo?"x unified":"closest", hoverlabel:t.hover,
+      spikedistance:-1, dragmode:"zoom",
+      margin:{l:62,r:48,t:28,b:52},
+      uirevision:CUR.pdk+"|"+CUR.stage+"|"+curveTab,
+      xaxis:{
+        title:{text:"epoch",font:{family:t.mono,size:12,color:t.muted},standoff:10},
+        gridcolor:t.grid, zeroline:false, linecolor:t.grid,
+        tickfont:{family:t.mono,size:12,color:t.muted},
+        tick0:1, range:[0.5,N+0.5], fixedrange:false,
+        showspikes:true, spikemode:"across+toaxis", spikethickness:1,
+        spikedash:"dot", spikecolor:t.muted, spikesnap:"cursor",
+        hoverformat:".0f"
+      },
+      yaxis:{
+        title:{text:yTitle,font:{family:t.mono,size:12,color:t.muted},standoff:8},
+        gridcolor:t.grid, zeroline:curveTab==="r2", zerolinecolor:t.test,
+        linecolor:t.grid, fixedrange:false,
+        tickfont:{family:t.mono,size:12,color:t.muted},
+        showspikes:true, spikemode:"across", spikethickness:1,
+        spikedash:"dot", spikecolor:t.muted,
+        hoverformat:".4f"
+      },
+      shapes,
+      annotations:curveTab==="r2"&&shapes.length?[{
+        xref:"paper", x:1, xanchor:"right", y:0, yanchor:"bottom",
+        text:"R\u00b2 = 0", showarrow:false,
+        font:{family:t.mono,size:12,color:t.test}, yshift:6
+      }]:[]
+    }, CURVE_CFG);
+  }catch(err){
+    host.innerHTML='<p class="plotwarn">Could not draw these curves.</p>';
+    return;
+  }
+  ensureCurveResize();
 }
 
 /* ---------- pickers ---------- */
+function pickCircuit(c){
+  if(!CIRCUITS.includes(c))return;
+  if(CUR.circuit===c){drawPicker();return;}
+  CUR.circuit=c;
+  loadModel();
+}
+function pickRun(p,s){
+  if(!PDKS.includes(p)||!STAGES.includes(s))return;
+  if(CUR.pdk===p&&CUR.stage===s){drawPicker();return;}
+  CUR.pdk=p;CUR.stage=s;
+  loadModel();
+}
 function drawPicker(){
-  $("circhips").innerHTML=CIRCUITS.map(c=>
-    `<button class="chipc${CUR.circuit===c?" on":""}" data-c="${c}">${c}</button>`).join("");
-  $("circhips").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{
-    CUR.circuit=b.dataset.c;loadModel();});
-  $("cmpgrid").innerHTML=`<div class="pg"><div></div>`+
+  const cir=$("circhips"), grid=$("cmpgrid");
+  if(!cir||!grid)return;
+  cir.innerHTML=CIRCUITS.map(c=>
+    `<button type="button" class="chipc${CUR.circuit===c?" on":""}" data-c="${c}" aria-pressed="${CUR.circuit===c}">${c}</button>`).join("");
+  grid.innerHTML=`<div class="pg"><div></div>`+
     SL.map(s=>`<div class="pgh">${s}</div>`).join("")+
     PDKS.map(p=>`<div class="pgl">${PDKL[p]}</div>`+STAGES.map(s=>
-      `<button class="pgc${CUR.pdk===p&&CUR.stage===s?" on":""}" data-ps="${p}|${s}"></button>`)
+      `<button type="button" class="pgc${CUR.pdk===p&&CUR.stage===s?" on":""}" data-ps="${p}|${s}" aria-pressed="${CUR.pdk===p&&CUR.stage===s}" aria-label="${PDKL[p]} ${SL[STAGES.indexOf(s)]}"></button>`)
       .join("")).join("")+`</div>`;
-  $("cmpgrid").querySelectorAll("[data-ps]").forEach(b=>b.onclick=()=>{
-    const[p,s]=b.dataset.ps.split("|");CUR.pdk=p;CUR.stage=s;loadModel();});
 }
 
 function renderAll(){drawHeader();drawPicker();drawNet();
-  drawInputs();drawParams();drawHeat();drawNull();drawCos();drawCurves();}
+  drawWidths();drawInputs();drawHeat();drawWDist();drawCurves();}
 
 /* ---------- wiring ---------- */
 function setNetRail(on){
@@ -1887,15 +2505,23 @@ function setNetRail(on){
   $("togglenetrail").setAttribute("aria-expanded",String(on));
   setTimeout(()=>{if(netMode==="3d")render3d();},60);
 }
-function setRailMode(mode){
-  railMode=mode;
-  document.querySelectorAll("[data-rail]").forEach(b=>
-    b.setAttribute("aria-pressed",b.dataset.rail===mode));
-  $("pane-features").hidden=mode!=="features";
-  $("pane-params").hidden=mode!=="params";
-}
 $("togglenetrail").onclick=()=>setNetRail($("netshell").classList.contains("rail-off"));
-document.querySelectorAll("[data-rail]").forEach(b=>b.onclick=()=>setRailMode(b.dataset.rail));
+function setAddrOpen(on){
+  $("addrbody").hidden=!on;
+  $("toggleaddr").innerHTML=RAIL_ICO+(on?" Hide filters":" Filters");
+  $("toggleaddr").setAttribute("aria-expanded",String(on));
+  setTimeout(()=>{if(netMode==="3d")render3d();},60);
+}
+$("toggleaddr").onclick=()=>setAddrOpen($("addrbody").hidden);
+$("addrbody").addEventListener("click",e=>{
+  const c=e.target.closest("[data-c]");
+  if(c){pickCircuit(c.dataset.c);return;}
+  const ps=e.target.closest("[data-ps]");
+  if(ps){
+    const[p,s]=ps.dataset.ps.split("|");
+    pickRun(p,s);
+  }
+});
 document.querySelectorAll("[data-nm3]").forEach(b=>b.onclick=()=>{
   netMode=b.dataset.nm3;
   document.querySelectorAll("[data-nm3]").forEach(o=>o.setAttribute("aria-pressed",o===b));
@@ -1912,17 +2538,62 @@ attach3d($("net3d"),
       if(best!==hoverUnit){hoverUnit=best;render3d();}},
   ()=>{},
   ()=>render3d());
-addEventListener("resize",()=>{if(netMode==="3d")render3d();});
-document.querySelectorAll("[data-cm]").forEach(b=>b.onclick=()=>{
-  cmpMode=b.dataset.cm;
-  document.querySelectorAll("[data-cm]").forEach(o=>o.setAttribute("aria-pressed",o===b));
-  drawCos();});
+if(window.ResizeObserver){
+  new ResizeObserver(()=>{if(netMode==="3d")render3d();}).observe($("net3d").parentElement);
+}
+addEventListener("resize",()=>{
+  if(netMode==="3d")render3d();
+  ["curveplot","wdistplot"].forEach(id=>{
+    const el=$(id);
+    if(window.Plotly&&el&&el.classList.contains("js-plotly-plot"))
+      Plotly.Plots.resize(el);
+  });
+});
 document.querySelectorAll("[data-ct]").forEach(b=>b.onclick=()=>{
   curveTab=b.dataset.ct;
   document.querySelectorAll("[data-ct]").forEach(o=>o.setAttribute("aria-pressed",o===b));
   drawCurves();});
-/* theme.js owns the switch; the canvases have to be repainted for it */
-addEventListener("themechange",()=>{drawHeat();drawCos();drawNet();});
+$("curvefilts").addEventListener("click",e=>{
+  const split=e.target.closest("[data-cs]");
+  if(split){
+    const k=split.dataset.cs;
+    if(k==="tr"){if(!curveShowTr||curveShowVa)curveShowTr=!curveShowTr;}
+    else if(!curveShowVa||curveShowTr)curveShowVa=!curveShowVa;
+    drawCurves();
+    return;
+  }
+  const bulk=e.target.closest("[data-cc]");
+  if(bulk){
+    const on=bulk.dataset.cc==="all";
+    CIRCUITS.forEach(c=>curveOn[c]=on);
+    drawCurves();
+    return;
+  }
+  const chip=e.target.closest("[data-ccirc]");
+  if(!chip)return;
+  const c=chip.dataset.ccirc;
+  if(e.shiftKey||e.metaKey||e.altKey)
+    CIRCUITS.forEach(x=>curveOn[x]=x===c);
+  else curveOn[c]=!curveOn[c];
+  drawCurves();
+});
+$("k-wdist").addEventListener("click",e=>{
+  const mode=e.target.closest("[data-wd]");
+  if(mode){
+    wdistMode=mode.dataset.wd;
+    document.querySelectorAll("#k-wdist [data-wd]").forEach(o=>
+      o.setAttribute("aria-pressed",o===mode));
+    drawWDist();
+    return;
+  }
+  const hl=e.target.closest("[data-hl]");
+  if(!hl)return;
+  hmLayer=+hl.dataset.hl;
+  drawHeat();
+  drawWDist();
+});
+/* theme.js owns the switch; the canvases and Plotly have to be repainted for it */
+addEventListener("themechange",()=>{drawHeat();drawNet();drawCurves();drawWDist();});
 
 /* read the full address handed over by the leaderboard */
 (function(){
