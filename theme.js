@@ -27,3 +27,38 @@
     });
   });
 })();
+
+/* al-folio enable_progressbar — same reading-position indicator as
+   drexel-ice.github.io. A <progress> under the navbar tracks scrollY. */
+(function () {
+  function mount() {
+    if (document.getElementById("progress")) return;
+    var bar = document.createElement("progress");
+    bar.id = "progress";
+    bar.max = 1;
+    bar.value = 0;
+    bar.setAttribute("aria-hidden", "true");
+    document.body.insertBefore(bar, document.body.firstChild);
+
+    function navH() {
+      var nav = document.querySelector(".icelab-navbar");
+      return nav ? nav.offsetHeight : 72;
+    }
+    function distance() {
+      return Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    }
+    function update() {
+      bar.style.top = navH() + "px";
+      var d = distance();
+      bar.max = d || 1;
+      bar.value = d ? Math.min(d, scrollY) : 0;
+    }
+    addEventListener("scroll", update, { passive: true });
+    addEventListener("resize", update);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+    update();
+    setTimeout(update, 50);
+  }
+  if (document.readyState === "loading") addEventListener("DOMContentLoaded", mount);
+  else mount();
+})();

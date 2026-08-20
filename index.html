@@ -336,9 +336,8 @@ html[data-theme="dark"] .mcell.colact{background:rgba(255,255,255,.06)}
   .rkrow{transition:none!important}
 }
 
-/* al-folio: enable_progressbar + back_to_top, both true in _config.yml */
-#prog{position:fixed;top:0;left:0;height:3px;background:var(--global-accent-color);
-  z-index:300;width:0;transition:width .08s linear}
+/* al-folio: back_to_top is true in _config.yml. The scroll progress bar
+   lives in theme.css / theme.js, same as drexel-ice.github.io. */
 #top{position:fixed;right:1.2rem;bottom:1.2rem;z-index:120;width:38px;height:38px;
   border-radius:50%;border:none;cursor:pointer;background:rgba(0,0,0,.4);color:#fff;
   font-size:1rem;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -631,8 +630,6 @@ html[data-theme="dark"] body.chartbig::after{background:rgba(0,0,0,.55)}
 </style>
 </head>
 <body>
-
-<div id="prog"></div>
 
 <header class="icelab-navbar">
   <div class="navbar-inner">
@@ -2087,11 +2084,9 @@ document.querySelectorAll("[data-ctab]").forEach(b=>b.onclick=()=>{
 });
 addEventListener("keydown",e=>{if(e.key==="Escape"){hideTip();backToMatrix();}});
 
-/* al-folio: enable_progressbar and back_to_top are both true in _config.yml */
-const prog=document.getElementById("prog"),topBtn=document.getElementById("top");
+/* al-folio: back_to_top. Progress bar is mounted by theme.js. */
+const topBtn=document.getElementById("top");
 addEventListener("scroll",()=>{
-  const h=document.documentElement.scrollHeight-innerHeight;
-  prog.style.width=(h>0?(scrollY/h)*100:0)+"%";
   topBtn.classList.toggle("on",scrollY>320);
 },{passive:true});
 topBtn.onclick=()=>scrollTo({top:0,behavior:"smooth"});

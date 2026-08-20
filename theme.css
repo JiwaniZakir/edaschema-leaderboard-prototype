@@ -303,6 +303,30 @@ html[data-theme="dark"] .icelab-navbar .themebtn .i-dark { display: block; }
   .icelab-navbar nav a { font-size: .9rem; padding: 2px 0; }
 }
 
+/* al-folio enable_progressbar: a 1px theme-color track under the navbar
+   that fills with vertical scroll. JS sets `top` to the live navbar height. */
+#progress {
+  position: fixed;
+  left: 0;
+  top: 72px;
+  z-index: 201;
+  width: 100%;
+  height: 3px;
+  pointer-events: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: none;
+  background-color: transparent;
+  color: var(--global-theme-color);
+}
+#progress::-webkit-progress-bar { background-color: transparent; }
+#progress::-webkit-progress-value { background-color: var(--global-theme-color); }
+#progress::-moz-progress-bar { background-color: var(--global-theme-color); }
+@media (prefers-reduced-motion: reduce) {
+  #progress { transition: none; }
+}
+
 /* --- Footer ---------------------------------------------------------------- */
 .footer, .foot {
   background: var(--global-footer-bg-color);

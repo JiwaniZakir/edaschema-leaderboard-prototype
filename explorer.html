@@ -295,11 +295,17 @@ body.loading .bento{opacity:.45;transition:opacity .15s}
   font-weight:500;
 }
 .idscore{
-  flex:1; display:flex; flex-direction:column;
-  justify-content:flex-end; align-items:flex-start;
+  flex:1; display:flex; flex-direction:row; flex-wrap:nowrap;
+  justify-content:flex-start; align-items:flex-end;
+  gap:1.45rem;
   margin-top:.45rem; min-height:0;
+  overflow-x:auto;
 }
 .idscore[hidden]{display:none}
+.idscore-item{
+  display:flex; flex-direction:column;
+  justify-content:flex-end; align-items:flex-start;
+}
 .idscore-lab{
   font-family:var(--global-font-sans); font-weight:300;
   font-size:1.15rem; line-height:1.15; letter-spacing:-.02em;
@@ -642,25 +648,30 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 .tbtn:hover{border-color:var(--global-theme-color)}
 .tbtn svg{width:14px;height:14px;display:block;flex:none}
 #k-net{
-  height:min(78vh, 880px);
-  min-height:560px;
+  height:auto;
+  min-height:min(78vh, 880px);
 }
-#k-net .netshell{flex:1; min-height:0}
+#k-net .netshell{flex:1 1 auto; min-height:min(62vh, 680px)}
 .netshell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:1rem 1.15rem;
   align-items:stretch}
 .netshell.rail-off{grid-template-columns:minmax(0,1fr)}
 .netshell.rail-off .netrail{display:none}
 @media(max-width:1080px){
   #k-net{height:auto; min-height:0}
+  #k-net .netshell{min-height:0}
   .netshell{grid-template-columns:1fr}
   .netrail{border-left:0;padding-left:0;border-top:1px solid var(--global-divider-color);
     padding-top:.9rem; min-height:42vh}
 }
-.netview{min-width:0; min-height:0; display:flex; flex-direction:column; overflow:hidden}
+.netview{min-width:0; min-height:min(52vh, 560px); display:flex; flex-direction:column; overflow:visible}
 #wrap3d, #wrapgr{
-  flex:1; display:flex; flex-direction:column; min-height:0;
+  flex:1 1 auto; display:flex; flex-direction:column;
+  min-height:min(56vh, 640px);
 }
-.c3dhost{flex:1; min-height:280px; position:relative}
+.c3dhost{flex:1 1 auto; min-height:min(52vh, 560px); height:min(56vh, 640px); position:relative}
+@media(max-width:1080px){
+  .c3dhost{min-height:360px; height:min(50vh, 520px)}
+}
 #net3d{
   position:absolute; inset:0; width:100%; height:100%;
   display:block; touch-action:none; border:none; border-radius:0;
@@ -676,6 +687,8 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
   font-size:.82rem; padding:.22rem .55rem; margin:0 .28rem .28rem 0;
   color:var(--md-heading-color); border-radius:6px;
 }
+.addrbody .chipc.on,
+.addrbody .chipc.on:hover{color:#fff}
 .addrbody .pg{
   grid-template-columns:4.8rem repeat(5,minmax(0,1fr));
   gap:5px; width:100%;
@@ -698,7 +711,7 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 .fg{margin-bottom:.6rem}
 .fgh{margin-bottom:.2rem;display:flex;gap:.35rem}
 .fgh span{color:var(--global-text-color-light);font-weight:400}
-.fr{display:grid;grid-template-columns:16px 1fr 74px 34px;gap:.4rem;align-items:center;
+.fr{display:grid;grid-template-columns:16px 1fr 74px 3.6rem;gap:.4rem;align-items:center;
   padding:.05rem 0}
 .fr.off{opacity:.42}
 .fr input[type=checkbox]{margin:0;accent-color:var(--global-theme-color)}
@@ -772,14 +785,14 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
         <p class="netsub">Uncheck an input or change a width to rebuild the graph.</p>
       </div>
       <div class="nethead-btns">
-        <button class="tbtn" id="toggleaddr" aria-expanded="false" aria-controls="addrbody">
+        <button class="tbtn" id="toggleaddr" aria-expanded="true" aria-controls="addrbody">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
             stroke-linecap="round" aria-hidden="true">
             <path d="M4 8h16"/><path d="M4 16h16"/>
             <circle cx="8" cy="8" r="2.2" fill="currentColor" stroke="none"/>
             <circle cx="16" cy="16" r="2.2" fill="currentColor" stroke="none"/>
           </svg>
-          Filters
+          Hide filters
         </button>
         <button class="tbtn" id="togglenetrail" aria-expanded="true" aria-controls="netrail">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
@@ -795,7 +808,11 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 
     <div class="netshell" id="netshell">
       <div class="netview">
-        <div class="widthopt addrbody" id="addrbody" hidden>
+        <div class="widthopt addrbody" id="addrbody">
+          <div>
+            <div class="widthopt-lab">problem</div>
+            <div id="taskchips"></div>
+          </div>
           <div>
             <div class="widthopt-lab">circuit</div>
             <div id="circhips"></div>
@@ -903,6 +920,7 @@ text.nl{font-size:9px;fill:var(--global-text-color-light);font-family:var(--glob
 
 <script src="real-data.js"></script>
 <script src="data/real.js"></script>
+<script src="data/baselines.js"></script>
 <script>
 /* ===================== registries ===================== */
 const PDKS=["ng45","sky130","ihp130","asap7"];
@@ -918,6 +936,23 @@ const TASKS=[["total_area","Total area"],["total_power","Total power"],
 ["total_negative_slack","Total negative slack"],["timing_path_arrival_time","Path arrival time"],
 ["timing_path_slack","Path slack"],["net_arc_delay","Net arc delay"],
 ["cell_arc_delay","Cell arc delay"],["cell_arc_slew","Cell arc slew"]];
+/* same metric columns the leaderboard uses for each problem type */
+const TASK_METRICS={
+  total_area:["MAE","MAPE","R\u00b2"],
+  total_power:["MAE","MAPE","R\u00b2"],
+  total_wirelength:["MAE","MAPE","R\u00b2"],
+  interconnect_length:["MAE","MAPE","R\u00b2","MAE-P95","MAPE-P95","MAE-TOP5","MAPE-TOP5"],
+  worst_arrival_time:["MAE","MAPE"],
+  worst_slack:["MAE","MPE","MNE","TPR","TNR"],
+  total_negative_slack:["MAE","MPE","MNE"],
+  timing_path_arrival_time:["MAE","MAPE","MAE-P95","MAPE-P95","MAE-TOP5","MAPE-TOP5"],
+  timing_path_slack:["MAE","MPE","MNE","TPR","TNR"],
+  net_arc_delay:["MAE","MAPE","R\u00b2"],
+  cell_arc_delay:["MAE","MAPE","R\u00b2"],
+  cell_arc_slew:["MAE","MAPE","R\u00b2"]
+};
+const PCT_METRICS={MAPE:1,"MAPE-P95":1,"MAPE-TOP5":1,TPR:1,TNR:1};
+const metricsOfTask=t=>TASK_METRICS[t]||["MAE","MAPE","R\u00b2"];
 
 /* the 41 scalar features, in checkpoint dict-insertion order (INFERRED) */
 const FEATS=[
@@ -934,6 +969,162 @@ const FEATS=[
    "worst_required_time","no_of_endpoints","no_of_violating_endpoints"]]];
 const FEATFLAT=[];FEATS.forEach(([g,ns])=>ns.forEach(n=>FEATFLAT.push({g,n,full:g+"."+n})));
 const GCOL={netlist:"var(--ent-netlist)",cell_metrics:"var(--ent-cell)",power_metrics:"var(--ent-power)",timing_metrics:"var(--ent-timing)"};
+
+/* Circuit / PDK tables the checkpoints were trained on (EDA-Schema-V2).
+   The run tree has weights and hparams, not parquet rows or scalers, so the
+   sliders open on this published default instance instead of a zero vector. */
+const IWLS_IO={
+  ac97_ctrl:[84,48,2211], aes_core:[259,129,562], des3_area:[240,64,64],
+  ethernet:[96,115,10544], i2c:[19,14,129], jpeg:[20,27,4383],
+  mem_ctrl:[115,152,1083], pci:[162,207,3220], sasc:[16,12,118],
+  simple_spi:[16,12,131], spi:[47,45,229], ss_pcm:[19,9,87],
+  systemcaes:[260,129,670], systemcdes:[132,65,190], tv80:[14,32,361],
+  usb_funct:[128,121,1740], usb_phy:[15,18,108], wb_dma:[217,215,521]
+};
+const PDK_UTIL={ng45:0.40,sky130:0.30,ihp130:0.30,asap7:0.40};
+const PDK_UTIL_SWEEP={ng45:[0.3,0.4,0.5],sky130:[0.2,0.3,0.4],
+  ihp130:[0.2,0.3,0.4],asap7:[0.3,0.4,0.5]};
+const BPBF={
+  ng45:  [[0.6,0.5],[1.5,1.25],[2.5,2.25],[1.65,1.5],[0.65,0.55],[1.8,1.6],[1.75,1.25],
+          [1,0.75],[0.6,0.5],[0.55,0.45],[1.5,1.25],[0.38,0.325],[1.75,1.5],[1.45,1.25],
+          [2.25,1.9],[1,0.8],[0.45,0.35],[1.25,0.9]],
+  asap7: [[0.375,0.35],[0.75,0.725],[1.225,1.2],[0.75,0.725],[0.375,0.35],[1.125,1.1],
+          [0.875,0.85],[0.825,0.81],[0.4,0.375],[0.325,0.3],[0.775,0.75],[0.275,0.25],
+          [0.85,0.825],[0.75,0.725],[1.2,1.175],[0.425,0.4],[0.3,0.275],[0.7,0.675]],
+  sky130:[[2.5,2.25],[4.75,4.5],[7.75,7.5],[5.25,5],[2.75,2.5],[6,5.75],[6.25,6],
+          [3.75,3.5],[2.25,2],[2.25,1.9],[4.75,4.5],[1.5,1.35],[5.75,5.5],[5,4.8],
+          [8.25,8],[2.75,2.5],[1.75,1.5],[4.25,4]],
+  ihp130:[[2.35,2.3],[4.25,4],[8.5,8.25],[5.5,5.25],[2.25,2],[9.5,9.25],[5.25,5],
+          [3.5,3.25],[2,1.75],[1.75,1.5],[4.75,4.5],[1.4,1.2],[5.5,5.25],[4,3.75],
+          [7.5,7.25],[3.25,3],[1.4,1.25],[4.5,4.25]]};
+const QOR_RANGE={
+  total_area:{ng45:[723,100505],sky130:[3576,513155],ihp130:[16056,5592904],asap7:[58,9333]},
+  total_power:{ng45:[2230,456000],sky130:[3690,700000],ihp130:[3410,383000],asap7:[654,115000]},
+  total_wirelength:{ng45:[2326.59,900314.625],sky130:[5639.58,2137809.055],
+    ihp130:[10166.155,3621758.23],asap7:[751.681,591701.235]},
+  worst_slack:{ng45:[-0.3474,0.5806],sky130:[-4.792,0.5328],ihp130:[-1.555,2.102],asap7:[-0.4188,0.2555]},
+  total_negative_slack:{ng45:[-463.9339,0],sky130:[-3045.1636,0],ihp130:[-1672.6881,0],asap7:[-434.9989,0]}
+};
+function lerpLog(lo,hi,t){
+  t=Math.max(0,Math.min(1,t));
+  if(!(lo>0&&hi>0))return lo+(hi-lo)*t;
+  return Math.exp(Math.log(lo)+t*(Math.log(hi)-Math.log(lo)));
+}
+function circuitScaleT(c){
+  const scales=CIRCUITS.map(n=>{
+    const r=IWLS_IO[n]||[1,1,1];
+    return Math.log(r[0]+r[1]+r[2]);
+  });
+  const lo=Math.min.apply(null,scales), hi=Math.max.apply(null,scales);
+  const r=IWLS_IO[c]||IWLS_IO.ac97_ctrl;
+  return (Math.log(r[0]+r[1]+r[2])-lo)/(hi-lo||1);
+}
+function colSd(xs){
+  const n=xs.length; if(!n)return 1;
+  let m=0; for(const v of xs)m+=v; m/=n;
+  let v=0; for(const x of xs)v+=(x-m)*(x-m);
+  return Math.sqrt(v/n)||0;
+}
+function rawPrototype(circuit,pdk,stage){
+  const io=IWLS_IO[circuit]||IWLS_IO.ac97_ctrl;
+  const nIn=io[0], nOut=io[1], nReg=io[2];
+  const ci=Math.max(0,CIRCUITS.indexOf(circuit));
+  const si=Math.max(0,STAGES.indexOf(stage));
+  const t=circuitScaleT(circuit);
+  const util=PDK_UTIL[pdk]||0.4;
+  const bp=(BPBF[pdk]&&BPBF[pdk][ci]?BPBF[pdk][ci][0]:1);
+  const area=lerpLog(QOR_RANGE.total_area[pdk][0],QOR_RANGE.total_area[pdk][1],t)*(0.92+0.08*si/4);
+  const power=lerpLog(QOR_RANGE.total_power[pdk][0],QOR_RANGE.total_power[pdk][1],t);
+  const hpwl=lerpLog(QOR_RANGE.total_wirelength[pdk][0],QOR_RANGE.total_wirelength[pdk][1],t)*(0.25+0.75*si/4);
+  const slackLo=QOR_RANGE.worst_slack[pdk][0], slackHi=QOR_RANGE.worst_slack[pdk][1];
+  const slack=slackLo+(slackHi-slackLo)*(0.35+0.5*si/4);
+  const tnsLo=QOR_RANGE.total_negative_slack[pdk][0];
+  const tns=slack<0?tnsLo*(1-si/4)*t:0;
+  const nCells=Math.max(nReg+nIn, Math.round(nReg*6.5+nIn+nOut));
+  const nCombo=Math.max(0,nCells-nReg);
+  const nBuf=Math.round(nCombo*0.08);
+  const nInv=Math.round(nCombo*0.12);
+  const nFill=Math.round(nCombo*0.15*(1-util));
+  const nTap=Math.round(nCombo*0.04);
+  const nNets=Math.round(nCells*1.1);
+  const nPins=nIn+nOut+Math.round(nCells*3.5);
+  const side=Math.sqrt(Math.max(area,1)/util);
+  const comboA=area*0.45, seqA=area*0.35, bufA=area*0.05, invA=area*0.04;
+  const fillA=area*0.08, tapA=area*0.03;
+  const cellA=comboA+seqA+bufA+invA;
+  const comboP=power*0.42, seqP=power*0.38, intP=power*0.55, swP=power*0.35, leakP=power*0.10;
+  const arrival=bp*(0.82+0.12*si/4);
+  const viol=slack<0?Math.round(nReg*0.12*(1-si/4)):0;
+  const by={
+    no_of_inputs:nIn, no_of_outputs:nOut, no_of_cells:nCells, no_of_nets:nNets,
+    no_of_pins:nPins, utilization:util, width:side, height:side, total_hpwl:hpwl,
+    no_of_combinational_cells:nCombo, no_of_sequential_cells:nReg, no_of_buffers:nBuf,
+    no_of_inverters:nInv, no_of_fillers:nFill, no_of_tap_cells:nTap,
+    no_of_diodes:0, no_of_macros:0, no_of_total_cells:nCells+nFill+nTap,
+    combinational_cell_area:comboA, sequential_cell_area:seqA, buffer_area:bufA,
+    inverter_area:invA, filler_area:fillA, tap_cell_area:tapA, diode_area:0, macro_area:0,
+    cell_area:cellA, total_area:area,
+    combinational_power:comboP, sequential_power:seqP, macro_power:0,
+    internal_power:intP, switching_power:swP, leakage_power:leakP, total_power:power,
+    total_negative_slack:tns, worst_slack:slack, worst_arrival_time:arrival,
+    worst_required_time:bp, no_of_endpoints:nReg, no_of_violating_endpoints:viol
+  };
+  const x=new Float32Array(FEATFLAT.length);
+  FEATFLAT.forEach((f,i)=>{x[i]=by[f.n];});
+  return x;
+}
+const _featScaleCache=new Map();
+function featScale(pdk,stage){
+  const k=pdk+"|"+stage;
+  if(_featScaleCache.has(k))return _featScaleCache.get(k);
+  const n=FEATFLAT.length;
+  const raws=CIRCUITS.map(c=>rawPrototype(c,pdk,stage));
+  const mu=new Float32Array(n), sd=new Float32Array(n);
+  const utilSweep=PDK_UTIL_SWEEP[pdk]||[0.3,0.4,0.5];
+  const utilSd=colSd(utilSweep)||0.08;
+  for(let j=0;j<n;j++){
+    const col=raws.map(r=>r[j]);
+    let m=0; for(const v of col)m+=v; m/=col.length;
+    let s=colSd(col);
+    if(s<1e-9) s=FEATFLAT[j].n==="utilization"?utilSd:1;
+    mu[j]=m; sd[j]=s;
+  }
+  const out={mu,sd};
+  _featScaleCache.set(k,out);
+  return out;
+}
+function featRaw(i,z){
+  const sc=featScale(CUR.pdk,CUR.stage);
+  return sc.mu[i]+(+z)*(sc.sd[i]||1);
+}
+function fmtFeat(i,v){
+  if(!isFinite(v))return "\u2014";
+  const n=FEATFLAT[i]?FEATFLAT[i].n:"";
+  const a=Math.abs(v), s=v<0?"-":"";
+  if(n==="utilization")return v.toFixed(2);
+  if(/slack|arrival|required/.test(n))return v.toFixed(3);
+  if(a>=100000)return s+(a/1000).toFixed(0)+"k";
+  if(a>=10000)return s+(a/1000).toFixed(1)+"k";
+  if(/power|area|hpwl|width|height/.test(n)){
+    if(a>=100)return v.toFixed(0);
+    if(a>=10)return v.toFixed(1);
+    return v.toFixed(2);
+  }
+  return String(Math.round(v));
+}
+function showRawFeats(){return !!(Xfull&&Xfull.length===41);}
+function seedInputs(n){
+  const x=new Float32Array(n);
+  if(n!==41){XSEED=Float32Array.from(x);return x;}
+  const sc=featScale(CUR.pdk,CUR.stage);
+  const raw=rawPrototype(CUR.circuit,CUR.pdk,CUR.stage);
+  for(let i=0;i<41;i++){
+    const z=(raw[i]-sc.mu[i])/(sc.sd[i]||1);
+    x[i]=Math.max(-3,Math.min(3,z));
+  }
+  XSEED=Float32Array.from(x);
+  return x;
+}
 
 /* ===================== architectures =====================
    Each submitted family has a genuinely different graph. The explorer renders
@@ -1191,7 +1382,7 @@ function computeFit(G,W,H){
     y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);
   }
   const bw=Math.max(1,x1-x0), bh=Math.max(1,y1-y0);
-  const k=Math.min((W*0.92)/bw,(H*0.90)/bh);
+  const k=Math.min((W*0.78)/bw,(H*0.76)/bh);
   FIT={k, dx:W/2-((x0+x1)/2-W/2)*k-W/2*k+W/2*0,
           dy:H/2-((y0+y1)/2-H/2)*k-H/2*k+H/2*0};
   /* solve directly: we want (mid - W/2)*k + W/2 + dx == W/2 */
@@ -1476,7 +1667,7 @@ const fmt=(v,d)=>v===null||!isFinite(v)?"\u2014":v.toFixed(d===undefined?3:d);
    rather than on a placeholder */
 let CUR={task:"total_area",arch:"fixed_mlp",pdk:"ng45",stage:"floorplan",
   circuit:"ac97_ctrl",metric:"MAE"};
-let M=null, M0=null, FAM="MLP", X=null, Xfull=null, featOn=null, ACTS=null;
+let M=null, M0=null, FAM="MLP", X=null, Xfull=null, XSEED=null, featOn=null, ACTS=null;
 let ablate=new Set(), edits=new Map();
 let edgeCap=500, hmLayer=0, curveTab="loss", wdistMode="bars";
 const curveOn=Object.fromEntries(CIRCUITS.map(c=>[c,true]));
@@ -1585,18 +1776,18 @@ function buildModel(){
   edits.clear();ablate.clear();
   hmLayer=0;
   HP=Object.assign({},LAB_HP);
-  featOn=null;Xfull=null;ACTS=null;
+  featOn=null;Xfull=null;XSEED=null;ACTS=null;
   if(isTree()||!M0){
-    X=new Float32Array(ARCHSPEC[FAM].input);
+    X=seedInputs(ARCHSPEC[FAM].input);
     renderAll();
     return;
   }
   if(canReshape()){
     featOn=Array.from({length:M0[0].fi},()=>true);
-    Xfull=new Float32Array(M0[0].fi);
+    Xfull=seedInputs(M0[0].fi);
     HP.widths=M0.slice(0,-1).map(l=>l.fo);
   }else{
-    Xfull=new Float32Array(M0[0].fi);
+    Xfull=seedInputs(M0[0].fi);
     X=Xfull;
   }
   applyNetView();
@@ -1825,35 +2016,53 @@ function drawTaskGraphic(el,task,stage){
   }
   el.innerHTML=wrap(inner);
 }
-function metricVal(){
-  const rec=realLoaded()?EDA_REAL.circuitEval(CUR.pdk,CUR.stage,CUR.circuit):null;
-  if(!rec||!rec.m)return null;
-  const[mae,mape,r2]=rec.m;
-  const k=CUR.metric;
-  if(k==="MAPE")return mape*100;
-  if(k==="R\u00b2"||k==="R2")return r2;
-  return mae;
+function metricVal(name){
+  const k=name||CUR.metric;
+  const rec=isRealAddr(CUR.task,CUR.arch)?EDA_REAL.circuitEval(CUR.pdk,CUR.stage,CUR.circuit):null;
+  if(rec&&rec.m){
+    const[mae,mape,r2]=rec.m;
+    if(k==="MAPE")return mape*100;
+    if(k==="R\u00b2"||k==="R2")return r2;
+    if(k==="MAE")return mae;
+    return null;
+  }
+  /* stand-in addresses: OpenROAD Table 8 at this task × PDK × stage */
+  const B=window.EDA_BASE, si=STAGES.indexOf(CUR.stage);
+  const row=B&&B[CUR.task]&&B[CUR.task][k];
+  if(!row||!row[CUR.pdk]||si<0)return null;
+  const v=row[CUR.pdk][si];
+  return v===undefined?null:v;
 }
-function fmtMetric(v){
+function fmtMetric(v,name){
   if(v===null||!isFinite(v))return"";
+  if(v===-999)return"no \u00b1";
+  if(v===99999)return">10000%";
+  if(v===-2)return"<-1";
   const a=Math.abs(v); let s;
   if(a>=1000)s=Math.round(v).toLocaleString("en-US");
   else if(a>=100)s=v.toFixed(1);
   else if(a>=1)s=v.toFixed(2);
   else if(a>=.01)s=v.toFixed(3);
   else s=v.toFixed(4);
-  return s;
+  return PCT_METRICS[name]?s+"%":s;
 }
 function drawScore(){
-  const el=$("idscore"), v=metricVal();
-  if(v===null){
+  const el=$("idscore");
+  const names=metricsOfTask(CUR.task);
+  if(!names.length){
     el.hidden=true;
     el.innerHTML="";
     return;
   }
   el.hidden=false;
-  el.innerHTML=`<div class="idscore-lab">${CUR.metric}</div>`+
-    `<div class="idscore-val">${fmtMetric(v)}</div>`;
+  el.innerHTML=names.map(name=>{
+    const v=metricVal(name);
+    const text=(v===null||v===undefined||(!isFinite(v)&&v!==-999&&v!==99999&&v!==-2))
+      ?"\u2014":fmtMetric(v,name);
+    return `<div class="idscore-item">`+
+      `<div class="idscore-lab">${name}</div>`+
+      `<div class="idscore-val">${text}</div></div>`;
+  }).join("");
 }
 function drawHeader(){
   const real=realLoaded();
@@ -1953,18 +2162,19 @@ function render3d(){
 /* ---------- 4. inputs ---------- */
 function featRow(i, name, val, on){
   const checked=on!==false;
+  const lab=showRawFeats()?fmtFeat(i,featRaw(i,val)):fmt(val,2);
   return `<div class="fr${checked?"":" off"}">`+
     (featOn?`<input type="checkbox" data-on="${i}" ${checked?"checked":""} title="drop this input unit">`:
       `<span></span>`)+
     `<span class="fn">${name}</span>
       <input type="range" data-x="${i}" min="-3" max="3" step="0.05" value="${val}"${checked?"":" disabled"}>
-      <span class="fv mono" id="fv${i}">${fmt(val,2)}</span></div>`;
+      <span class="fv mono" id="fv${i}">${lab}</span></div>`;
 }
 function bindFeatureSliders(el){
   el.querySelectorAll("[data-x]").forEach(s=>s.oninput=()=>{
     const i=+s.dataset.x, v=+s.value;
     if(Xfull&&i<Xfull.length)Xfull[i]=v;else if(X)X[i]=v;
-    const lab=$("fv"+i);if(lab)lab.textContent=fmt(v,2);
+    const lab=$("fv"+i);if(lab)lab.textContent=showRawFeats()?fmtFeat(i,featRaw(i,v)):fmt(v,2);
     packX();run();drawNet();});
   el.querySelectorAll("[data-on]").forEach(cb=>cb.onchange=()=>{
     if(!featOn)return;
@@ -1982,7 +2192,9 @@ function bindFeatureSliders(el){
   });
   const rst=el.querySelector("[data-resetx]");
   if(rst)rst.onclick=()=>{
-    if(Xfull)Xfull.fill(0);else if(X)X.fill(0);
+    if(XSEED&&Xfull&&Xfull.length===XSEED.length)Xfull.set(XSEED);
+    else if(XSEED&&X&&X.length===XSEED.length)X.set(XSEED);
+    else if(Xfull)Xfull.fill(0);else if(X)X.fill(0);
     if(featOn)for(let i=0;i<featOn.length;i++)featOn[i]=true;
     applyNetView();
     drawInputs();
@@ -2009,7 +2221,8 @@ function drawInputs(){
       featRow(i, `dim ${i}`, xv(i), on(i))).join("")+`</div>`+
       `<button class="mini" data-resetx type="button">reset to mean</button>`;
   }else{
-    el.innerHTML=(realLoaded()?"":
+    el.innerHTML=(realLoaded()?
+      '<div class="hint">This circuit at PDK-default util and barely-pass clock. Numbers are physical estimates; sliders are z-scores.</div>':
       '<div class="hint">Stand-in architecture. Uncheck a feature to drop that input unit.</div>')+
       FEATS.map(([g,ns],gi)=>{
       const base=FEATS.slice(0,gi).reduce((a,[,x])=>a+x.length,0);
@@ -2019,7 +2232,7 @@ function drawInputs(){
         ns.map((n,j)=>{const i=base+j;
           return featRow(i, n, xv(i), on(i));}).join("")+`</div>`;
     }).join("")+
-      `<button class="mini" data-resetx type="button">reset to mean</button>`;
+      `<button class="mini" data-resetx type="button">reset to circuit</button>`;
   }
   bindFeatureSliders(el);
 }
@@ -2487,6 +2700,14 @@ function drawCurves(){
 }
 
 /* ---------- pickers ---------- */
+function pickTask(t){
+  if(!TASKS.some(x=>x[0]===t))return;
+  if(CUR.task===t){drawPicker();return;}
+  CUR.task=t;
+  const ms=metricsOfTask(t);
+  if(!ms.includes(CUR.metric))CUR.metric=ms[0];
+  loadModel();
+}
 function pickCircuit(c){
   if(!CIRCUITS.includes(c))return;
   if(CUR.circuit===c){drawPicker();return;}
@@ -2499,8 +2720,13 @@ function pickRun(p,s){
   CUR.pdk=p;CUR.stage=s;
   loadModel();
 }
+function taskChipHtml(){
+  return TASKS.map(([id,lab])=>
+    `<button type="button" class="chipc${CUR.task===id?" on":""}" data-task="${id}" aria-pressed="${CUR.task===id}">${lab.toLowerCase()}</button>`).join("");
+}
 function drawPicker(){
-  const cir=$("circhips"), grid=$("cmpgrid");
+  const cir=$("circhips"), grid=$("cmpgrid"), tasks=$("taskchips");
+  if(tasks)tasks.innerHTML=taskChipHtml();
   if(!cir||!grid)return;
   cir.innerHTML=CIRCUITS.map(c=>
     `<button type="button" class="chipc${CUR.circuit===c?" on":""}" data-c="${c}" aria-pressed="${CUR.circuit===c}">${c}</button>`).join("");
@@ -2529,7 +2755,12 @@ function setAddrOpen(on){
   setTimeout(()=>{if(netMode==="3d")render3d();},60);
 }
 $("toggleaddr").onclick=()=>setAddrOpen($("addrbody").hidden);
+function onTaskChip(e){
+  const t=e.target.closest("[data-task]");
+  if(t)pickTask(t.dataset.task);
+}
 $("addrbody").addEventListener("click",e=>{
+  onTaskChip(e);
   const c=e.target.closest("[data-c]");
   if(c){pickCircuit(c.dataset.c);return;}
   const ps=e.target.closest("[data-ps]");
@@ -2621,9 +2852,13 @@ addEventListener("themechange",()=>{drawHeat();drawNet();drawCurves();drawWDist(
   if(s&&STAGES.includes(s))CUR.stage=s;
   if(m)CUR.arch=m;
   if(c&&CIRCUITS.includes(c))CUR.circuit=c;
-  if(met==="MAE"||met==="MAPE"||met==="R\u00b2"||met==="R2")CUR.metric=met==="R2"?"R\u00b2":met;
+  if(met){
+    const canon=met==="R2"?"R\u00b2":met;
+    if(metricsOfTask(CUR.task).includes(canon))CUR.metric=canon;
+  }
 })();
 loadModel();
+setAddrOpen(true);
 
 </script>
 </body>
